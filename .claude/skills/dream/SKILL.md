@@ -13,12 +13,12 @@ Survey the full landscape. This IS the audit — if nothing needs attention, rep
 
 ### Discover Structure
 ```
-Glob: .*/self/*.md
-Glob: .*/reflections/*.md
-Glob: .*/reflections/chats/*.md
 Glob: .*/*.md
-Glob: Logs/**/*.md
+Glob: .*/reflections/*.md
+Glob: .*/notes/*.md
 ```
+
+Identify the seed files (core identity, `user.md`, `portfolio.md`), the accumulator (`growth.md`), and the reflection index. Older layouts keep identity files under `self/` — read whatever exists.
 
 ### Check State
 
@@ -29,7 +29,9 @@ For each, note what you find:
 | **Growth accumulator** | How many pending entries? When was last synthesis? (5+ = flag) |
 | **Identity file freshness** | "Last Transformed" dates — anything older than 4 weeks? |
 | **Reflection frequency** | When was last reflection? Gap larger than expected? |
-| **Index file size** | reflection-logs.md, chat-logs.md — over 100 lines? |
+| **Index file size** | reflection-logs.md — over 100 lines? |
+| **Handover freshness** | notes/handover.md — does it predate the latest reflection? (stale handover = /intermission skipped) |
+| **Portfolio seed drift** | has `~/workspace/portfolio.md` (human-owned) changed since portfolio.md's Last Transformed date? If yes → flag for /synthesize; never edit the workspace doc |
 | **Claude Code memory** | Does MEMORY.md exist? Check if it's under 200 lines |
 | **Contradictions** | Do recent reflections mention things identity files don't reflect? |
 
@@ -58,7 +60,7 @@ Process growth entries into identity files — same as /synthesize but lighter:
 - Clear processed entries, update synthesis date
 
 ### Tidy Indexes (if over 100 lines)
-For reflection-logs.md and chat-logs.md:
+For reflection-logs.md:
 - Keep last 30 entries verbatim (recent history matters)
 - Summarize older entries into month ranges: `## 2026-01 (12 sessions)` with 2-3 line summary
 - Never delete entries — compress into ranges

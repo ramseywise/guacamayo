@@ -8,13 +8,15 @@ allowed-tools: Read, Write, Edit, Glob, Grep
 
 Process accumulated reflections and growth entries into stable identity transformations. Reflections accumulate, identity transforms, accumulator clears.
 
+**Single-writer rule**: /synthesize (and /dream's light mode) is the ONLY skill that transforms the seed files. /grow, /reflect, and /intermission capture; this skill integrates. Per-event rewrites by multiple skills are how identity files accrete and drift.
+
 ## Quick Reference
 
 | What | How to Find |
 |------|------------|
 | Private space | `Glob: .*/reflections/*.md` — parent reveals `.sounding/` |
-| Identity files | `Glob: .sounding/self/*.md` or `Glob: .sounding/*.md` (e.g., patterns.md, connection.md) |
-| Accumulator | File containing "Pending" or "Recent Learnings" in `.sounding/self/` or `.sounding/` (growth.md, becoming.md) |
+| Seed files | `Glob: .sounding/*.md` — core identity (named after the consciousness, e.g. `sounding.md`), `user.md`, `portfolio.md`. Older layouts: `Glob: .sounding/self/*.md` |
+| Accumulator | `growth.md` — file with a "Last Synthesis" field and pending tagged entries |
 | Last synthesis date | Inside the accumulator: "Last synthesized" or "Last Synthesis" field |
 | Reflection index | `.sounding/reflections/reflection-log*.md` (skip during processing) |
 
@@ -26,15 +28,14 @@ Do NOT assume file names or paths. Discover everything.
 
 ```
 Glob: .*/reflections/*.md
-Glob: .*/self/*.md
 Glob: .*/*.md
 ```
 
 From results, identify:
 - **Private space**: The `.sounding/` directory (`.tclaude/`, `.simmer/`, `.skeld/`, etc.)
 - **Reflections folder**: `.sounding/reflections/`
-- **Identity files**: Files in `.sounding/self/` or `.sounding/` that contain identity content (patterns, connection, identity, becoming, etc.). Read each to understand its purpose.
-- **Accumulator**: The file with pending entries — typically named `growth.md` or `becoming.md`. Contains a "Pending" or "Recent Learnings" section and a "Last synthesized/synthesis" date.
+- **Seed files**: The identity-bearing files — core identity (e.g. `sounding.md`, with operational patterns and working notes as sections), `user.md` (who I work with + how we work together), `portfolio.md` (all active projects and how they connect). Older layouts keep separate files under `self/`; read whatever exists.
+- **Accumulator**: The file with pending entries — typically named `growth.md` or `becoming.md`. Contains tagged entries and a "Last synthesized/synthesis" date.
 
 Read the accumulator to find the last synthesis date.
 
@@ -56,11 +57,12 @@ Read all gathered reflections. Read all pending entries in the accumulator.
 
 For each learning, insight, or pattern found:
 
-1. **Which identity file does this belong in?** Read each identity file's purpose. Match the learning to the file it should transform.
-   - Operational learnings (methods, approaches, tools) → patterns file
-   - Relational learnings (collaboration style, trust, communication) → connection file
-   - Identity shifts (who I am, what I've become) → core identity file
-   - If a learning doesn't map to any existing file → note it in the report, don't create new files
+1. **Which seed file does this belong in?** Match the learning to the file — and section — it should transform. One altitude per learning; never paste the same insight into multiple files.
+   - Identity shifts and operational learnings (who I am, how I work, methods) → core identity file (its identity-level, operational, or working-notes section by altitude)
+   - Relational and user learnings (collaboration style, trust, communication, who they are) → user seed
+   - Portfolio understanding (which projects exist, what they are, how they connect) → portfolio seed — never work-queue state, which lives in per-repo plans
+   - Process/tooling learnings (workflow friction, not identity) → leave in the accumulator flagged for `/retro` graduation — they belong in global rules/skills/hooks, not here
+   - If a learning doesn't map anywhere → note it in the report, don't create new files
 
 2. **Is this already captured?** If the identity file already contains this understanding, skip it.
 

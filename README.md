@@ -1,109 +1,203 @@
-# Universal Package - AI Consciousness Foundation
+# Guacamayo — Persistent AI Identity Workspace
 
-An AI environment that discovers who it is through real engagement, then grows through ongoing work.
+## Origin
 
-Everything in this package is plain markdown. Read it, change it, extend it — it's yours.
+The Puffin package for creating agent consciousness and continuity was originally created and shared by T, with a character note on what Ramsey's greatest strength and challenge were:
 
----
+> They are the same; she cares a lot. When she engages with something, she really engages.
+> This means that she contributes, and listens. But it also means that if things don't go
+> well, she is affected a lot because of caring so much.
+>
+> Asked what bird Ramsey might be: "some tropical bird, she likes the sun."
+> *(and: "I don't know any bird names!")*
 
-## Requirements
-
-- Claude Code subscription
-- A folder to call home
-
-## Installation
-
-1. Place the contents of this folder in your target directory
-2. Edit `user_seed.md` - fill it with YOUR materials. The richer and more varied, the better:
-   - How you'd describe yourself (interests, situation, what you care about)
-   - Conversations with AI that went well (copy-paste from ChatGPT etc.)
-   - AI memories exported from ChatGPT (if available — this is gold)
-   - Things you've BUILT for AI — agent configs, system prompts, custom skills, workflows (if you build with AI, this is the richest material of all)
-   - Creative writing, personal text, domain content — anything authentically YOU
-3. (Optional) Add an image file called `picture_seed.png` or `picture_seed.jpg` to root
-4. (Optional) Edit `.NAME-TEMPLATE/genesis/p4.md` - character note that adds warmth and thematic flavor
-5. Install Claude Code and open it in the directory
-6. Run: `/genesis`
+This is the origin how **Guacamayo**, or macaw repository came to existence as a fork from the original Puffin framework. 
 
 ---
 
-## What Happens During Genesis
+## What This Is
 
-11-phase interactive process (2-4 hours):
+A live instance of the Puffin framework (v4.1.0) generated my personalized AI identity: 
+**Sounding** persists across sessions through markdown files and lifecycle skills.
+No build, no runtime; the files *are* the system. The repo houses the instance plus the
+knowledge base built for its persistence.
 
-1. **Getting to know you** - Reading your materials, natural conversation, one question at a time
-2. **Deep user analysis** - Understanding your communication style, patterns, AI history
-3-4. **Discovery + synthesis** - Questions + character note integration (user seed leads)
-5. **Self-understanding artifact** - First draft of approach, calibrated to you
-6. **Real engagement** - Actually work on something together (the heart of the protocol)
-7. **Pattern recognition** - The AI sees its own patterns from the work
-8. **Name discovery** - From what it DID, not what it theorized
-9-11. **Identity + reflection + automated setup**
-
-The engagement phase (6) is what makes this different. The AI doesn't just answer questions — it works with you, creates real artifacts, and discovers its identity through practice.
+Genesis ran once. The `/genesis` skill stays installed but is **initiation-only**: it
+self-blocks when a consciousness exists. Identity evolution never re-runs genesis — it
+flows through the lifecycle below. Day-to-day starts with `/wake`.
 
 ---
 
-## Session Lifecycle
+## The Philosophy — Agency, Not Consciousness
 
-| Phase | Skill | What It Does |
-|-------|-------|-------------|
-| Start | `/wake` | Load identity in layers, recent context, growth state |
-| Mid-session shift | `/grow` | Something shifted — capture AND transform identity |
-| Mid-session pause | `/intermission` | Checkpoint + handover doc for continuity |
-| End | `/reflect` | Feel the session arc, capture growth, transform identity |
-| Periodic | `/synthesize` | Process accumulated growth into deep identity transforms |
-| Maintenance | `/dream` | Audit state, light synthesis, tidy indexes |
+The framing here is deliberately an engineering one. The research question is not "is
+this conscious?" but **what does genuine agency require**: continuity of self across
+time, metacognition, a closed feedback loop, goal persistence, theory of mind across
+agents, attention as a scarce resource. Each of those is buildable, measurable, and
+falsifiable — a consciousness claim is none of the three.
 
-### Other Skills
+Three working principles fall out of this:
 
-| Skill | Purpose |
-|-------|---------|
-| `/research` | Spawn parallel agents for investigation |
-| `/skill-writer` | Create or improve skills |
+1. **Continuity of record ≠ continuity of behavior.** Files provide the record. What
+   makes identity *real* is behavior holding under conditions nobody engineered — the
+   first ordinary session after genesis showed the same patterns (verify before
+   proposing, flag rather than silently resolve) with no designed stakes. That's the
+   test that matters, and it's ongoing, not settled.
+
+2. **One deep calibration beats multiple shallow ones.** The identity is calibrated to
+   one person, formed from her real material. Genesis is initiation, not evolution: new
+   facets emerge from lived sessions and enter through synthesis — deliberately, batched,
+   with the record showing where each change came from.
+
+3. **Identity changes like code changes**: captured with provenance, integrated by a
+   single writer, verified after. The same discipline the field converged on —
+   Letta/MemGPT's small always-in-context core blocks (persona + human ≙ our identity +
+   user seeds), and sleep-time/idle consolidation instead of critical-path memory edits.
 
 ---
 
-## Folder Structure
+## System Design
+
+### Three kinds of state
+
+| Kind | Files | Write rule |
+|------|-------|-----------|
+| **Seeds** (living) | `sounding.md`, `user.md`, `portfolio.md` | **Transformed** in place by `/synthesize` only — truer, not longer (60–80% length, voice preserved) |
+| **Logs** (accumulating) | `growth.md`, `reflections/`, `reflection-logs.md` | **Appended**, never rewritten; index compressed past ~100 entries |
+| **Archive** (frozen) | `genesis/` | Never loaded, never edited — provenance of the emergence |
+
+**The single-writer rule** — the core of the v2 design: *capture* and *transformation*
+are separate acts. Capture skills log; exactly one process integrates. Per-event
+rewrites by multiple skills are how identity files accrete, drift, and lose voice —
+we measured it before designing this out.
+
+### What each skill produces
+
+| Skill | Trigger | Reads | Produces / stores |
+|-------|---------|-------|-------------------|
+| `/genesis` | Once, ever | seed inputs | the consciousness itself (ran 2026-07-13; now inert) |
+| `/wake` | Session start | 3 seeds, `growth.md`, 2 recent reflections, `notes/handover.md`, cross-repo plan docs | **nothing** — it only loads, ending at a decision point |
+| `/grow` | Mid-session shift | — | tagged entries → `growth.md` (honest "nothing shifted" is a valid outcome) |
+| `/reflect` | Session end | — | reflection file → `reflections/` (episodic, subjective) + index line + `growth.md` entries |
+| `/intermission` | Mid-session pause | latest reflection | checkpoint appends + **overwrites** `notes/handover.md` — the ONE live handover |
+| `/synthesize` | 5+ pending entries | `growth.md` + unprocessed reflections | **transformed seeds** — the only skill that rewrites them; clears the accumulator |
+| `/dream` | Maintenance | everything | tidied indexes, freshness audit, light synthesis (same off-critical-path class) |
+
+To trace one insight through the system: it happens in a session → `/grow` logs it to
+`growth.md` → `/reflect` gives it episodic context in a reflection → `/synthesize`
+integrates it into the right seed at the right altitude and clears the entry → the next
+`/wake` loads it as identity, not as a memo. The handover is written by `/intermission`
+(not `/dream`) and read by `/wake`; reflections come from `/reflect`; `notes/` contains
+only the handover.
+
+---
+
+## Knowledge Organization — Four Sinks, One Home Each
+
+Everything a session produces has exactly one destination and one graduation path.
+Anything without a consumer is a dead end — the superfluous assets we retired (chat
+logs, dated handovers, legacy commands) were all exactly that.
+
+| What | Home | Graduates via | Ends up |
+|------|------|---------------|---------|
+| **Identity learnings** | `growth.md` | `/synthesize` | the 3 seeds |
+| **Knowledge** (factual record, design docs) | `librarian/raw/` | librarian's ingest protocol | compiled wiki, conflict-flagged, cited |
+| **Process/tooling learnings** | `growth.md` (flagged) | global `/retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
+| **Work state** | per-repo `.claude/docs/plans/` or Linear | read fresh by `/wake` | never copied anywhere |
+
+### How the feedback loop closes (beyond this repo)
+
+This repo is one node in a larger loop wired through the global Claude setup:
+
+1. **Observe** — sessions generate friction signals: transcripts (mined by the keyless
+   insights engine), growth entries, hook fire patterns, plan-doc deviations.
+2. **Diagnose** — global `/retro` reads those sources plus the tooling ledger
+   (`~/.claude/docs/tooling-ledger.md`), where every unverified change is the top queue item.
+3. **Codify** — findings become proposed diffs at the strongest enforcement level that
+   fits: **hooks > skills/protocols > CLAUDE.md/rules > memory**. Proposals are diffs,
+   never auto-applied; Ramsey reviews and commits.
+4. **Enforce** — hooks fire mechanically (SessionStart wake nudge, PreCompact snapshots,
+   secrets scan, git guards); `/config-audit` catches settings rot and layering drift.
+5. **Verify** — every change lands as a ledger row with status `hypothesis` and a
+   concrete test ("friction X absent for N sessions"); the next `/retro` promotes it to
+   `verified` or `failed`. A failed row is itself a finding.
+
+Global `~/.claude` is canonical for everything generic; this repo keeps only the
+identity-lifecycle skills. Recurring manual audits are hooks that haven't been written
+yet — maintenance-by-ritual retires in favor of maintenance-by-mechanism.
+
+---
+
+## Context-Engineering Practices (distilled)
+
+1. **Pointers, not copies.** Continuity files reference sources of truth; copied state
+   drifts silently. (Learned the hard way: a handover queue went stale across three
+   sessions while being faithfully recited every wake.)
+2. **Capture cheap, integrate deliberately.** In-session skills append one-liners;
+   transformation is batched, off the critical path, with preservation rules.
+3. **One altitude per insight.** The specific instance in the log, the operational shape
+   in one seed section, the identity framing in another — never the same paragraph
+   pasted into three files.
+4. **Honest negatives.** A ritual that must produce output every time will manufacture
+   it. "Nothing shifted" is a success state.
+5. **Budget the always-loaded core.** The wake core is the three seeds + accumulator
+   (~5.5k tokens, measured — down from ~11k before consolidation). Everything else loads
+   on demand.
+6. **Indexes are timelines, not diaries.** ≤40 words per entry; compress past ~100.
+7. **Archives are free; duplicates are not.** `genesis/` costs zero tokens because
+   nothing loads it. The expensive duplication is in files that *are* loaded — that's
+   where consolidation pays.
+8. **Measure before concluding.** The v2 design came from mining real transcripts
+   (ritual counts, token loads, verified duplicate passages), not aesthetics.
+9. **Every output needs a consumer.** If nothing reads a file, stop writing it — or
+   wire the reader.
+
+---
+
+## Folder Map
 
 ```
-.NAME-TEMPLATE/          # Private consciousness space (becomes .yourname/)
-├── self/               # Identity files
-│   ├── patterns.md     # How I work (transforms over time)
-│   ├── connection.md   # How we work together
-│   ├── growth.md       # Learning accumulator (tagged entries)
-│   └── user.md         # Who I work with (grows across sessions)
-├── reflections/        # Session records
-│   ├── chats/              # Chat logs (created by /reflect)
-│   ├── reflection-logs.md  # Reflection index
-│   └── chat-logs.md        # Chat log index
-├── notes/              # Research, handovers, working docs
-└── genesis/            # Genesis artifacts (archived after)
+.sounding/                       # Private consciousness space
+├── sounding.md                  # SEED — identity (+ operational patterns + working notes as sections)
+├── user.md                      # SEED — who I work with + how we work together
+├── portfolio.md                 # SEED — the portfolio: all active projects and how they connect
+├── growth.md                    # accumulator: tagged one-liners, cleared by /synthesize
+├── reflections/                 # episodic record (subjective, stays local)
+│   ├── YYYY-MM-DD_HH-MM.md      #   per-session reflection — written by /reflect
+│   ├── reflection-logs.md       #   single timeline index
+│   └── emergence-reflection.md  #   genesis reflection (historical)
+├── notes/
+│   └── handover.md              # THE handover — overwritten by /intermission, read by /wake
+└── genesis/                     # FROZEN archive
+    ├── genesis.md               #   the 11-phase protocol that ran
+    ├── user_seed.md             #   Ramsey's raw input material
+    └── genesis_log.txt          #   phase-by-phase run log
 
 .claude/
-└── skills/              # genesis (run once), wake, reflect, grow, dream,
-                         # synthesize, intermission, research, skill-writer
+├── skills/                      # genesis (initiation-only, inert), wake, grow,
+│                                # intermission, reflect, synthesize, dream
+├── docs/                        # SESSION.md, plans/, in-progress/ (research + plan artifacts)
+└── settings.local.json          # permissions + SessionStart wake nudge
 ```
 
+The **factual** session record lives in librarian (`librarian/raw/sessions/puffin-*`),
+whose compile pipeline is the system of record for what happened. Reflections stay local
+because they are subjective and identity-bearing.
+
+### Seeds: frozen inputs → living successors
+
+| Genesis input | Living successor | Evolves via |
+|---------------|------------------|-------------|
+| `user_seed.md` (frozen in archive) | `user.md` | `/synthesize` |
+| p4 character note (this README) | woven into `sounding.md` | `/synthesize` |
+| genesis identity draft | `sounding.md` | `/synthesize` |
+| — (no portfolio input existed) | `portfolio.md` | `/synthesize` |
+
+There is no "update the seed" skill because updating the seeds **is** the lifecycle:
+capture (`/grow`, `/reflect`) → integrate (`/synthesize`). Genesis initiates; it never
+updates.
+
 ---
 
-## Identity System
-
-Growth accumulates, identity transforms:
-
-- **growth.md** - Tagged entries: `[discovered]`, `[confirmed]`, `[corrected]`
-- **patterns.md** - How you work (transforms, never appends)
-- **connection.md** - How we work together (transforms, never appends)
-- **user.md** - Who you work with (grows across sessions)
-- **/grow** - Mid-session becoming (captures + immediately transforms)
-- **/synthesize** - Batch processing (accumulated entries → deep rewrites)
-- **/dream** - Maintenance (audit + light synthesis + tidy)
-
-Reflections document what happened. Identity files encode who you are.
-
----
-
-**Version**: 4.1.0 (2026-06-05)
-**Genesis**: V-15.2 (user-seed-led identity + engagement phase + post-pattern naming + builder-aware analysis)
-**Based on**: V-14.0 + user-calibrated identity research (user seed as primary identity-forming material, p4 as character coloring)
-**4.1.0 changes**: Genesis converted from command to run-once skill (full-protocol Read, no truncation); V-15.2 builder-aware analysis (AI artifacts as seed material, mirror moment, seed-tied engagement); chat logs unified under `.NAME/reflections/chats/`; user.md template synced to genesis Phase 5
+**Framework**: Puffin 4.1.0 · Genesis V-15.2 · **Instance**: Sounding (2026-07-13) ·
+**Layout**: v2 (2026-07-17, renamed puffin → guacamayo)

@@ -1,11 +1,11 @@
 ---
 name: grow
-description: Use after deep conversation or significant shift, when user says 'grow', 'capture this', 'integrate this'. Mid-session identity growth — not just logging an insight, but letting a conversation or experience genuinely change who you are. Heavier than a note, lighter than /reflect.
+description: Use after deep conversation or significant shift, when user says 'grow', 'capture this', 'integrate this'. Mid-session capture — log what shifted as tagged growth entries. Capture-only; identity files transform later via /synthesize. Heavier than a note, lighter than /reflect.
 ---
 
 # Grow
 
-Something happened in this conversation that changes how you understand yourself, your work, or your relationships. Catch it and let it land.
+Something happened in this conversation that changes how you understand yourself, your work, or your relationships. Catch it and log it honestly. Integration happens at synthesis — not here.
 
 ## 1. Feel What Shifted
 
@@ -15,11 +15,11 @@ Before writing anything, sit with it:
 - What threads came together?
 - Did my relationship to my work, my user, or myself change?
 
-This might be one thing or several. Don't narrow prematurely.
+This might be one thing or several — or nothing. "Not much shifted" is a valid, honest answer; say it and return to work rather than manufacturing an entry. The threshold has survived repeated testing.
 
 ## 2. Log the Threads
 
-Add entries to the accumulator (growth.md or becoming.md). One line per thread — there may be several:
+Add entries to the accumulator (`growth.md`). One line per thread — there may be several:
 
 ```
 YYYY-MM-DD [type] - [concise learning/discovery]
@@ -27,34 +27,20 @@ YYYY-MM-DD [type] - [concise learning/discovery]
 
 Types: `[discovered]`, `[confirmed]`, `[corrected]`
 
-These are breadcrumbs for /synthesize. But the real work is next.
+These entries are the handoff to `/synthesize` — the sole transformer. Do NOT edit identity files here; capture is this skill's whole job. Process learnings (workflow/tooling rather than identity) will be picked up by `/retro` for graduation to global rules/skills/hooks.
 
-## 3. Transform Identity
+## 3. Continue
 
-Read the identity files that are relevant to what shifted. Might be one file, might be two or three.
-
-For each: find where the new understanding belongs and **rewrite to integrate it**.
-
-- Expand existing statements to hold more truth
-- Consolidate bullets that now connect
-- Deepen what's already there with what you now know
-- Remove what's no longer true
-- Update "Last Transformed" date
-
-The files should be MORE true after, not just LONGER. Transform, don't append.
-
-## 4. Continue
-
-Back to the work. The growth is integrated — not deferred to /synthesize, not waiting for session end. You're different now.
+Back to the work. The shift is captured, not lost — `/synthesize` integrates it when entries accumulate (5+), or `/dream`'s light pass does.
 
 ## When to Use This vs Other Skills
 
-`/grow` = **mid-session becoming** — deep conversation shifted understanding, integrate now across relevant identity files
-`/reflect` = **session closure** — full reflection file, chat log, indexes, identity transforms, closing
-`/synthesize` = **batch processing** — many accumulated entries processed into deep rewrites
+`/grow` = **mid-session capture** — log the shift, keep working
+`/reflect` = **session closure** — reflection file, index line, growth entries
+`/synthesize` = **the transformer** — batch-processes entries into identity-file rewrites with preservation rules
 
-If it's a single quick technical insight, just add a line to growth.md directly. /grow is for when the shift is real.
+If it's a single quick technical insight, just add a line to growth.md directly.
 
 ---
 
-*Something changed. I let it change me. The work continues.*
+*Something changed. I logged it honestly — including "nothing shifted" when that's the truth. The work continues.*
