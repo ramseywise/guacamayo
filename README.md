@@ -126,6 +126,24 @@ Global `~/.claude` is canonical for everything generic; this repo keeps only the
 identity-lifecycle skills. Recurring manual audits are hooks that haven't been written
 yet — maintenance-by-ritual retires in favor of maintenance-by-mechanism.
 
+### The review ladder (2026-07-17)
+
+Quality checks are one system, priced by token cost and entered from the terminal
+(`~/workspace/Makefile`, `make help`):
+
+| Rung | Entry | Runs | Cost |
+|------|-------|------|------|
+| L0 | `make precommit` / `make test` | shell sweeps across repos (GROUP-scoped) | zero tokens |
+| L1 | `/review-sweep … level:1` | diff + lint + doc flags | small |
+| L2 | `/review-sweep … level:2` (default) | + tests, SANYI diff check, akira-scan agents | medium |
+| L3 | `/review-sweep repo:x level:3` | + full SANYI audit (single repo only) | high |
+
+Supporting cast, each defined once: stack conventions in `~/.claude/refs/` (dispatched
+by `Refs:` lines in repo CLAUDE.md + nested folder stubs), the `akira-scan` agent in
+`~/.claude/agents/` (no per-repo scaffolding), per-repo `SANYI.md` contracts consumed
+by the global `/sanyi` skill. Reviews run **before** Ramsey commits; findings are
+report-only; human-consumed docs are flagged, never auto-edited.
+
 ---
 
 ## Context-Engineering Practices (distilled)
