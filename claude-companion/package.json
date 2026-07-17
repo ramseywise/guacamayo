@@ -1,0 +1,35 @@
+{
+  "name": "claude-companion",
+  "version": "0.1.0",
+  "description": "A quiet macOS companion for Claude Code: notices when a coding task finishes, speaks a concise summary, and posts a native notification.",
+  "type": "module",
+  "bin": {
+    "claude-companion": "dist/main.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/main.js",
+    "dev": "tsx watch src/main.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "print-hooks": "node dist/main.js print-hooks",
+    "simulate": "node dist/main.js simulate"
+  },
+  "keywords": [
+    "claude-code",
+    "macos",
+    "notifications",
+    "tts",
+    "cli-agents"
+  ],
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsx": "^4.16.0",
+    "typescript": "^5.5.0"
+  }
+}
