@@ -1,0 +1,23 @@
+{
+  "server": { "host": "127.0.0.1", "port": 4599 },
+  "channels": ["macNotification", "voice"],
+  "notifyOn": "all",
+  "quietHours": {
+    "enabled": false,
+    "start": "22:00",
+    "end": "08:00",
+    "suppress": "voice"
+  },
+  "voice": {
+    "enabled": true,
+    "engine": "say",
+    "sayVoice": null,
+    "rate": null
+  },
+  "macNotification": {
+    "enabled": true,
+    "terminalApp": "Terminal",
+    "successSound": "Glass",
+    "failureSound": "Basso"
+  }
+}
