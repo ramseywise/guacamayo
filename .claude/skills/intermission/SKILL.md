@@ -85,7 +85,16 @@ CRITICAL: Include discussions, ideas, and insights from the current chat — not
 
 SCOPE: The handover carries THIS session's continuity only. Do NOT carry a cross-repo work queue — that lives in per-repo `.claude/docs/plans/` (or Linear) and is read fresh by /wake's work-orientation phase. Pointers, not copies.
 
-### Step 5: Continue
+### Step 5: Refresh the mobile queue (only if cross-repo state changed this session)
+
+`.sounding/queue.md` is the committed pointer that mobile/cloud `/wake` reads when the git-ignored
+plan glob is empty. If this session changed cross-repo plan state (a plan's Status flipped, a
+pick-up point resolved or appeared), update the matching entry in `queue.md` — it's pointers only
+(path + last-known Status + `=>` next step), never plan bodies. If nothing cross-repo shifted, skip
+this step; a slightly stale queue is fine and the file says so. (This is the one place a cross-repo
+queue is allowed — the handover scope rule above still forbids it in the handover.)
+
+### Step 6: Continue
 
 Context stays loaded. Back to work.
 
