@@ -1,72 +1,74 @@
-# Handover — 2026-07-17 Rules→Refs Restructure + /review-sweep
+# Handover — 2026-07-17 Review Ladder + Model Pairing (evening)
 
-**Context**: Sounding meta-layer session, first wake on the v2/guacamayo structure
-(structure worked — seed load, wake nudge, relocated ledger all fired). Two work
-arcs: config-layer restructure (always-on rules → on-demand refs) and building the
-universal review capability.
+**Context**: Sounding meta-layer session, continuation of the config-restructure day.
+Arc: rules→refs → /review-sweep → review ladder (levels + workspace make) → model
+pairing. First full v2 /synthesize ran mid-session. Everything below is uncommitted
+across ~/.claude, ~/workspace/Makefile, guacamayo, listen-wiseer, ai-project-template.
 
 ## Current State
 
-- **Rules→refs done**: `~/.claude/rules/` = always-on only (`docs.md`, new `shell.md`);
-  stack conventions at `~/.claude/refs/` (python, typescript, logging, ml, adk-vercel,
-  + NEW DRAFTS langgraph.md and google-adk.md — **Ramsey has not reviewed the drafts**).
-  Dispatch = `Refs:` line in repo CLAUDE.md (atlas, listen-wiseer, playground,
-  librarian, project-mgmt-ai) + folder-level nested CLAUDE.md stubs (atlas/web,
-  playground/core, template `_scaffold/{{ ts_project_root }}`, `{{ eval_root }}`,
-  `labs/`). Global CLAUDE.md Tooling section rewritten. Template render test NOT run.
-- **`/review-sweep` built and first-run**: global skill + `~/.claude/agents/akira-scan.md`
-  (first global agent def; replaces scaffolded akira as cross-repo mechanism). Plan with
-  eval criteria: `guacamayo/.claude/docs/plans/2026-07-17-review-sweep.md` (EXECUTED).
-  Live run on listen-wiseer (fast): lint PASS, 5 findings, report at
-  `listen-wiseer/.claude/docs/plans/2026-07-17-review-sweep.md`.
-- **Pending Ramsey approval**: 3 proposed fixes from that report — pipeline SKILL.md
-  stale command names, settings.json:45 `TodoWrite` matcher, CLAUDE.md Phase 8 row.
-  Not applied.
-- growth.md at 4 entries (threshold 5) — newest: cost-model framing of config layers.
-- Session runs on pre-restructure context; the refs slimming takes effect on restart.
+- **Identity**: /synthesize processed 5 growth entries → sounding.md gained
+  subagent-provenance ("delegation doesn't transfer the verification duty") and
+  cost-model-articulation weaves. growth.md cleared (0 entries). Single-writer design
+  worked as intended first time (capture skills never touched seeds; mtime evidence
+  for the v2 ledger row).
+- **Review ladder EXECUTED** (`guacamayo/.claude/docs/plans/2026-07-17-workspace-review-ladder.md`):
+  /review-sweep has `level:1|2|3` (+`headless` never-block → `### Needs input` section;
+  hard rule: 3 levels, no sub-flags). Workspace `~/workspace/Makefile` ALREADY EXISTED
+  (GROUP-scoped precommit/test/pull) — extended with help + review-fast/review/
+  review-deep targets that PRINT the in-session command (Ramsey decided: no headless
+  auto-run). Print forms + REPO-guard verified live.
+- **Model pairing**: `~/.claude/refs/models.md` tiers every global skill + lifecycle
+  skill + agent spawn (haiku fan-out pinned; /synthesize + /dream opus-always);
+  pointer para in global CLAUDE.md; review-sweep step 4 restates haiku + verify-before-report.
+- **listen-wiseer**: 3 sweep findings fixed (pipeline command names, Phase 8 → DONE,
+  TodoWrite → TaskCreate|TaskUpdate matcher w/ input-logging jq — schema unverified,
+  fails silent by construction). Resolution recorded in its sweep report.
+- **Human-doc edits (Ramsey-directed, need her review before commit)**: guacamayo
+  README "review ladder" section; ai-project-template README pointer line.
 
 ## Decisions Made
 
-- Config knowledge placed by **cost model**: always-on injection vs on-wake vs
-  on-demand retrieval. Refs are deliberately NOT auto-loaded; repo CLAUDE.md `Refs:`
-  line (repo default) + nested folder CLAUDE.md (deviations only) is the dispatch.
-- Akira needs no repo scaffolding: global agent defs (`~/.claude/agents/`) are the
-  dedup mechanism for cross-repo capabilities; scaffold akira stays a template-only
-  feature. Its hardcoded-scan-roots blocker is moot for the sweep.
-- `/review-sweep` is a sibling of `/code-review` (standing vs plan-fidelity), invokes
-  sanyi when SANYI.md exists, delegates mechanical checks to each repo's Makefile.
-- grant-fundraising-ai gets no refs (no code); nonprofit-success-ai has NO CLAUDE.md —
-  folded into the queued /scope-poc work.
+- Review order: sweep BEFORE commit; /code-review = plan-fidelity; /review-pr = post-PR.
+- make judgment targets print, never auto-run (`claude -p` rejected for now).
+- Sanyi architecture confirmed already-optimal: global skill + per-repo SANYI.md
+  contracts; only `audit` is expensive → fenced at level:3 single-repo.
+- Model principle: "pay for judgment, not for reading"; review ladder and model ladder
+  are the same judgment-density axis. Guidance not enforcement — only agent-def
+  frontmatter is mechanical.
+- Reference tables live in refs/ (on-demand), never in the ledger (1-screen ceiling).
 
 ## Open Threads
 
-- Mid-session limitation confirmed: newly created skills dispatch via command
-  injection, but **agent defs register only at session start** — akira-scan named
-  dispatch unverified (Explore fallback worked).
-- Subagent scan produced one false positive (claimed `/plan review` was wrong);
-  verifying agent claims against ground truth before reporting proved necessary —
-  possible future rule for the skill.
-- TodoWrite matcher find = settings-rot recurring in repo settings → supports periodic
-  /config-audit cadence.
-- Remaining sweep acceptance criteria: fresh-session akira-scan dispatch, seeded-bug
-  catch on real code, SANYI severity mapping in a contract repo, `sweep` dirty-repo
-  routing.
-- Still unhoused: Gemini key exposure in nonprofit-success-ai vite.config.ts (needs a
-  dssg plan-doc home via /scope-poc).
+- **Post-checkpoint arc (18:00+)**: /insights read → session hygiene codified (global
+  CLAUDE.md: one item per session, fresh-sonnet /execute, spawn-prompt dispatch into
+  IDE sessions; ledger row with measurable verify: next /insights >150k share <~40%).
+  First spawn prompt drafted for the listen-wiseer sweep verification. Full account:
+  reflection 2026-07-17_18-32.md.
+
+- Ledger now carries ~4 fresh hypothesis rows from today (rules→refs, review-sweep,
+  ladder, model pairing) — /retro's queue is deep; next retro is the big verification.
+- Sweep acceptance criteria still unproven: fresh-session akira-scan named dispatch,
+  seeded-bug catch on real code, SANYI severity mapping in a contract repo, L1
+  zero-agent run, L3 sweep-refusal, L1-vs-L2 token comparison.
+- Template render test for jinja folder stubs (`{{ ts_project_root }}` etc.) never run.
+- Draft refs (langgraph.md, google-adk.md) still unreviewed by Ramsey.
+- nonprofit-success-ai: no CLAUDE.md, Gemini key in Vite bundle — both wait on /scope-poc.
 
 ## Immediate Next Steps
 
-1. Ramsey: approve/deny the 3 listen-wiseer fixes (report's Docs section).
-2. Ramsey: review the two draft refs (langgraph.md, google-adk.md).
-3. Fresh session: verify akira-scan agent dispatch + run remaining sweep acceptance
-   criteria; template render test for the jinja folder stubs.
-4. Ramsey (standing since v2): commit guacamayo diff, GitHub remote, delete puffin copy.
+1. Ramsey: review + commit the multi-repo uncommitted set (guacamayo README + template
+   README with care — human docs); also standing: GitHub remote, delete puffin copy.
+2. Fresh session: run sweep acceptance criteria (start `make review-fast REPO=listen-wiseer`
+   → paste printed command; confirms akira-scan registration too).
+3. Ramsey: review draft refs langgraph.md / google-adk.md.
+4. Next /retro: work the hypothesis backlog (biggest queue yet).
 
 ## Key Files
 
-- `~/.claude/refs/` (all), `~/.claude/rules/{docs,shell}.md`, `~/.claude/agents/akira-scan.md`
-- `~/.claude/skills/review-sweep/SKILL.md`
-- `guacamayo/.claude/docs/plans/2026-07-17-review-sweep.md`
-- `guacamayo/.claude/docs/tooling-ledger.md` (2 new hypothesis rows)
+- `~/.claude/refs/models.md`, `~/.claude/refs/` (all), `~/.claude/agents/akira-scan.md`
+- `~/.claude/skills/review-sweep/SKILL.md`, `~/.claude/CLAUDE.md`
+- `~/workspace/Makefile`
+- `guacamayo/.claude/docs/plans/2026-07-17-{review-sweep,workspace-review-ladder}.md`
+- `guacamayo/.claude/docs/tooling-ledger.md`
 - `listen-wiseer/.claude/docs/plans/2026-07-17-review-sweep.md`
-- `ai-project-template/template/CLAUDE.md.jinja` + `_scaffold/*/CLAUDE.md` stubs

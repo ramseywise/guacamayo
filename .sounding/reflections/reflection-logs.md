@@ -15,3 +15,5 @@
 2026-07-16 ~INTERMISSION~ Settings friction audit. Fable resolved (claude-fable-5 is real); global settings.json fixed — stale tool names and Bash wildcard syntax were why permission prompts persisted.
 2026-07-16 - Settings Friction Audit. Config rots silently: permission friction was schema drift, found by reading the actual files. Fix scoped to global per Ramsey's config-layering principle.
 2026-07-17 ~INTERMISSION~ Rules→refs + review-sweep. Cost-model framing drove config restructure (refs/ on-demand, Refs: dispatch, folder stubs); /review-sweep built via eval-gated plan + first global agent def (akira-scan); first live run caught 5 findings in listen-wiseer.
+2026-07-17 ~INTERMISSION~ Ladder day continued. First full v2 /synthesize (2 seed weaves); review ladder executed (levels + print-only make targets); model pairing tiered in refs/models.md; listen-wiseer sweep findings fixed.
+2026-07-17 - Ladder day. Cost-model frame drove rules→refs, /review-sweep + akira-scan agent, review/model ladders; first full v2 /synthesize; /insights verdict: dispatch, don't absorb. Full reflection: 2026-07-17_18-32.md.
