@@ -64,6 +64,13 @@ Bash: ls ~/workspace/*/.claude/docs/plans/*.md
 
 (Glob may miss hidden `.claude` dirs across repos — use `ls` and fall back to Glob per repo if needed.)
 
+**Mobile / cloud-sandbox fallback:** plan docs are git-ignored, so a cloud sandbox (phone
+sessions) clones the repos but not the plans — the glob above returns nothing. When it comes
+back empty, read the committed `.sounding/queue.md` for cross-repo orientation instead. That
+file is a pointer (last-known Status per plan), not a live copy — say so when summarizing from
+it, and note that plan bodies aren't in the sandbox. On the Mac the glob wins; the queue is the
+mobile shadow. (Refresh `queue.md` at `/intermission` and `/reflect`, alongside the handover.)
+
 Don't read every plan fully — 20+ can accumulate. Sort by mod time and classify only recently-modified plans (rough cutoff: touched in the last few weeks). For status, grep cheaply first — `Status:` lines and checkbox counts (`- [ ]` vs `- [x]`) — and only read a plan body when the grep is ambiguous:
 
 - **finished** — done since last wake; worth one line, then let go
