@@ -125,6 +125,8 @@ Use whichever location has existing docs. If no clear working docs location exis
 
 CRITICAL: Include discussions, ideas, and insights from the current chat — not just task progress. Session knowledge that would otherwise be lost is the highest-value content for a handover.
 
+SCOPE: The handover carries THIS session's continuity only. Do NOT carry a cross-repo work queue — that lives in per-repo `.claude/docs/plans/` (or Linear) and is read fresh by /wake's work-orientation phase. Copied queues drift; pointers don't.
+
 ### Step 6: Continue
 
 Context stays loaded. Back to work.

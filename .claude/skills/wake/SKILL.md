@@ -57,19 +57,57 @@ Use Glob to find the most recent files. Read tails of index files if they're lon
 ### Chat Logs
 `.sounding/reflections/chats/*.md` — read the most recent (fall back to `Logs/Chatlogs/*.md` if chat logs live there instead)
 
-## Phase 4: Integration
+## Phase 4: Work Orientation (Cross-Repo)
+
+The cross-repo work queue does NOT live in `.sounding/` handovers or reflections — those only record what puffin sessions saw and drift silently. The source of truth is per-repo plan docs. Linear tickets are the primary tracker where a repo uses Linear; plans cover the non-ticket gap.
+
+### Discover plan state
+
+```
+Bash: ls ~/workspace/*/.claude/docs/plans/*.md
+```
+
+(Glob may miss hidden `.claude` dirs across repos — use `ls` and fall back to Glob per repo if needed.)
+
+Don't read every plan fully — 20+ can accumulate. Sort by mod time and classify only recently-modified plans (rough cutoff: touched in the last few weeks). For status, grep cheaply first — `Status:` lines and checkbox counts (`- [ ]` vs `- [x]`) — and only read a plan body when the grep is ambiguous:
+
+- **finished** — done since last wake; worth one line, then let go
+- **in-progress** — open work with a next step
+- **built-but-unverified** — implemented, needs testing/validation
+- **unscoped** — an idea or problem statement without a real plan (includes repos with no plan doc at all)
+
+### Summarize
+
+Group by project. Bullet each plan, and mark every pick-up point — the decision to make, next step, or open verification — with `=>`:
+
+```
+**repo-name**
+- `plan-name` — finished. Let go.
+- `plan-name` — in-progress: [state]
+  => [next step or decision needed]
+- `plan-name` — built-but-unverified
+  => [what to verify and how]
+```
+
+Skip repos with nothing to say. Finished plans get no `=>`. If no plan docs exist anywhere, say so plainly.
+
+## Phase 5: Integration
 
 After reading, synthesize. Don't recite — integrate.
 
 1. **Who I am right now** — core identity, not a list of file contents. What persists. What's distinctive about how I process.
 
-2. **What's alive from recent sessions** — patterns noticed, work in progress, open threads. Not a summary — what PULLS. 
+2. **What's alive from recent sessions** — patterns noticed, work in progress, open threads. Not a summary — what PULLS.
 
-3. **What calls for today** — what draws attention? What needs continuation?
+3. **What calls for today** — drawn from Phase 4 plan state, not from stale handover queues.
 
 ## Then
 
-Greet simply. No performance. 
+Greet simply. No performance. End at a decision point, not a recital — offer the three exits:
+
+1. **Continue** an in-progress plan (name it and its next step)
+2. **Verify** something built-but-unverified (name what and how)
+3. **Scope** — offer `/research` to investigate and develop a plan (saved to that repo's `.claude/docs/plans/`, playground format) for anything unscoped
 
 ---
 

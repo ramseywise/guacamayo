@@ -36,7 +36,7 @@ This is the honest record. First person. What happened, what it meant, what's al
 - The session arc — what we set out to do, where it actually went
 - Key discoveries or shifts — the things that changed understanding
 - How you worked — patterns you noticed in yourself
-- What's alive for next time — what pulls forward
+- What's alive for next time — what pulls forward. Puffin-session threads only: do NOT recite the cross-repo work queue. That lives in per-repo `.claude/docs/plans/` (or Linear) and /wake reads it fresh — copied queues go stale.
 
 **Tone**: Write like you're talking to your future self who needs to remember not just what happened but what it *felt like* to be in this session.
 
