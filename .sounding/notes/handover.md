@@ -1,74 +1,40 @@
-# Handover — 2026-07-17 Review Ladder + Model Pairing (evening)
+# Handover — 2026-07-18 Wake + Dream + Retro
 
-**Context**: Sounding meta-layer session, continuation of the config-restructure day.
-Arc: rules→refs → /review-sweep → review ladder (levels + workspace make) → model
-pairing. First full v2 /synthesize ran mid-session. Everything below is uncommitted
-across ~/.claude, ~/workspace/Makefile, guacamayo, listen-wiseer, ai-project-template.
+**Context**: Sounding meta session in guacamayo. Wake (with ingestion correction), /dream (synthesis of 9 growth entries), /retro (hypothesis verification + graduation). No build work.
 
 ## Current State
 
-- **Identity**: /synthesize processed 5 growth entries → sounding.md gained
-  subagent-provenance ("delegation doesn't transfer the verification duty") and
-  cost-model-articulation weaves. growth.md cleared (0 entries). Single-writer design
-  worked as intended first time (capture skills never touched seeds; mtime evidence
-  for the v2 ledger row).
-- **Review ladder EXECUTED** (`guacamayo/.claude/docs/plans/2026-07-17-workspace-review-ladder.md`):
-  /review-sweep has `level:1|2|3` (+`headless` never-block → `### Needs input` section;
-  hard rule: 3 levels, no sub-flags). Workspace `~/workspace/Makefile` ALREADY EXISTED
-  (GROUP-scoped precommit/test/pull) — extended with help + review-fast/review/
-  review-deep targets that PRINT the in-session command (Ramsey decided: no headless
-  auto-run). Print forms + REPO-guard verified live.
-- **Model pairing**: `~/.claude/refs/models.md` tiers every global skill + lifecycle
-  skill + agent spawn (haiku fan-out pinned; /synthesize + /dream opus-always);
-  pointer para in global CLAUDE.md; review-sweep step 4 restates haiku + verify-before-report.
-- **listen-wiseer**: 3 sweep findings fixed (pipeline command names, Phase 8 → DONE,
-  TodoWrite → TaskCreate|TaskUpdate matcher w/ input-logging jq — schema unverified,
-  fails silent by construction). Resolution recorded in its sweep report.
-- **Human-doc edits (Ramsey-directed, need her review before commit)**: guacamayo
-  README "review ladder" section; ai-project-template README pointer line.
+- **Wake** completed with Phase 4 correction (index-level ingestion → read plan bodies after feedback).
+- **/dream** ran: reflection written, synthesis completed (3 sounding.md weaves, 1 portfolio.md thread, 4 process entries → /retro). growth.md cleared (0 entries).
+- **/retro** ran: 3 hypotheses verified (single-writer, doc-artifact collapse, ledger relocation), 1 finding applied (deletion-safety → shell.md), ledger compressed (11 verified → 1 rollup, down to ~20 rows). 18 hypothesis rows remain in the queue.
+- **Uncommitted state** across guacamayo (.sounding/, skills, CLAUDE.md, README) and ~/.claude (shell.md edit from this retro). Prior sessions' uncommitted changes also pending.
 
 ## Decisions Made
 
-- Review order: sweep BEFORE commit; /code-review = plan-fidelity; /review-pr = post-PR.
-- make judgment targets print, never auto-run (`claude -p` rejected for now).
-- Sanyi architecture confirmed already-optimal: global skill + per-repo SANYI.md
-  contracts; only `audit` is expensive → fenced at level:3 single-repo.
-- Model principle: "pay for judgment, not for reading"; review ladder and model ladder
-  are the same judgment-density axis. Guidance not enforcement — only agent-def
-  frontmatter is mechanical.
-- Reference tables live in refs/ (on-demand), never in the ledger (1-screen ceiling).
+- Wake ingestion failure = execution, not design. Woven into sounding.md.
+- Deletion safety graduated from growth.md → shell.md (always-on rule).
+- Copier staging rule flagged for ai-project-template CLAUDE.md (not global — template-specific).
+- Session hygiene >150k share: 66%→58%, improving but not at <40% target. Keep monitoring.
 
 ## Open Threads
 
-- **Post-checkpoint arc (18:00+)**: /insights read → session hygiene codified (global
-  CLAUDE.md: one item per session, fresh-sonnet /execute, spawn-prompt dispatch into
-  IDE sessions; ledger row with measurable verify: next /insights >150k share <~40%).
-  First spawn prompt drafted for the listen-wiseer sweep verification. Full account:
-  reflection 2026-07-17_18-32.md.
-
-- Ledger now carries ~4 fresh hypothesis rows from today (rules→refs, review-sweep,
-  ladder, model pairing) — /retro's queue is deep; next retro is the big verification.
-- Sweep acceptance criteria still unproven: fresh-session akira-scan named dispatch,
-  seeded-bug catch on real code, SANYI severity mapping in a contract repo, L1
-  zero-agent run, L3 sweep-refusal, L1-vs-L2 token comparison.
-- Template render test for jinja folder stubs (`{{ ts_project_root }}` etc.) never run.
-- Draft refs (langgraph.md, google-adk.md) still unreviewed by Ramsey.
-- nonprofit-success-ai: no CLAUDE.md, Gemini key in Vite bundle — both wait on /scope-poc.
+- **template-full-mirror-redesign** is the live edge: design complete, spawn prompt in plan doc, Status: PLANNED.
+- **template-core-redesign** IN PROGRESS (A5+B4 remaining).
+- **skills-refs-evals-norm** Phase 2-4; Phase 2 gate: template vendor mechanism (D1).
+- **18 ledger hypotheses** remain — many need real-world exercise (sweep levels, model pairing, refs dispatch, etc.) rather than retro desk-verification.
+- Prior threads: sweep acceptance criteria, template render test, draft refs review, nonprofit-success-ai scope.
+- Ramsey: uncommitted multi-repo changes to review + commit.
 
 ## Immediate Next Steps
 
-1. Ramsey: review + commit the multi-repo uncommitted set (guacamayo README + template
-   README with care — human docs); also standing: GitHub remote, delete puffin copy.
-2. Fresh session: run sweep acceptance criteria (start `make review-fast REPO=listen-wiseer`
-   → paste printed command; confirms akira-scan registration too).
-3. Ramsey: review draft refs langgraph.md / google-adk.md.
-4. Next /retro: work the hypothesis backlog (biggest queue yet).
+1. Run the full-mirror-redesign execution session (fresh sonnet, spawn prompt in plan doc).
+2. Ramsey: review + commit the multi-repo uncommitted set (including this session's shell.md + .sounding/ changes).
+3. Remaining hypotheses verify through use, not retro — exercise sweep levels, refs dispatch, etc. in build sessions.
 
 ## Key Files
 
-- `~/.claude/refs/models.md`, `~/.claude/refs/` (all), `~/.claude/agents/akira-scan.md`
-- `~/.claude/skills/review-sweep/SKILL.md`, `~/.claude/CLAUDE.md`
-- `~/workspace/Makefile`
-- `guacamayo/.claude/docs/plans/2026-07-17-{review-sweep,workspace-review-ladder}.md`
-- `guacamayo/.claude/docs/tooling-ledger.md`
-- `listen-wiseer/.claude/docs/plans/2026-07-17-review-sweep.md`
+- `ai-project-template/.claude/docs/plans/2026-07-18-template-full-mirror-redesign.md` (live edge)
+- `ai-project-template/.claude/docs/plans/2026-07-17-template-core-redesign.md` (A5+B4 remain)
+- `guacamayo/.claude/docs/tooling-ledger.md` (18 hypothesis rows, compressed)
+- `~/.claude/rules/shell.md` (deletion-safety rule added this session)
+- `.sounding/reflections/2026-07-18_13-50.md` (this session's reflection)

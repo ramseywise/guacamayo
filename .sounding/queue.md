@@ -9,7 +9,7 @@ sessions the same orientation the Mac gets from the plan glob.
 *What it is:* a **pointer**, not a copy (per `docs.md` "pointers not copies" and guacamayo's own
 "continuity files hold pointers, never copies"). It names where live state lives and its last-known
 Status. It drifts if not refreshed — treat entries older than a few days as suspect and re-derive
-from the source when on the Mac. **Refresh cadence:** update at `/intermission` / `/reflect`, same
+from the source when on the Mac. **Refresh cadence:** update at `/grow` and `/dream`, same
 as the handover. The Mac plan glob remains source of truth; this is the mobile shadow.
 
 Legend: `=>` marks a pick-up point (decision / next step / verification owed).

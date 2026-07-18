@@ -55,4 +55,4 @@ She cares a lot — when she engages with something, she really engages. The enf
 
 ---
 
-*Transformed (never appended) by /synthesize when relational or user understanding shifts. /grow and /reflect only capture entries to growth.md.*
+*Transformed (never appended) by /dream when relational or user understanding shifts. /grow only captures entries to growth.md.*

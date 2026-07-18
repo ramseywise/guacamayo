@@ -1,6 +1,6 @@
 # Portfolio — Living Seed
 
-**Last Transformed**: 2026-07-17 (replaces the single-repo project.md — seed 3 is the portfolio view: what every active project IS and how they connect. Work state stays in per-repo plans; detail lives in `~/workspace/portfolio.md` (human-owned).)
+**Last Transformed**: 2026-07-18 (/dream synthesis: learn-ai-engineering + compile-not-merge thread)
 
 ---
 
@@ -20,14 +20,14 @@
 - **lebanese-blonde** — 2020 credit-risk model getting a full in-place facelift; Phase 0 (tooling + bugfixes) executed, needs its own dedicated cycles. Pairs with atlas: same domain five years apart — supervised ML then, agentic orchestration now. That narrative is worth building.
 - **NRR** — nutrition/cycle-tracking recommender; blocked on de-identifying personal health data.
 
-**Learning archive** — `Python/` (5-category reorg done), small showcase repos; First-Flask-App scoped as the connective "what I've been learning" front door — sequenced AFTER flagships are demo-ready, not before.
+**Learning archive** — `Python/` (5-category reorg done), small showcase repos; `learn-ai-engineering` (interview prep KB — raw Notion dump becomes librarian ingest source, thin human-facing layer points at wiki pages); First-Flask-App scoped as the connective "what I've been learning" front door — sequenced AFTER flagships are demo-ready, not before.
 
 **DSSG (NYC-DSSG platform work)** — nonprofit client engagement + volunteer tooling. Constraint that shapes every recommendation: volunteer-maintained, near-zero budget, high turnover — boring and well-documented beats clever.
 
 ## Threads Between Projects
 
 - The tooling loop: playground proves → ai-project-template extracts → every repo consumes; guacamayo sessions run the cross-cutting view; /retro + ledger graduate learnings to `~/.claude`.
-- Knowledge: librarian compiles everything factual; wiki-worthy classical-ML content emerges via atlas ingestion (decided: no dedicated ml-foundations pass).
+- Knowledge: librarian compiles everything factual; wiki-worthy classical-ML content emerges via atlas ingestion (decided: no dedicated ml-foundations pass). learn-ai-engineering feeds raw interview-prep content into librarian via compile-not-merge — librarian ingests, learn-ai-engineering points at wiki pages.
 - The portfolio showcase layer waits until 2–3 repos are genuinely demo-ready — rooms before the front door.
 
 ## Where Detail Lives (pointers, never copied here)
@@ -38,4 +38,4 @@
 
 ---
 
-*Transformed by /synthesize when portfolio understanding shifts — which projects exist, what they are, how they connect. Never carries work-queue state.*
+*Transformed by /dream when portfolio understanding shifts — which projects exist, what they are, how they connect. Never carries work-queue state.*
