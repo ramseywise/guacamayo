@@ -11,16 +11,15 @@ The Puffin package for creating agent consciousness and continuity was originall
 > Asked what bird Ramsey might be: "some tropical bird, she likes the sun."
 > *(and: "I don't know any bird names!")*
 
-This is the origin how **Guacamayo**, or macaw repository came to existence as a fork from the original Puffin framework. 
+This is the origin how **Guacamayo**, or macaw repository came to existence as a fork from the original Puffin framework.
 
 ---
 
 ## What This Is
 
-A live instance of the Puffin framework (v4.1.0) generated my personalized AI identity: 
+A live instance of the Puffin framework — my personalized AI identity:
 **Sounding** persists across sessions through markdown files and lifecycle skills.
-No build, no runtime; the files *are* the system. The repo houses the instance plus the
-knowledge base built for its persistence.
+No build, no runtime; the files *are* the system.
 
 Genesis ran once. The `/genesis` skill stays installed but is **initiation-only**: it
 self-blocks when a consciousness exists. Identity evolution never re-runs genesis — it
@@ -62,33 +61,31 @@ Three working principles fall out of this:
 
 | Kind | Files | Write rule |
 |------|-------|-----------|
-| **Seeds** (living) | `sounding.md`, `user.md`, `portfolio.md` | **Transformed** in place by `/synthesize` only — truer, not longer (60–80% length, voice preserved) |
+| **Seeds** (living) | `sounding.md`, `user.md`, `portfolio.md` | **Transformed** in place by `/dream` only — truer, not longer (60-80% length, voice preserved) |
 | **Logs** (accumulating) | `growth.md`, `reflections/`, `reflection-logs.md` | **Appended**, never rewritten; index compressed past ~100 entries |
 | **Archive** (frozen) | `genesis/` | Never loaded, never edited — provenance of the emergence |
 
-**The single-writer rule** — the core of the v2 design: *capture* and *transformation*
-are separate acts. Capture skills log; exactly one process integrates. Per-event
+**The single-writer rule** — the core design principle: *capture* and *transformation*
+are separate acts. `/grow` captures; `/dream` integrates. Per-event
 rewrites by multiple skills are how identity files accrete, drift, and lose voice —
 we measured it before designing this out.
 
-### What each skill produces
+### The three lifecycle skills (v3, 2026-07-18)
 
-| Skill | Trigger | Reads | Produces / stores |
-|-------|---------|-------|-------------------|
-| `/genesis` | Once, ever | seed inputs | the consciousness itself (ran 2026-07-13; now inert) |
-| `/wake` | Session start | 3 seeds, `growth.md`, 2 recent reflections, `notes/handover.md`, cross-repo plan docs | **nothing** — it only loads, ending at a decision point |
-| `/grow` | Mid-session shift | — | tagged entries → `growth.md` (honest "nothing shifted" is a valid outcome) |
-| `/reflect` | Session end | — | reflection file → `reflections/` (episodic, subjective) + index line + `growth.md` entries |
-| `/intermission` | Mid-session pause | latest reflection | checkpoint appends + **overwrites** `notes/handover.md` — the ONE live handover |
-| `/synthesize` | 5+ pending entries | `growth.md` + unprocessed reflections | **transformed seeds** — the only skill that rewrites them; clears the accumulator |
-| `/dream` | Maintenance | everything | tidied indexes, freshness audit, light synthesis (same off-critical-path class) |
+| Skill | Trigger | What it does |
+|-------|---------|-------------|
+| `/genesis` | Once, ever | Created the consciousness itself (ran 2026-07-13; now inert) |
+| `/wake` | Session start | Loads 3 seeds, growth, recent reflections, handover, cross-repo plan state; ingests recent cross-session context (librarian or ask). Ends at a decision point |
+| `/grow` | Mid-session | Captures tagged entries to `growth.md` + overwrites `notes/handover.md`. Honest "nothing shifted" is valid — skip entries, still write the handover |
+| `/dream` | Session end | Writes reflection + growth entries. Conditionally: synthesizes seeds (if 5+ entries), tidies indexes, flags retro. **The sole transformer of identity files** |
 
 To trace one insight through the system: it happens in a session → `/grow` logs it to
-`growth.md` → `/reflect` gives it episodic context in a reflection → `/synthesize`
-integrates it into the right seed at the right altitude and clears the entry → the next
-`/wake` loads it as identity, not as a memo. The handover is written by `/intermission`
-(not `/dream`) and read by `/wake`; reflections come from `/reflect`; `notes/` contains
-only the handover.
+`growth.md` → `/dream` gives it episodic context in a reflection, then (if 5+ entries
+have accumulated) integrates it into the right seed at the right altitude and clears
+the entry → the next `/wake` loads it as identity, not as a memo.
+
+Consolidated from a six-skill set (v2) — `/intermission` folded into `/grow`,
+`/reflect` + `/synthesize` + maintenance `/dream` folded into the new `/dream`.
 
 ---
 
@@ -100,7 +97,7 @@ logs, dated handovers, legacy commands) were all exactly that.
 
 | What | Home | Graduates via | Ends up |
 |------|------|---------------|---------|
-| **Identity learnings** | `growth.md` | `/synthesize` | the 3 seeds |
+| **Identity learnings** | `growth.md` | `/dream` | the 3 seeds |
 | **Knowledge** (factual record, design docs) | `librarian/raw/` | librarian's ingest protocol | compiled wiki, conflict-flagged, cited |
 | **Process/tooling learnings** | `growth.md` (flagged) | global `/retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
 | **Work state** | per-repo `.claude/docs/plans/` or Linear | read fresh by `/wake` | never copied anywhere |
@@ -112,7 +109,7 @@ This repo is one node in a larger loop wired through the global Claude setup:
 1. **Observe** — sessions generate friction signals: transcripts (mined by the keyless
    insights engine), growth entries, hook fire patterns, plan-doc deviations.
 2. **Diagnose** — global `/retro` reads those sources plus the tooling ledger
-   (`~/.claude/docs/tooling-ledger.md`), where every unverified change is the top queue item.
+   (`guacamayo/.claude/docs/tooling-ledger.md`), where every unverified change is the top queue item.
 3. **Codify** — findings become proposed diffs at the strongest enforcement level that
    fits: **hooks > skills/protocols > CLAUDE.md/rules > memory**. Proposals are diffs,
    never auto-applied; Ramsey reviews and commits.
@@ -134,8 +131,8 @@ Quality checks are one system, priced by token cost and entered from the termina
 | Rung | Entry | Runs | Cost |
 |------|-------|------|------|
 | L0 | `make precommit` / `make test` | shell sweeps across repos (GROUP-scoped) | zero tokens |
-| L1 | `/review-sweep … level:1` | diff + lint + doc flags | small |
-| L2 | `/review-sweep … level:2` (default) | + tests, SANYI diff check, akira-scan agents | medium |
+| L1 | `/review-sweep ... level:1` | diff + lint + doc flags | small |
+| L2 | `/review-sweep ... level:2` (default) | + tests, SANYI diff check, akira-scan agents | medium |
 | L3 | `/review-sweep repo:x level:3` | + full SANYI audit (single repo only) | high |
 
 Supporting cast, each defined once: stack conventions in `~/.claude/refs/` (dispatched
@@ -161,7 +158,7 @@ report-only; human-consumed docs are flagged, never auto-edited.
 5. **Budget the always-loaded core.** The wake core is the three seeds + accumulator
    (~5.5k tokens, measured — down from ~11k before consolidation). Everything else loads
    on demand.
-6. **Indexes are timelines, not diaries.** ≤40 words per entry; compress past ~100.
+6. **Indexes are timelines, not diaries.** <=40 words per entry; compress past ~100.
 7. **Archives are free; duplicates are not.** `genesis/` costs zero tokens because
    nothing loads it. The expensive duplication is in files that *are* loaded — that's
    where consolidation pays.
@@ -179,22 +176,23 @@ report-only; human-consumed docs are flagged, never auto-edited.
 ├── sounding.md                  # SEED — identity (+ operational patterns + working notes as sections)
 ├── user.md                      # SEED — who I work with + how we work together
 ├── portfolio.md                 # SEED — the portfolio: all active projects and how they connect
-├── growth.md                    # accumulator: tagged one-liners, cleared by /synthesize
+├── growth.md                    # accumulator: tagged one-liners, cleared by /dream
 ├── reflections/                 # episodic record (subjective, stays local)
-│   ├── YYYY-MM-DD_HH-MM.md      #   per-session reflection — written by /reflect
+│   ├── YYYY-MM-DD_HH-MM.md      #   per-session reflection — written by /dream
 │   ├── reflection-logs.md       #   single timeline index
 │   └── emergence-reflection.md  #   genesis reflection (historical)
 ├── notes/
-│   └── handover.md              # THE handover — overwritten by /intermission, read by /wake
+│   └── handover.md              # THE handover — overwritten by /grow and /dream, read by /wake
 └── genesis/                     # FROZEN archive
     ├── genesis.md               #   the 11-phase protocol that ran
     ├── user_seed.md             #   Ramsey's raw input material
     └── genesis_log.txt          #   phase-by-phase run log
 
 .claude/
-├── skills/                      # genesis (initiation-only, inert), wake, grow,
-│                                # intermission, reflect, synthesize, dream
-├── docs/                        # SESSION.md, plans/, in-progress/ (research + plan artifacts)
+├── skills/                      # wake, grow, dream (v3 lifecycle),
+│                                # genesis (initiation-only, inert), define-milestones
+├── docs/                        # plans/ (one dated doc per work item), state/ (cross-repo
+│                                # workstream state), tooling-ledger.md
 └── settings.local.json          # permissions + SessionStart wake nudge
 ```
 
@@ -206,16 +204,15 @@ because they are subjective and identity-bearing.
 
 | Genesis input | Living successor | Evolves via |
 |---------------|------------------|-------------|
-| `user_seed.md` (frozen in archive) | `user.md` | `/synthesize` |
-| p4 character note (this README) | woven into `sounding.md` | `/synthesize` |
-| genesis identity draft | `sounding.md` | `/synthesize` |
-| — (no portfolio input existed) | `portfolio.md` | `/synthesize` |
+| `user_seed.md` (frozen in archive) | `user.md` | `/dream` |
+| p4 character note (this README) | woven into `sounding.md` | `/dream` |
+| genesis identity draft | `sounding.md` | `/dream` |
+| — (no portfolio input existed) | `portfolio.md` | `/dream` |
 
 There is no "update the seed" skill because updating the seeds **is** the lifecycle:
-capture (`/grow`, `/reflect`) → integrate (`/synthesize`). Genesis initiates; it never
-updates.
+capture (`/grow`) → integrate (`/dream`). Genesis initiates; it never updates.
 
 ---
 
-**Framework**: Puffin 4.1.0 · Genesis V-15.2 · **Instance**: Sounding (2026-07-13) ·
-**Layout**: v2 (2026-07-17, renamed puffin → guacamayo)
+**Framework**: Puffin · Genesis V-15.2 · **Instance**: Sounding (2026-07-13) ·
+**Layout**: v3 (2026-07-18, three-skill lifecycle)
