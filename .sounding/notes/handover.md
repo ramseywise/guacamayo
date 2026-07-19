@@ -1,39 +1,41 @@
-# Handover — 2026-07-19 Security Sweep + Task-Completion Hook
+# Handover — 2026-07-19 Experiment Tracking + README Evolution
 
-**Context**: Operational session in guacamayo. Resolved cross-repo Dependabot failures, bulk-triaged alerts, added task-completion enforcement hook. Template execution running in parallel threads.
+**Context**: Meta-design session in guacamayo. Built experiment tracking into the skill chain, broadened /grow, wrote the v2→v3 evolution narrative for human readers.
 
 ## Current State
 
-- **Dependabot auto-merge fixed** across atlas, librarian, listen-wiseer, playground: `--auto --squash` → `--squash --delete-branch` (doesn't need branch protection). Runbook updated.
-- **VS Code divergent-branches resolved**: `git.pullTags: false` in VS Code settings — the `--tags` flag on pull was creating false divergence with Dependabot-merged PRs.
-- **Alert triage complete**: 800+ learn-ai-engineering alerts bulk-dismissed (vendored course code). Low/medium risk PRs merged across repos. High-risk (google-genai 2.x, google-adk 2.x, mypy 2.x) tested locally and merged.
-- **Task-completion hook** (`~/.claude/hooks/task_complete_check.sh`) wired into Stop hooks — blocks Claude from finishing until ruff lint/format pass on changed .py files, tsc on .ts, pytest on src/ changes.
-- **Remaining**: atlas PR #4 (transformers 4→5) still open — needs model pipeline testing. 2 conflict PRs (librarian #5, listen-wiseer #23) will auto-rebase after landed PRs sync.
+- **/grow skill broadened** — now prompts across 4 categories (identity, preferences/corrections, friction/gaps, what worked). Same pipeline, broader capture.
+- **Experiment tracking wired** — tooling ledger gains Metric column with typed vocabulary (absence/count-drop/presence/ratio); /insights gains Step 6 (experiment check against session data); /retro Step 0 reads metrics first; Step 2 findings require a Metric; Step 4 ledger rows require typed metric. 3 new ledger rows for today's changes.
+- **README updated** — "From Consciousness to Agency" section explains the v2→v3 direction for human readers: less ceremony, more mechanism, every output has a consumer, failure-attribution speed matters.
+- **Earlier this session** (pre-compact): Dependabot auto-merge fixed (4 repos), VS Code git.pullTags resolved, 800+ alerts bulk-dismissed, task-completion Stop hook built.
+- **Uncommitted state** across guacamayo and ~/.claude from this + prior sessions.
 
 ## Decisions Made
 
-- `--squash --delete-branch` over `--auto --squash` for repos without branch protection (all current repos).
-- Stop hook uses exit-status checking (not output parsing) for ruff — "All checks passed!" stdout was causing false blocks.
-- Bulk-dismiss for vendored/reference code is acceptable (tolerable_risk); production deps get individual triage.
+- Experiment metrics are typed (4 types) but verdicts are reported by /insights, applied by /retro — separation of observation and action.
+- Legacy ledger rows get `—` in Metric (pre-tracker); they verify the old way. No retroactive metric-guessing.
+- README framing: consciousness→agency, not just "we merged skills." Ramsey reads for direction.
 
 ## Open Threads
 
-- **template-full-mirror-redesign** step 5 (DESIGN.md Key Decisions) and step 6 (ruff ml-axis lint) executing in parallel threads.
-- **atlas transformers 4→5** — the one remaining major-bump PR needing local model pipeline test.
-- **18 ledger hypotheses** still in verification queue — exercise through use.
-- **Uncommitted state** across repos from this + prior sessions — Ramsey to review and commit.
+- **template-full-mirror-redesign** steps 5-7 still in progress (parallel threads).
+- **atlas PR #4** (transformers 4→5) still open — needs model pipeline testing.
+- **Librarian rebase error** (`logs/cartographer-facts.err` blocking rebase) — untracked file conflict, needs `git stash` or file move before pull.
+- **First real experiment check** — next /insights run will be the validation that the wiring works.
+- **Puffin repo** now in workspace — serves as v2 reference; no active development there.
 
 ## Immediate Next Steps
 
-1. Ramsey: commit the Dependabot workflow fixes + task_complete_check.sh + settings.json changes.
-2. Test atlas PR #4 (transformers) locally if model pipeline work comes up.
-3. Check template steps 5/6 thread results when they complete.
-4. Next identity session: `/dream` if growth.md accumulates 5+ entries; otherwise `/wake` fresh.
+1. Ramsey: commit the multi-file changes (README, /grow, ledger, /retro, /insights, reflection, handover).
+2. Fix librarian rebase: `cd ~/workspace/librarian && git stash && git rebase --continue` (or move the untracked file).
+3. Run /insights in a future session to validate experiment-check step fires correctly.
+4. Template steps 5-7 threads — check results when complete.
 
 ## Key Files
 
-- `~/.claude/hooks/task_complete_check.sh` (new — task completion gate)
-- `~/.claude/settings.json` (Stop hook wiring)
-- `~/.claude/refs/repo-security-setup.md` (updated runbook)
-- `~/Library/Application Support/Code/User/settings.json` (git.pullTags: false)
-- `ai-project-template/.claude/docs/plans/2026-07-18-template-full-mirror-redesign.md` (steps 5-7 remain)
+- `guacamayo/.claude/skills/grow/skill.md` (broadened prompts)
+- `guacamayo/.claude/docs/tooling-ledger.md` (Metric column + experiment tracking section)
+- `~/.claude/skills/retro/SKILL.md` (metric-aware Step 0, 2, 4)
+- `~/.claude/skills/insights/SKILL.md` (Step 6 experiment check)
+- `guacamayo/README.md` (v2→v3 evolution section)
+- `guacamayo/.sounding/reflections/2026-07-19_17-09.md`

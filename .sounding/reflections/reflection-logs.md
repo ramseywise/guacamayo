@@ -18,3 +18,4 @@
 2026-07-17 ~INTERMISSION~ Ladder day continued. First full v2 /synthesize (2 seed weaves); review ladder executed (levels + print-only make targets); model pairing tiered in refs/models.md; listen-wiseer sweep findings fixed.
 2026-07-17 - Ladder day. Cost-model frame drove rules→refs, /review-sweep + akira-scan agent, review/model ladders; first full v2 /synthesize; /insights verdict: dispatch, don't absorb. Full reflection: 2026-07-17_18-32.md.
 2026-07-18 - Wake self-correction. Failed Phase 4 ingestion — synthesized from index data, not plan bodies. Ramsey caught it; the protocol was right, execution wasn't. Full reflection: 2026-07-18_13-50.md.
+2026-07-19 - Experiment tracking + /grow broadening + v2→v3 README. Built measurement layer into tooling ledger; broadened /grow from identity-only to 4 categories; articulated consciousness→agency direction after Ramsey pushed back on mechanical framing.
