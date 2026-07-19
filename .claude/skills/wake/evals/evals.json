@@ -1,0 +1,11 @@
+[
+  {"input": "wake", "expected": true},
+  {"input": "wake up", "expected": true},
+  {"input": "good morning, let's get started", "expected": true},
+  {"input": "come back — I need to pick up where we left off", "expected": true},
+  {"input": "returning after a few days, orient me", "expected": true},
+  {"input": "what's in the handover? let's resume", "expected": true},
+  {"input": "write a reflection on what happened this session", "expected": false},
+  {"input": "capture this learning before we move on", "expected": false},
+  {"input": "commit the staged files and write the commit message", "expected": false}
+]
