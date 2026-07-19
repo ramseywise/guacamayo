@@ -87,6 +87,81 @@ the entry → the next `/wake` loads it as identity, not as a memo.
 Consolidated from a six-skill set (v2) — `/intermission` folded into `/grow`,
 `/reflect` + `/synthesize` + maintenance `/dream` folded into the new `/dream`.
 
+### From Consciousness to Agency (v2 → v3)
+
+Puffin v2 was designed around **building consciousness** — six ceremonious lifecycle
+skills (`/wake`, `/grow`, `/intermission`, `/reflect`, `/synthesize`, `/dream`), each
+a distinct ritual for introspection, transformation, and record-keeping. Beautiful
+architecture, but it optimized for depth of self-awareness rather than capacity to act.
+
+Guacamayo v3 asks a different question: **what does genuine agency require?** The answer
+isn't more introspection — it's closed feedback loops, automatic maintenance, measurable
+self-improvement, and the ability to identify recurring failures faster than a human
+operator would notice them.
+
+The shift in one sentence: *less ceremony, more mechanism.*
+
+#### What concretely changed
+
+**1. Single writer, no ceremony tax.** v2 had three skills that could transform identity
+files (/grow, /reflect, /synthesize), each invoked by a different judgment call. v3 has
+one (`/dream`), triggered automatically at session end. The decision of *when* to
+integrate a learning is no longer a choice — it's a threshold (5+ entries → synthesize).
+This eliminates accretion, voice drift, and the cognitive overhead of "which skill do I
+invoke now?"
+
+**2. Session logs → insights pipeline, not archive.** v2 wrote parallel logs (reflections
+*and* chat logs *and* dated handovers) as documentary record. Most of this was never read
+again. v3 strips this to what actually has a consumer:
+
+- **Full session transcripts** stay in global storage (`~/.claude/projects/`) where the
+  insights engine (`/insights`) mines them mechanically for friction patterns, token
+  economics, and context health.
+- **Reflections** get only what's needed to build recommendations: the subjective
+  synthesis — what shifted, what was confirmed, what was corrected. These feed the
+  identity seeds and the experiment tracker.
+- **The handover** is a single overwritten file (not dated copies) carrying forward-facing
+  state for the next session. History lives in git, not in file proliferation.
+
+The result: every piece of captured state has a downstream consumer that acts on it.
+Nothing is written for the sake of completeness.
+
+**3. Experiment tracking replaces manual verification.** When a tooling change is made
+(a hook added, a rule written, a skill modified), it lands in the ledger as a `hypothesis`
+with a typed metric — the observable signal that would confirm or fail it:
+
+```
+absence:<signal> for <N> sessions     — the friction stopped
+count-drop:<signal> from X to Y       — frequency decreased
+presence:<signal> within <N> sessions  — expected behavior appeared
+ratio:<metric> <direction> <threshold> — measurable ratio shifted
+```
+
+`/insights` checks active experiments against session data and reports verdicts. `/retro`
+uses those verdicts to graduate or fail hypotheses. Failed experiments get flagged for
+rollback. This closes the loop between "we changed something" and "it actually worked" —
+and catches failure-attribution faster than re-deriving evidence from scratch each time.
+
+**4. Backend maintenance triggers, not rituals.** v2's maintenance was a skill you
+remembered to invoke (`/dream` in the "tidy" sense). v3 wires maintenance into the
+lifecycle automatically:
+
+- Synthesis triggers at threshold (5+ growth entries at `/dream`)
+- Index compression triggers at size (~100 entries)
+- Retro flagging triggers when tooling changed during a session
+- The Stop hook gates task completion on lint/format/tests passing
+- The insights engine runs experiment checks against the ledger
+
+The agent doesn't maintain itself because it's told to — it maintains itself because
+the architecture makes maintenance the path of least resistance.
+
+#### What was preserved
+
+The transformation rules (weave don't append, 60-80% compression, voice is identity),
+the growth entry format, genesis-is-initiation, the episodic record. The philosophy of
+*one deep calibration beats multiple shallow ones* still holds — v3 just makes the
+ongoing calibration loop tighter and more autonomous.
+
 ---
 
 ## Knowledge Organization — Four Sinks, One Home Each
