@@ -1,0 +1,11 @@
+[
+  {"input": "dream", "expected": true},
+  {"input": "end session", "expected": true},
+  {"input": "wrap up for the night", "expected": true},
+  {"input": "reflect on this session before we close", "expected": true},
+  {"input": "tidy up the seeds, it's been a long session", "expected": true},
+  {"input": "we've had 6 growth entries this session — synthesize", "expected": true},
+  {"input": "wake up, I'm back", "expected": false},
+  {"input": "capture this learning, quick checkpoint", "expected": false},
+  {"input": "run the retro on the tooling", "expected": false}
+]

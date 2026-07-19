@@ -16,39 +16,37 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-07-18)
+## Live pick-up points (as of 2026-07-20)
 
 **guacamayo** (this repo)
+- `2026-07-18-skills-refs-evals-norm.md` — EXECUTED (P0-4 complete; P5b deferred).
+  => P5b: ADK eval adoption blocked on labeling decision.
 - `2026-07-17-feedback-loop.md` — EXECUTED. Phase 4 (/retro eval-gate) pending first real
-  skill-change proposal to exercise end-to-end.
-  => First `/retro` run that proposes a skill change — verifies the eval-gate path.
-- `2026-07-17-review-sweep.md` — EXECUTED, acceptance criteria 1–4 pending.
-  => First real `/review-sweep` from a FRESH session (new skill/agent defs load at session start).
-- Rename puffin→guacamayo done except: GitHub remote + final commit + delete leftover `puffin/` copy.
-  => On Ramsey (commits are always yours).
+  skill-change proposal.
+- Rename puffin→guacamayo done except: GitHub remote + final commit (on Ramsey).
 
 **ai-project-template**
-- `2026-07-17-template-core-redesign.md` — IN PROGRESS (A0 + B1 + B2 done).
-  => Next: A1 in a fresh session.
-- `2026-07-17-evals-suite-port.md` — IN PROGRESS.
-- `multi-agent-tooling-expansion.md` — missing `Status:` line (see feedback-loop open item).
+- `2026-07-20-consolidate-capability-reference.md` — EXECUTED (all 5 phases).
+- `2026-07-19-genesis-lifecycle-architecture.md` — EXECUTED.
+- `2026-07-19-two-root-scaffold.md` — EXECUTED (all 4 phases).
+- `2026-07-17-template-core-redesign.md` — EXECUTED.
+- `2026-07-17-evals-suite-port.md` — EXECUTED.
+- Multiple worktree branches from parallel agents need merging.
+  => Ramsey: review and merge/commit worktree changes.
 
 **librarian**
-- `2026-07-17-knowledge-compaction.md` — IN PROGRESS.
-- `2026-07-17-learn-ai-ingest-guacamayo-loop.md` — IN PROGRESS.
-- Akira rollout blocked: subagents hardcode `src/agents/*` paths, can't scan librarian's
-  app/etl/tools layout.
-  => Fix upstream: settings-driven scan roots in template scaffold, then re-pilot.
+- `2026-07-17-learn-ai-ingest-guacamayo-loop.md` — EXECUTED (M1-M4; M2 second batch + M5 follow-on).
+- `2026-07-17-knowledge-compaction.md` — EXECUTED.
 
 **listen-wiseer**
-- Phases 1–2d COMPLETE (see CHANGELOG). `phase6_refactor.md` + `phase7a-exploration-tools.md` ACTIVE.
-- Several phase plans (2e, 3a–d, 4a–b, 5a–c, 6) missing `Status:` lines.
+- All phases EXECUTED or COMPLETE. Phase 7a ABANDONED.
 
 **playground**
-- `rag-latency-optimization.md` — baseline documented, experiments queued.
+- `rag-latency-optimization.md` — E1 DONE (streaming), E2 OBSOLETE. E3-E6 viable, lower priority.
+  => Next: E3 (Flash-Lite quality regression) or E4 (context chunk reduction).
 
 **contracts rollout** (cross-repo)
-- Buyi confirmation interviews owed on all three SANYI.md files (drafted autonomously from CLAUDE.md rules).
+- SANYI confirmation interviews still owed on all three SANYI.md files.
 
 ---
 

@@ -19,8 +19,16 @@ scraper repos.txt now lists 4 repos + akira-findings glob, 5 new wiki pages (rol
 3 system-design interview pages, code-review drill), learn-ai-engineering README points to them.
 
 **Open:**
-1. Buyi confirmation interviews owed on all three SANYI.md files (drafted autonomously from
-   CLAUDE.md rules; each file's header comment says so).
+1. Buyi confirmation interviews — **playground DONE 2026-07-19** (ratified v2). Librarian + atlas
+   still owed (drafted autonomously from CLAUDE.md rules; each file's header comment says so).
+   Playground's interview found v1 was **false on arrival**, not merely unconfirmed: both guardrail
+   pipelines had zero call sites (vendored via a template commit, never wired), three divergent
+   per-agent reimplementations, `evidence: tests/smoke/` overstated (covered lg_agent only), and
+   `RAG_GUARDRAILS_ENABLED` defaulted False. Also surfaced a BY-1 the contract hadn't looked for:
+   accounting-domain strings in 4 files incl. shipped code (`adk_agent/gateway/main.py:115`).
+   **Expect the same class of finding in librarian/atlas** — all three were drafted the same way,
+   from declarations. Run their interviews with the fixed `/sanyi init` (step 2 verification,
+   added 2026-07-20 — ledger row same date).
 2. **Akira rollout blocked**: subagents hardcode `src/agents/*` scaffold paths
    (safeguard/schema_check jinja templates) — cannot scan librarian's app/etl/tools layout.
    Fix upstream: settings-driven scan roots in `template/_scaffold/{{ source_root }}/agents/akira/`,

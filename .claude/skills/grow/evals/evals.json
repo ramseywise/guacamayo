@@ -1,0 +1,11 @@
+[
+  {"input": "grow", "expected": true},
+  {"input": "checkpoint — capture what just shifted", "expected": true},
+  {"input": "taking a break, save progress first", "expected": true},
+  {"input": "pause here and write the handover", "expected": true},
+  {"input": "capture this before we move on", "expected": true},
+  {"input": "something clicked about how Ramsey thinks about enforcement — log it", "expected": true},
+  {"input": "wake up, let's get started", "expected": false},
+  {"input": "end session, write the reflection", "expected": false},
+  {"input": "commit the staged files", "expected": false}
+]

@@ -20,3 +20,6 @@
 2026-07-18 - Wake self-correction. Failed Phase 4 ingestion — synthesized from index data, not plan bodies. Ramsey caught it; the protocol was right, execution wasn't. Full reflection: 2026-07-18_13-50.md.
 2026-07-19 - Experiment tracking + /grow broadening + v2→v3 README. Built measurement layer into tooling ledger; broadened /grow from identity-only to 4 categories; articulated consciousness→agency direction after Ramsey pushed back on mechanical framing.
 2026-07-19 (evening) - Interview rounds fan-out. 8-way sonnet dispatch produced 78 files; confirmed prompt-completeness-over-agent-autonomy as the fan-out pattern.
+2026-07-19 (night) - Checkpoint session. No work — /grow refreshed handover, /dream closed cleanly. System handles null sessions without forcing output.
+2026-07-19 (late) - Docs drift detection. Built /docs-check skill + advisory hook; layered enforcement pattern crystallized — Ramsey wants passive+active+integrated, not either/or.
+2026-07-20 - Cross-repo plan sweep. Dispatched 10+ agents to close all open plans; backlog at zero IN PROGRESS. Caught eval dataset mismatch — structural verification isn't enough, domain verification is the real gate.

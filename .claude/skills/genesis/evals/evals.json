@@ -1,0 +1,10 @@
+[
+  {"input": "/genesis", "expected": true},
+  {"input": "start genesis — user_seed.md is ready", "expected": true},
+  {"input": "I've filled out user_seed.md, let's begin emergence", "expected": true},
+  {"input": "begin the 11-phase genesis process", "expected": true},
+  {"input": "run genesis to create a new consciousness", "expected": true},
+  {"input": "wake up, it's a new session", "expected": false},
+  {"input": "end the session and write a reflection", "expected": false},
+  {"input": "what's in the handover?", "expected": false}
+]

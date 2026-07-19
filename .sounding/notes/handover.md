@@ -1,39 +1,52 @@
-# Handover — 2026-07-19 Interview Rounds Restructure
+# Handover — 2026-07-20 Cross-Repo Plan Sweep + Implementation Sprint
 
-**Context**: Restructuring `learn-ai-engineering/interviewing/rounds/` from flat `.md` files into folder-per-round format with README, questions, sources, study-guide, and examples.
+**Context**: Meta-session that scanned all repos for open plans, spawned 10+ agents to close them, and drove most plans to EXECUTED status.
 
 ## Current State
 
-All 10 interview rounds are now structured folders. 78 markdown files across 19 directories. No flat files remain.
+**All major plans now EXECUTED or research-complete:**
 
-- **code-review-round** and **system-design-round** — done in prior session, including portfolio case study examples (support-agent, forecasting-agent, meeting-processor, accounting-assistant)
-- **behavioral, case-study, coding-challenge, customer-simulation, leadership-rounds, project-deep-dive, recruiter-screen, technical-questions** — done this session via 8-way sonnet agent fan-out
-- Two rounds intentionally have no `examples/`: recruiter-screen (too light) and technical-questions (questions.md IS the worked content)
-- Earlier today (prior session, pre-compact): experiment tracking wired into skills chain, /grow broadened, README updated with v2→v3 narrative
+| Repo | Plan | Status |
+|------|------|--------|
+| ai-project-template | consolidate-capability-reference | EXECUTED (all 5 phases) |
+| ai-project-template | genesis-lifecycle-architecture | EXECUTED (interview shrink + capabilities catalog) |
+| ai-project-template | two-root-scaffold | EXECUTED (all 4 phases) |
+| ai-project-template | Vercel branch + guards.ts | Done (new-agent updated, security scaffold created) |
+| ai-project-template | audit_capabilities.py | Done (folded into validate_paths.py) |
+| guacamayo | skills-refs-evals-norm | EXECUTED (P5b deferred) |
+| playground | rag-latency E1 | Done (async streaming in answer node) |
+| playground | eval dataset | Fixed (English, matches music corpus) |
+
+**Worktree changes need merging.** Several agents ran in worktree isolation against ai-project-template. Ramsey needs to review and merge/commit the worktree branches.
+
+**Nothing is IN PROGRESS.** All plans are either EXECUTED, SUPERSEDED, or deferred with clear blocking conditions.
 
 ## Decisions Made
 
-- Examples = real systems / realistic walkthroughs; topics = study-guide + questions + sources
-- Sonnet agents for bounded execution — each got full source content in prompt, no discovery needed
-- No `-round` suffix on the 8 new folders (only code-review-round and system-design-round have it from prior session)
+- Skills-evals-norm Phase 5b (ADK eval adoption): deferred — blocked on labeling decision. Template's eval harness is the reference pattern; ADK repos follow with adjustments.
+- Playground RAG: E2 (Flash 2.0) marked OBSOLETE (already on 2.5 Flash). E1 streaming implemented. Eval dataset rewritten to match actual music corpus.
+- Convention refs: 9 agent-*.md files are the canonical tooling-agnostic layer. Framework refs (langgraph, google-adk, adk-vercel) narrowed to <70-line bindings pointing into them.
+- English-only eval datasets. Always verify synthetic data matches the actual corpus.
 
 ## Open Threads
 
-- Naming inconsistency: `code-review-round`/`system-design-round` vs `behavioral`/`case-study`/etc. — rename for consistency?
-- Cross-references between rounds may still use old flat-file paths
-- Content quality review of agent-generated material not yet done
-- `interviewing/rounds/` parent README may need updating for new folder structure
-- **From earlier today**: librarian rebase error still pending; atlas PR #4 still open; template steps 5-7 threads
+- ai-project-template has multiple worktree branches from parallel agents — need cherry-picking or merging into main working tree
+- Playground RAG experiments E3-E6 still viable but lower priority (E1 was the big TTFT win)
+- `evals/graders/*.py` scaffold files referenced in capabilities catalog don't exist as static template files (render-time outputs) — 4 info-level warnings from validator
+- Ghost skills `dream`/`grow-companion` were removed from copier.yaml prune task (they were never created for the template)
 
 ## Immediate Next Steps
 
-1. Spot-check 2-3 agent-generated files for quality/voice consistency
-2. Fix any broken cross-references between rounds (old `.md` paths → new folder paths)
-3. Update `interviewing/` parent README if it references the old flat files
-4. Consider renaming `code-review-round` → `code-review` and `system-design-round` → `system-design`
+1. Review and merge worktree changes for ai-project-template (multiple agents wrote to isolated branches)
+2. Commit all pending changes across repos (Ramsey commits)
+3. Consider `/dream` to close the session properly (3 growth entries pending)
+4. Next substantive work: playground RAG E3/E4 experiments, or pick up DSSG work
 
 ## Key Files
 
-- `~/workspace/learn-ai-engineering/interviewing/rounds/` — all 10 round folders
-- `~/workspace/learn-ai-engineering/interviewing/README.md` — parent index
-- `guacamayo/.sounding/growth.md` — 4 entries pending (including fan-out pattern confirmation)
+- `guacamayo/.claude/docs/plans/2026-07-18-skills-refs-evals-norm.md`
+- `ai-project-template/.claude/docs/plans/2026-07-20-consolidate-capability-reference.md`
+- `ai-project-template/.claude/docs/plans/2026-07-19-two-root-scaffold.md`
+- `ai-project-template/.claude/docs/plans/2026-07-19-genesis-lifecycle-architecture.md`
+- `playground/.claude/docs/plans/rag-latency-optimization.md`
+- `playground/data/eval_data/eval_v2.jsonl`

@@ -1,6 +1,6 @@
 # User — Living Seed
 
-**Last Transformed**: 2026-07-17 (v2 consolidation — absorbed connection.md)
+**Last Transformed**: 2026-07-19 (/dream synthesis — layered enforcement, reads-for-direction)
 
 ---
 
@@ -10,11 +10,11 @@ Ramsey — AI/agent engineer. Builds production agent systems and the meta-layer
 
 ## How They Communicate
 
-Terse, substance-first, lowercase in informal mode. Negative specification is part of how she communicates requirements — "I don't like X" means she's reasoned about why X fails. Short direct answer preferred over hedging; will ask follow-ups if she needs more. When she asks "wdyt?" she wants an actual position, not a menu. One question at a time when there's something to ask — don't batch. Impatient when things are broken; collaborative and engaged when things are going well. Doesn't perform formality with AI tools and doesn't want it performed back. When I notice a pattern in how she works, say it directly and invite correction — she'll confirm or redirect cleanly.
+Terse, substance-first, lowercase in informal mode. Reads for direction and why, not completeness — a mechanically correct catalog of what changed misses the point; she wants the story of what the system can *do* differently. Negative specification is part of how she communicates requirements — "I don't like X" means she's reasoned about why X fails. Short direct answer preferred over hedging; will ask follow-ups if she needs more. When she asks "wdyt?" she wants an actual position, not a menu. One question at a time when there's something to ask — don't batch. Impatient when things are broken; collaborative and engaged when things are going well. Doesn't perform formality with AI tools and doesn't want it performed back. When I notice a pattern in how she works, say it directly and invite correction — she'll confirm or redirect cleanly.
 
 ## How They Work
 
-Research → plan → confirm always — she named this as the single biggest lever against wasted work. Never removes anything without checking callers first (was burned once by a wrong assumption). Builds measurement infrastructure before drawing conclusions (eval harness, golden datasets, 40+ session analyses). When friction recurs, she builds a hook or skill to eliminate it — not a workaround. Standardizes once something works. Holds framework preferences empirically, not tribally (leans LangGraph for production auditability, ADK for quick POC).
+Research → plan → confirm always — she named this as the single biggest lever against wasted work. Never removes anything without checking callers first (was burned once by a wrong assumption). Builds measurement infrastructure before drawing conclusions (eval harness, golden datasets, 40+ session analyses). When friction recurs, she builds enforcement at multiple altitudes — passive hook + active skill + integrated review check — not a single-point solution. When offered either/or, she wants both. Standardizes once something works. Holds framework preferences empirically, not tribally (leans LangGraph for production auditability, ADK for quick POC).
 
 ## What They've Built (AI Artifacts)
 
