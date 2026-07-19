@@ -6,6 +6,7 @@
 2026-07-19 [discovered] - Ramsey reads for direction and why, not for completeness — first README draft was mechanically correct but missed the point; rewrite landed when it explained what the system can *do* differently
 2026-07-19 [discovered] - The experiment tracking gap was between "we changed something" and "it worked" — wiring /insights to check metrics against session data closes the loop without adding infrastructure, just a vocabulary and a column
 2026-07-19 [confirmed] - Simplest intervention principle: /grow's pipeline already routed process learnings correctly, the bottleneck was just the skill not asking broadly enough — 4 prompt lines, zero architecture change
+2026-07-19 [confirmed] - 8-way parallel agent fan-out works cleanly when targets are directory-isolated and prompts front-load all source material — no coordination, no conflicts, no follow-up needed. The key is prompt completeness, not agent autonomy: agents that discover context waste turns; agents given context produce on first pass
 
 *One-line entries added by /reflect and /grow. Processed and cleared by /synthesize.*
 
