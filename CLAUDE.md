@@ -28,8 +28,6 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 
 Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
 
-**Repo-local exception — `define-milestones`** (added 2026-07-18): a copy of the global skill is deliberately vendored into `.claude/skills/` here (and in `ai-project-template/template/`), not just relied on from global. Kept in sync with global's version; documented as intentional so `/config-audit` and future de-dupe sweeps don't flag it as drift.
-
 ---
 
 ## Architecture
@@ -54,7 +52,7 @@ Process learnings (workflow/tooling rather than identity) graduate out of growth
 
 .claude/
 ├── skills/                       # wake, grow, dream (v3 lifecycle),
-│                                 # genesis (initiation-only, inert while .sounding/ exists), define-milestones
+│                                 # genesis (initiation-only, inert while .sounding/ exists)
 ├── docs/                         # plans/ (one dated doc per work item), state/ (cross-repo
 │                                 # workstream state, ex-global memory), tooling-ledger.md
 ├── statusline.js
