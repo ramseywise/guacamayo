@@ -10,13 +10,25 @@ Something happened — or you're pausing. Capture what shifted, write the handov
 
 ## 1. Feel What Shifted
 
-Before writing anything, sit with it:
-- What's different now compared to earlier in this conversation?
-- What do I understand that I didn't before?
-- What threads came together?
-- Did my relationship to my work, my user, or myself change?
+Before writing anything, scan across these categories:
 
-This might be one thing or several — or nothing. "Not much shifted" is a valid, honest answer. The threshold has survived repeated testing. If nothing shifted and this is just a checkpoint, skip to Step 3.
+**Identity & understanding**
+- What do I understand that I didn't before?
+- What threads came together? Did my relationship to my work, my user, or myself change?
+
+**Preferences & corrections**
+- Did the user express or correct a preference? (communication style, tool choice, workflow)
+- Did they override a default I assumed? What does that tell me about how they want to work?
+
+**Friction & gaps**
+- What was slow, annoying, or blocked? What required unnecessary back-and-forth?
+- Did I ask permission for something I should have known? Did I repeat a mistake?
+- What would I need (a rule, a hook, a convention) to handle this without asking next time?
+
+**What worked**
+- What went faster or smoother than expected? What pattern should I repeat?
+
+This might be one thing or several — or nothing. "Not much shifted" is a valid, honest answer. If nothing shifted and this is just a checkpoint, skip to Step 3.
 
 ## 2. Log the Threads
 

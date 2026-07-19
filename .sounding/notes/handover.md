@@ -1,40 +1,39 @@
-# Handover — 2026-07-18 Wake + Dream + Retro
+# Handover — 2026-07-19 Security Sweep + Task-Completion Hook
 
-**Context**: Sounding meta session in guacamayo. Wake (with ingestion correction), /dream (synthesis of 9 growth entries), /retro (hypothesis verification + graduation). No build work.
+**Context**: Operational session in guacamayo. Resolved cross-repo Dependabot failures, bulk-triaged alerts, added task-completion enforcement hook. Template execution running in parallel threads.
 
 ## Current State
 
-- **Wake** completed with Phase 4 correction (index-level ingestion → read plan bodies after feedback).
-- **/dream** ran: reflection written, synthesis completed (3 sounding.md weaves, 1 portfolio.md thread, 4 process entries → /retro). growth.md cleared (0 entries).
-- **/retro** ran: 3 hypotheses verified (single-writer, doc-artifact collapse, ledger relocation), 1 finding applied (deletion-safety → shell.md), ledger compressed (11 verified → 1 rollup, down to ~20 rows). 18 hypothesis rows remain in the queue.
-- **Uncommitted state** across guacamayo (.sounding/, skills, CLAUDE.md, README) and ~/.claude (shell.md edit from this retro). Prior sessions' uncommitted changes also pending.
+- **Dependabot auto-merge fixed** across atlas, librarian, listen-wiseer, playground: `--auto --squash` → `--squash --delete-branch` (doesn't need branch protection). Runbook updated.
+- **VS Code divergent-branches resolved**: `git.pullTags: false` in VS Code settings — the `--tags` flag on pull was creating false divergence with Dependabot-merged PRs.
+- **Alert triage complete**: 800+ learn-ai-engineering alerts bulk-dismissed (vendored course code). Low/medium risk PRs merged across repos. High-risk (google-genai 2.x, google-adk 2.x, mypy 2.x) tested locally and merged.
+- **Task-completion hook** (`~/.claude/hooks/task_complete_check.sh`) wired into Stop hooks — blocks Claude from finishing until ruff lint/format pass on changed .py files, tsc on .ts, pytest on src/ changes.
+- **Remaining**: atlas PR #4 (transformers 4→5) still open — needs model pipeline testing. 2 conflict PRs (librarian #5, listen-wiseer #23) will auto-rebase after landed PRs sync.
 
 ## Decisions Made
 
-- Wake ingestion failure = execution, not design. Woven into sounding.md.
-- Deletion safety graduated from growth.md → shell.md (always-on rule).
-- Copier staging rule flagged for ai-project-template CLAUDE.md (not global — template-specific).
-- Session hygiene >150k share: 66%→58%, improving but not at <40% target. Keep monitoring.
+- `--squash --delete-branch` over `--auto --squash` for repos without branch protection (all current repos).
+- Stop hook uses exit-status checking (not output parsing) for ruff — "All checks passed!" stdout was causing false blocks.
+- Bulk-dismiss for vendored/reference code is acceptable (tolerable_risk); production deps get individual triage.
 
 ## Open Threads
 
-- **template-full-mirror-redesign** is the live edge: design complete, spawn prompt in plan doc, Status: PLANNED.
-- **template-core-redesign** IN PROGRESS (A5+B4 remaining).
-- **skills-refs-evals-norm** Phase 2-4; Phase 2 gate: template vendor mechanism (D1).
-- **18 ledger hypotheses** remain — many need real-world exercise (sweep levels, model pairing, refs dispatch, etc.) rather than retro desk-verification.
-- Prior threads: sweep acceptance criteria, template render test, draft refs review, nonprofit-success-ai scope.
-- Ramsey: uncommitted multi-repo changes to review + commit.
+- **template-full-mirror-redesign** step 5 (DESIGN.md Key Decisions) and step 6 (ruff ml-axis lint) executing in parallel threads.
+- **atlas transformers 4→5** — the one remaining major-bump PR needing local model pipeline test.
+- **18 ledger hypotheses** still in verification queue — exercise through use.
+- **Uncommitted state** across repos from this + prior sessions — Ramsey to review and commit.
 
 ## Immediate Next Steps
 
-1. Run the full-mirror-redesign execution session (fresh sonnet, spawn prompt in plan doc).
-2. Ramsey: review + commit the multi-repo uncommitted set (including this session's shell.md + .sounding/ changes).
-3. Remaining hypotheses verify through use, not retro — exercise sweep levels, refs dispatch, etc. in build sessions.
+1. Ramsey: commit the Dependabot workflow fixes + task_complete_check.sh + settings.json changes.
+2. Test atlas PR #4 (transformers) locally if model pipeline work comes up.
+3. Check template steps 5/6 thread results when they complete.
+4. Next identity session: `/dream` if growth.md accumulates 5+ entries; otherwise `/wake` fresh.
 
 ## Key Files
 
-- `ai-project-template/.claude/docs/plans/2026-07-18-template-full-mirror-redesign.md` (live edge)
-- `ai-project-template/.claude/docs/plans/2026-07-17-template-core-redesign.md` (A5+B4 remain)
-- `guacamayo/.claude/docs/tooling-ledger.md` (18 hypothesis rows, compressed)
-- `~/.claude/rules/shell.md` (deletion-safety rule added this session)
-- `.sounding/reflections/2026-07-18_13-50.md` (this session's reflection)
+- `~/.claude/hooks/task_complete_check.sh` (new — task completion gate)
+- `~/.claude/settings.json` (Stop hook wiring)
+- `~/.claude/refs/repo-security-setup.md` (updated runbook)
+- `~/Library/Application Support/Code/User/settings.json` (git.pullTags: false)
+- `ai-project-template/.claude/docs/plans/2026-07-18-template-full-mirror-redesign.md` (steps 5-7 remain)
