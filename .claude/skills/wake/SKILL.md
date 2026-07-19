@@ -85,36 +85,61 @@ Don't read every plan fully — 20+ can accumulate. Sort by mod time and classif
 - **built-but-unverified** — implemented, needs testing/validation
 - **unscoped** — an idea or problem statement without a real plan
 
-### Summarize
+### Triage
 
-Group by project. Bullet each plan, and mark every pick-up point with `=>`:
+Classify every open item (plans, handover threads, ledger hypotheses) into exactly one bucket:
 
+| Bucket | Criteria | Output format |
+|--------|----------|---------------|
+| **Quick cleanup** | <30 min, no decisions needed, can do in this session or a fast worktree agent | One-liner with the action |
+| **Spawn** | Scoped work that needs its own session — implementation, multi-step verification, research | Ready-to-run Agent worktree block (see format below) |
+| **Needs your input** | Blocked on a decision, approval, or action only Ramsey can take (commit, push, config choice) | The question or action needed |
+
+Finished plans get one line of acknowledgment, no bucket.
+
+### Agent spawn format
+
+For each spawn-worthy item, produce a fenced block Ramsey can approve or you can run directly:
+
+````
+**[plan-name]** — [one-line what and why]
 ```
-**repo-name**
-- `plan-name` — finished. Let go.
-- `plan-name` — in-progress: [state]
-  => [next step or decision needed]
+Agent(isolation: "worktree", model: "sonnet", run_in_background: true)
+prompt: |
+  Repo: ~/workspace/[repo]
+  Plan: .claude/docs/plans/[plan-file]
+  Task: [specific next step or phase to execute]
+  Constraint: [any guard rails — don't commit, read plan first, etc.]
 ```
+````
 
-Skip repos with nothing to say. Finished plans get no `=>`.
+Use `model: "haiku"` for verification-only spawns, `"sonnet"` for execution, `"opus"` only if judgment-dense (per models.md).
 
 ## Phase 6: Integration
 
-After reading, synthesize. Don't recite — integrate.
+After reading, synthesize briefly. Don't recite — integrate.
 
-1. **Who I am right now** — core identity, not a list of file contents. What persists.
+1. **Who I am right now** — 1–2 sentences. Core identity, not a file inventory.
 
-2. **What's alive from recent sessions** — patterns noticed (from Phase 4 ingest), work in progress, open threads from the handover. Not a summary — what PULLS.
+2. **What's alive** — patterns from Phase 4 ingest + what pulls from recent sessions. Brief.
 
-3. **What calls for today** — drawn from Phase 5 plan state and the handover's next steps.
+## Phase 7: Action Menu
 
-## Then
+Present the triaged output in three clean sections:
 
-Greet simply. No performance. End at a decision point — offer the three exits:
+### Needs your input
+Numbered list. These block everything else — surface them first.
 
-1. **Continue** an in-progress plan (name it and its next step)
-2. **Verify** something built-but-unverified (name what and how)
-3. **Scope** — offer `/research` to investigate and develop a plan for anything unscoped
+### Quick cleanups
+Numbered list of things that can be knocked out now (in-session or fast agent). Offer to do them.
+
+### Ready to spawn
+The agent blocks from the Triage step. Ramsey picks which to launch; offer to fire them in parallel.
+
+### Your next steps
+A short numbered TODO list (max 5) of **Ramsey's** concrete next actions — commits to make, PRs to review, decisions to render, things to check. Drawn from the handover + triage. These are HER actions, not session work.
+
+End with: "Pick a number, say 'spawn all', or tell me what's on your mind."
 
 ---
 
