@@ -80,14 +80,29 @@ Check the guacamayo issue board for active work state:
 gh issue list --repo ramseywise/guacamayo --label "in-progress" --json number,title,labels 2>/dev/null
 gh issue list --repo ramseywise/guacamayo --label "blocked" --json number,title,labels,body 2>/dev/null
 gh issue list --repo ramseywise/guacamayo --label "ready" --json number,title,labels 2>/dev/null
+gh issue list --repo ramseywise/guacamayo --label "backlog" --json number,title 2>/dev/null
 ```
 
 Report:
 - **In progress**: what's active (check WIP limit — max 3)
 - **Blocked**: what's stuck and why (read the body for blocker details)
 - **Ready**: what can be picked up this session
+- **Backlog**: count only (e.g. "6 items awaiting refinement → `/workflow-refine`")
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
+
+### Workflow guidance
+
+Based on the board state, suggest the next process step:
+
+```
+If ready items exist       → "Ready items available — pick one for /workflow-plan"
+If backlog but no ready    → "Backlog needs refinement → /workflow-refine"
+If no backlog, no ready    → "Board is clear — work or run /workflow-insights to check for friction"
+If hypothesis rows > 2 wks → "Stale hypotheses — run /workflow-insights → /workflow-retro"
+```
+
+Present this as a one-line "Workflow: ..." suggestion, not a wall of text.
 
 ### Discover plan state
 

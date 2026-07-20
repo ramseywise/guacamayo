@@ -147,6 +147,12 @@ Retro: [not needed / flagged — reason]
 
 What's alive for next time:
 - [threads that pull forward]
+
+Next process step: [one of:]
+  - "Session touched tooling → run /workflow-insights → /workflow-retro next"
+  - "Backlog has items → run /workflow-refine to triage"
+  - "Ready items on board → pick one for /workflow-plan"
+  - "Board is clear — build or explore"
 ```
 
 ## Critical Rules
