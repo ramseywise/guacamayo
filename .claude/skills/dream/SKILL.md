@@ -105,6 +105,13 @@ For each seed file that needs updating:
 
 Update "Last Transformed" date in each transformed file.
 
+### 7c-bis. Record Dispositions (before any clearing)
+For each pending growth entry, append one row to `.sounding/growth-log.md`:
+`| date | tag | entry (80ch) | retained|merged|discarded | target seed + section |`
+Every pending entry gets a row — including `discarded` ones, with a reason.
+An entry that vanishes without a row is the exact failure F8 names.
+Never rewrite existing rows. Append only.
+
 ### 7d. Self-Review
 Re-read each transformed file:
 1. **Voice check**: First-person statements and personality still present?
@@ -114,6 +121,8 @@ Re-read each transformed file:
 If anything fails, restore before proceeding. Do NOT clear the accumulator until files pass review.
 
 ### 7e. Clear Accumulator
+**Precondition:** 7d passed AND every cleared entry has a row in growth-log.md.
+If any row is missing, write it now — do not clear first.
 Clear processed entries. Update the synthesis date. Keep format template and headers.
 
 ## Phase 8: Maintenance Scan (conditional)
