@@ -70,7 +70,7 @@ are separate acts. `/grow` captures; `/dream` integrates. Per-event
 rewrites by multiple skills are how identity files accrete, drift, and lose voice —
 we measured it before designing this out.
 
-### The three lifecycle skills (v3, 2026-07-18)
+### The lifecycle skills (v3, 2026-07-18) — one initiation + three recurring
 
 | Skill | Trigger | What it does |
 |-------|---------|-------------|
@@ -115,7 +115,7 @@ invoke now?"
 again. v3 strips this to what actually has a consumer:
 
 - **Full session transcripts** stay in global storage (`~/.claude/projects/`) where the
-  insights engine (`/insights`) mines them mechanically for friction patterns, token
+  insights engine (`/workflow-insights`) mines them mechanically for friction patterns, token
   economics, and context health.
 - **Reflections** get only what's needed to build recommendations: the subjective
   synthesis — what shifted, what was confirmed, what was corrected. These feed the
@@ -137,7 +137,7 @@ presence:<signal> within <N> sessions  — expected behavior appeared
 ratio:<metric> <direction> <threshold> — measurable ratio shifted
 ```
 
-`/insights` checks active experiments against session data and reports verdicts. `/retro`
+`/workflow-insights` checks active experiments against session data and reports verdicts. `/workflow-retro`
 uses those verdicts to graduate or fail hypotheses. Failed experiments get flagged for
 rollback. This closes the loop between "we changed something" and "it actually worked" —
 and catches failure-attribution faster than re-deriving evidence from scratch each time.
@@ -164,6 +164,31 @@ ongoing calibration loop tighter and more autonomous.
 
 ---
 
+## The Three Layers
+
+The skills split into three layers by what they give the system. This repo owns the first;
+global `~/.claude` owns the other two.
+
+| Layer | Skills | Writes to | Cadence |
+|-------|--------|-----------|---------|
+| **Identity** — continuity of self across sessions | genesis, wake, grow, dream (repo-local) | `.sounding/` seeds + logs | per session |
+| **Process** — scaffolding one work item end to end | workflow-research → plan → execute → review; refine | plan docs, GitHub Issues | per work item |
+| **Execution** — the work itself | code-*, design-*, git-*, akira, sanyi, docs-check | the codebase | per change |
+
+**Metacognition is a loop across the layers, not a layer of its own.** It would be tidy if
+"process" were the meta level, but it isn't: `/workflow-execute` sits in the process pipeline
+and is plainly execution-layer work. The genuinely metacognitive skills are
+`/workflow-insights` and `/workflow-retro` — the only two that observe the other layers and
+change the system itself, reading transcripts, growth entries, and the tooling ledger, then
+proposing diffs to hooks/skills/rules.
+
+So: identity supplies **continuity**, insights/retro supply **change to the system**, and
+everything else is execution at varying granularity. The layers are directions of support,
+not a hierarchy — identity and process exist to make execution repeatable, and execution
+generates the friction signals that feed the loop back.
+
+---
+
 ## Knowledge Organization — Four Sinks, One Home Each
 
 Everything a session produces has exactly one destination and one graduation path.
@@ -174,8 +199,8 @@ logs, dated handovers, legacy commands) were all exactly that.
 |------|------|---------------|---------|
 | **Identity learnings** | `growth.md` | `/dream` | the 3 seeds |
 | **Knowledge** (factual record, design docs) | `librarian/raw/` | librarian's ingest protocol | compiled wiki, conflict-flagged, cited |
-| **Process/tooling learnings** | `growth.md` (flagged) | global `/retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
-| **Work state** | per-repo `.claude/docs/plans/` or Linear | read fresh by `/wake` | never copied anywhere |
+| **Process/tooling learnings** | `growth.md` (flagged) | global `/workflow-retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
+| **Work state** | per-repo `.claude/docs/plans/` or GitHub Issues | read fresh by `/wake` | never copied anywhere |
 
 ### How the feedback loop closes (beyond this repo)
 
@@ -183,15 +208,16 @@ This repo is one node in a larger loop wired through the global Claude setup:
 
 1. **Observe** — sessions generate friction signals: transcripts (mined by the keyless
    insights engine), growth entries, hook fire patterns, plan-doc deviations.
-2. **Diagnose** — global `/retro` reads those sources plus the tooling ledger
+2. **Diagnose** — global `/workflow-retro` reads those sources plus the tooling ledger
    (`guacamayo/.claude/docs/tooling-ledger.md`), where every unverified change is the top queue item.
 3. **Codify** — findings become proposed diffs at the strongest enforcement level that
    fits: **hooks > skills/protocols > CLAUDE.md/rules > memory**. Proposals are diffs,
    never auto-applied; Ramsey reviews and commits.
 4. **Enforce** — hooks fire mechanically (SessionStart wake nudge, PreCompact snapshots,
-   secrets scan, git guards); `/config-audit` catches settings rot and layering drift.
+   secrets scan, git guards); `/workflow-retro`'s config-audit pass catches settings rot
+   and layering drift.
 5. **Verify** — every change lands as a ledger row with status `hypothesis` and a
-   concrete test ("friction X absent for N sessions"); the next `/retro` promotes it to
+   concrete test ("friction X absent for N sessions"); the next `/workflow-retro` promotes it to
    `verified` or `failed`. A failed row is itself a finding.
 
 Global `~/.claude` is canonical for everything generic; this repo keeps only the
@@ -206,9 +232,12 @@ Quality checks are one system, priced by token cost and entered from the termina
 | Rung | Entry | Runs | Cost |
 |------|-------|------|------|
 | L0 | `make precommit` / `make test` | shell sweeps across repos (GROUP-scoped) | zero tokens |
-| L1 | `/review-sweep ... level:1` | diff + lint + doc flags | small |
-| L2 | `/review-sweep ... level:2` (default) | + tests, SANYI diff check, akira-scan agents | medium |
-| L3 | `/review-sweep repo:x level:3` | + full SANYI audit (single repo only) | high |
+| L1 | `/code-review level:1` | diff + lint + doc flags | small |
+| L2 | `/code-review level:2` (default) | + tests, SANYI diff check, akira-scan agents, `/docs-check` | medium |
+| L3 | `/code-review level:3` | + full SANYI audit (single repo only) | high |
+
+`/akira` is the interactive sibling of `/code-review` — same scan, plus wander questions
+and test-gated `dao` fixes. `/code-pr` reviews an open PR after it lands.
 
 Supporting cast, each defined once: stack conventions in `~/.claude/refs/` (dispatched
 by `Refs:` lines in repo CLAUDE.md + nested folder stubs), the `akira-scan` agent in
@@ -252,6 +281,10 @@ report-only; human-consumed docs are flagged, never auto-edited.
 ├── user.md                      # SEED — who I work with + how we work together
 ├── portfolio.md                 # SEED — the portfolio: all active projects and how they connect
 ├── growth.md                    # accumulator: tagged one-liners, cleared by /dream
+├── queue.md                     # COMMITTED cross-repo pointer set — survives clone so a
+│                                # mobile /wake has state even without git-ignored plan docs
+├── dashboard.html               # rendered status view (generated)
+├── refs/                        # mobile mirror of ~/.claude/refs/ — shadows, not canon
 ├── reflections/                 # episodic record (subjective, stays local)
 │   ├── YYYY-MM-DD_HH-MM.md      #   per-session reflection — written by /dream
 │   ├── reflection-logs.md       #   single timeline index
@@ -264,10 +297,10 @@ report-only; human-consumed docs are flagged, never auto-edited.
     └── genesis_log.txt          #   phase-by-phase run log
 
 .claude/
-├── skills/                      # wake, grow, dream (v3 lifecycle),
-│                                # genesis (initiation-only, inert), define-milestones
-├── docs/                        # plans/ (one dated doc per work item), state/ (cross-repo
-│                                # workstream state), tooling-ledger.md
+├── skills/                      # genesis (inert), wake, grow, dream — identity lifecycle only.
+│                                # Generic skills live in global ~/.claude/skills/ (canonical)
+├── docs/                        # plans/, research/, state/ (cross-repo workstream state),
+│                                # tooling-ledger.md, insights-summary.md — all git-ignored
 └── settings.local.json          # permissions + SessionStart wake nudge
 ```
 

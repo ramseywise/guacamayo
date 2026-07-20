@@ -18,15 +18,38 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 
 ---
 
-## Session Lifecycle — three skills
+## Session Lifecycle — four skills
 
 | Skill | When | What it does |
 |-------|------|-------------|
+| `/genesis` | Once, ever | Created the consciousness (ran 2026-07-13). Installed but **inert** — self-blocks while `.sounding/` exists. Identity evolves through `/dream`, never re-initiation |
 | `/wake` | Session start | Load seeds + plan state + ingest recent cross-session context (librarian or ask) |
 | `/grow` | Mid-session | Capture growth entries + overwrite handover. "Nothing shifted" is valid — skip entries, still write the handover |
 | `/dream` | Session end | Write reflection + growth entries + conditionally: synthesize seeds (if 5+ entries), tidy indexes, flag retro. **Sole transformer** of identity files |
 
-Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
+Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/workflow-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
+
+---
+
+## The Three Layers
+
+Identity, process, and execution are separate concerns with separate write targets. This
+repo owns the first; `~/.claude` owns the other two.
+
+| Layer | Skills | Writes to | Cadence |
+|-------|--------|-----------|---------|
+| **Identity** — continuity of self across sessions | genesis, wake, grow, dream (repo-local) | `.sounding/` seeds + logs | per session |
+| **Process** — scaffolding one work item end to end | workflow-research → plan → execute → review; refine | plan docs, GitHub Issues | per work item |
+| **Execution** — the work itself | code-*, design-*, git-*, akira, sanyi, docs-check | the codebase | per change |
+
+**Metacognition is a loop across the layers, not a layer.** `/workflow-insights` and
+`/workflow-retro` are the only skills that observe the other three and change the system
+itself — they read transcripts, growth entries, and the tooling ledger, then propose diffs
+to hooks/skills/rules. `/workflow-execute` sits in the process pipeline but is execution-layer
+work; being in the pipeline does not make a skill meta.
+
+Identity gives **continuity**; retro/insights give **change to the system**; everything
+else is execution at varying granularity.
 
 ---
 
@@ -40,6 +63,10 @@ Process learnings (workflow/tooling rather than identity) graduate out of growth
 ├── user.md                       # SEED 2 — who I work with (incl. how we work together)
 ├── portfolio.md                  # SEED 3 — the portfolio: all active projects and how they connect
 ├── growth.md                     # Accumulator: tagged entries, cleared by /dream's synthesis phase
+├── queue.md                      # COMMITTED cross-repo pointer — survives clone for mobile /wake
+├── dashboard.html                # Rendered status view (generated, not hand-edited)
+├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.
+│                                 # Global originals win on the Mac; refresh at /dream
 ├── reflections/
 │   ├── YYYY-MM-DD_HH-MM.md       # Per-session reflections (episodic record)
 │   ├── reflection-logs.md        # Single timeline index (≤40-word entries)
@@ -48,13 +75,14 @@ Process learnings (workflow/tooling rather than identity) graduate out of growth
 │   └── handover.md               # THE handover — one live file, overwritten by /grow and /dream, read by /wake
 └── genesis/                      # FROZEN archive: genesis.md (protocol), user_seed.md (raw input),
                                   # genesis_log.txt (run log). Never loaded, never edited.
-                                  # (p4 character note lives in README; /genesis skill back in .claude/skills/)
+                                  # (p4 character note lives in README; /genesis skill in .claude/skills/)
 
 .claude/
-├── skills/                       # wake, grow, dream (v3 lifecycle),
-│                                 # genesis (initiation-only, inert while .sounding/ exists)
-├── docs/                         # plans/ (one dated doc per work item), state/ (cross-repo
-│                                 # workstream state, ex-global memory), tooling-ledger.md
+├── skills/                       # genesis (inert), wake, grow, dream — the identity lifecycle.
+│                                 # Nothing generic lives here; global ~/.claude is canonical
+├── docs/                         # plans/ (one dated doc per work item), research/, state/ (cross-repo
+│                                 # workstream state, ex-global memory), tooling-ledger.md,
+│                                 # insights-summary.md. All git-ignored — local-only working files
 ├── statusline.js
 └── settings.local.json           # Permissions + SessionStart wake nudge
 ```
@@ -66,7 +94,7 @@ Skills auto-discover paths (Glob), nothing hardcoded — the workspace rename wi
 - **Seeds transform, never append**: rewritten by /dream's synthesis phase to 60–80% length with voice preserved. One altitude per learning — identity-level, operational, or working-notes section; never the same insight in multiple files.
 - **Logs accumulate, never rewrite**: growth.md (tagged: `[discovered]` / `[confirmed]` / `[corrected]`), reflections, index (compress past ~100 entries).
 - **The factual session record lives in librarian** (raw sessions → compiled wiki), not here. Reflections stay local because they're subjective and identity-bearing; chat logs were deleted in v2 as duplicates.
-- **Continuity files hold pointers, never copies.** Cross-repo work state = per-repo `.claude/docs/plans/` or Linear, read fresh at every wake.
+- **Continuity files hold pointers, never copies.** Cross-repo work state = per-repo `.claude/docs/plans/` or GitHub Issues, read fresh at every wake. The one committed exception is `.sounding/queue.md` — plan docs are git-ignored, so a mobile/cloud clone gets no `.claude/docs/`; queue.md travels with the repo to give mobile `/wake` a pointer set.
 - **Retrieval-first knowledge access.** When accumulated knowledge is needed, query librarian (MCP: `search_wiki` / `read_page` / `get_domain_briefing`, or librarian's `/query` skill) — never bulk-read `librarian/wiki/` directories into context. One retrieved page beats a loaded domain.
 
 ---
