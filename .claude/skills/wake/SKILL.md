@@ -77,17 +77,24 @@ Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open
 Check the guacamayo issue board for active work state:
 
 ```bash
-gh issue list --repo ramseywise/guacamayo --label "in-progress" --json number,title,labels 2>/dev/null
-gh issue list --repo ramseywise/guacamayo --label "blocked" --json number,title,labels,body 2>/dev/null
-gh issue list --repo ramseywise/guacamayo --label "ready" --json number,title,labels 2>/dev/null
-gh issue list --repo ramseywise/guacamayo --label "backlog" --json number,title 2>/dev/null
+gh issue list --repo ramseywise/guacamayo --state open --json number,title,labels --limit 50 2>/dev/null
 ```
 
-Report:
-- **In progress**: what's active (check WIP limit — max 3)
-- **Blocked**: what's stuck and why (read the body for blocker details)
-- **Ready**: what can be picked up this session
-- **Backlog**: count only (e.g. "6 items awaiting refinement → `/workflow-refine`")
+Present as a **single table** grouped by label state, covering ALL open issues:
+
+| # | Title | State | Note |
+|---|-------|-------|------|
+| 3 | Design skill trio | ready | plan doc written |
+| 4 | Akira/SANYI composition | refinement | needs DoR check |
+
+Report explicitly (never silent on empty categories):
+- **Blocked**: what's stuck and why — or "Nothing blocked"
+- **In progress**: what's active (check WIP limit — max 3) — or "Nothing in progress"
+- **Ready**: what can be picked up — with plan doc pointer if one exists
+- **Refinement**: items needing DoR pass → suggest `/workflow-refine`
+- **Backlog**: items not yet scoped → count only
+
+Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
 
@@ -96,13 +103,15 @@ If `gh` fails or returns nothing, skip gracefully — issues are additive contex
 Based on the board state, suggest the next process step:
 
 ```
-If ready items exist       → "Ready items available — pick one for /workflow-plan"
-If backlog but no ready    → "Backlog needs refinement → /workflow-refine"
-If no backlog, no ready    → "Board is clear — work or run /workflow-insights to check for friction"
-If hypothesis rows > 2 wks → "Stale hypotheses — run /workflow-insights → /workflow-retro"
+If blocked items exist         → "BLOCKED: #N — [reason]. Unblock before new work."
+If refinement items exist      → "Refinement queue: #4, #5, #7 → /workflow-refine"
+If ready items exist           → "Ready items available — pick one for /workflow-execute or spawn"
+If no backlog, no ready        → "Board is clear — work or run /workflow-insights to check for friction"
+If hypothesis rows > 2 wks    → "Stale hypotheses — run /workflow-insights → /workflow-retro"
+If PLANNED plans without issue → "Unissued plans: [name] — create issue or keep plan-only"
 ```
 
-Present this as a one-line "Workflow: ..." suggestion, not a wall of text.
+Present as 1–3 lines under "**Workflow:**" — blocked first (always), then the most actionable next step.
 
 ### Discover plan state
 

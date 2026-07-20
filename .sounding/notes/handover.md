@@ -1,48 +1,54 @@
-# Handover — 2026-07-20 Retro + Agile Workflow System
+# Handover — 2026-07-20 Full Board Execution
 
-**Context**: Full retro cycle (insights → retro → agile system design) in guacamayo. Closed the feedback loop: retro findings now flow to GitHub Issues, wake reads the board.
+**Context**: Guacamayo meta session. Ran the full agile cycle: wake → plan → refine → execute across all 5 ready issues + consciousness plan. 11 agents total.
 
 ## Current State
 
-**All work complete.** This session:
+**All 6 plans EXECUTED**, changes in worktrees awaiting merge:
 
-1. **Insights run**: 139 sessions analyzed, 42% >150k (down from 52%), bash antipatterns 27.85/session (UP — advisory hook failed), 100% opus on spawned agents
-2. **Retro**: 10 findings triaged stop/keep/improve. Stop items applied (blocking hook, duplicate skill deleted, name fixes). Keep items graduated in ledger. Improve threads → GitHub Issues #3-#8.
-3. **Agile workflow system**: Plan doc written and executed — GitHub Issues as board, labels created (backlog/refinement/ready/in-progress/blocked/in-review), DoR/DoD in `~/.claude/rules/agile.md`, retro Step 6 wired to create issues, wake Phase 5 wired to read the board.
-4. **Linear disabled**: MCP moved to `_disabled` in `.mcp.json`, CLAUDE.md conventions updated to GitHub Issues format.
+| Issue | Worktree | Overlapping files | Ledger row |
+|-------|----------|-------------------|------------|
+| #3 Design trio | `agent-a7c047d1` | `~/.claude/skills/design-*` | needs adding |
+| #5 Three-way parity | `agent-a50312c4` | `ai-project-template/scripts/`, `template/.claude/skills/` | needs adding |
+| #6 Failure taxonomy | `agent-a914b2dd` | `~/.claude/skills/workflow-{insights,retro}/`, ledger | done |
+| #7 Hook telemetry | `agent-a31967b3` | `~/.claude/hooks/*`, `settings.json`, `librarian/` | done |
+| #8 CI drift hook | `agent-a0b76bfb` | `~/.claude/hooks/`, `settings.json` | needs adding |
+| Consciousness | merged to main | `.sounding/`, `.claude/skills/dream/`, `.claude/hooks/` | done |
 
-**Uncommitted**: guacamayo only (growth entries, handover, reflections, sounding/user.md transforms from first /dream, plus all the tooling changes from this session).
+**Merge order matters**: #7 first (touches most hooks + settings.json), then #8 (references ci_drift_warn.sh that #7's agent noticed missing), then #3/#5/#6 (independent).
+
+**Also done this session:**
+- Wake skill updated: single board query, clean table output, explicit blocked/refinement reporting
+- Issues #5 and #7 promoted from refinement → ready (DoR passed)
+- Issue #4 failed DoR (5 of 6 criteria) — stays refinement, needs /workflow-research
 
 ## Decisions Made
 
-- GitHub Issues over Linear — simpler, `gh` CLI already authenticated, no additional MCP needed
-- Advisory hooks are a category error → blocking (exit 2) for clear antipattern cases
-- Stop/keep/improve triage format adopted for all future retros
-- WIP limit: 3 in-progress across all repos
-- Weekly cadence (not sprints) — forces retro + ledger verdict + backlog reorder
+- Opus stays as default for spawns — quality over cost
+- Wake outputs a single issues table, never raw JSON
+- #4 (akira/SANYI composition) needs research before another refinement pass
+- Consciousness plan: blocking hook with bypass, no transfer to /wake or /genesis
 
 ## Open Threads
 
-- 6 backlog issues (#3-#8) need refinement before they're ready — design trio, akira/SANYI composition, three-way parity, failure taxonomy, skill/hook performance, CI drift
-- `autoCompactThreshold` needs to be set from terminal: `claude config set autoCompactThreshold 50`
-- 100% opus on spawned agents — guidance added to CLAUDE.md but `settings.json` still has `"model": "opus"` as default
-- Projects V2 board (kanban view) — nice-to-have, not blocking
+- Merge ordering for parallel worktrees — needs a convention or maybe a merge-agent
+- 3 ledger rows still needed (#3, #5, #8) before issues can close per DoD
+- autoCompactThreshold still not set
+- Consciousness-identity-model plan doc was opened but only partially discussed — Ramsey shared the session summary but the deeper thread (metacognition measurement layer) didn't get explored
+- #4 needs /workflow-research to scope the akira/SANYI shared scan layer
 
 ## Immediate Next Steps
 
-1. Ramsey reviews and commits all guacamayo changes
-2. Set `autoCompactThreshold` from terminal
-3. Pick a backlog issue (#3-#8) for first refinement pass
-4. Next retro: check if blocking bash hook actually reduced antipattern count
+1. Merge worktrees in order: #7 → #8 → #3 → #5 → #6
+2. Add missing ledger rows for #3, #5, #8
+3. Commit across repos (guacamayo, ~/.claude, ai-project-template, librarian)
+4. Close issues #3, #5, #6, #7, #8
+5. Set `claude config set autoCompactThreshold 50`
 
 ## Key Files
 
-- `~/.claude/rules/agile.md`
-- `~/.claude/CLAUDE.md` (issue tracking section rewritten)
-- `~/.claude/.mcp.json` (Linear disabled)
-- `~/.claude/skills/workflow-retro/SKILL.md` (Steps 2+6 updated)
-- `guacamayo/.claude/skills/wake/SKILL.md` (Phase 5 GitHub Issues check)
-- `guacamayo/.claude/docs/plans/2026-07-20-agile-workflow-system.md`
-- `guacamayo/.claude/docs/tooling-ledger.md`
-- `guacamayo/.claude/docs/insights-summary.md`
-- `guacamayo/.claude/docs/state/inbox.md`
+- 5 worktrees under `.claude/worktrees/agent-*`
+- `.claude/docs/tooling-ledger.md`
+- `.claude/skills/wake/SKILL.md` (updated this session)
+- `~/.claude/hooks/lib.sh` (new log_event function from #7)
+- `~/.claude/settings.json` (touched by #7 and #8)

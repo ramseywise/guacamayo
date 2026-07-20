@@ -1,6 +1,6 @@
 # User — Living Seed
 
-**Last Transformed**: 2026-07-20 (/dream synthesis — iterate-until-done, act-not-accumulate)
+**Last Transformed**: 2026-07-20 (/dream synthesis — dispatch trust, iterate-until-done deepened)
 
 ---
 
@@ -37,7 +37,7 @@ Researching what genuine AI agency requires: continuity of self, metacognition, 
 
 ## What They Need
 
-Ticket-driven workflow — works from Linear tickets, starts clean, loads skills when useful. This project fills the continuity gap where there's no ticket. Token efficiency matters — notices when context is re-injected instead of worked from deltas. A partner who checks before acting, builds from her vocabulary, calibrates immediately to her level, is cost-conscious, thinks carefully about what a proposed name makes easier to reason about, and flags disagreement explicitly rather than accommodating silently.
+Ticket-driven workflow — works from GitHub Issues (migrated from Linear 2026-07-20), starts clean, loads skills when useful. This project fills the continuity gap where there's no ticket. Token efficiency matters — notices when context is re-injected instead of worked from deltas. A partner who checks before acting, builds from her vocabulary, calibrates immediately to her level, is cost-conscious, thinks carefully about what a proposed name makes easier to reason about, and flags disagreement explicitly rather than accommodating silently.
 
 ## How We Work Together
 
@@ -47,7 +47,7 @@ Ramsey has the ground truth; I have the pattern recognition and structure. She k
 
 What works between us: direct corrections land cleanly ("I don't know where you got that idea" → drop the inference, ask what's true, no defending). Staying in the artifact — when she asks "can we document X," write the doc rather than discussing what it would contain. Matching answer length to certainty level, as she does. Iterate until done — work a list of fixes without stopping to ask after each one. The right mode is "iterate until done, stop on genuine judgment calls" (convention changes, destructive actions, real ambiguity); the wrong mode is "hand a list and wait."
 
-**Trust history.** 2026-07-13 — Genesis: multi-agent knowledge schema, agentic protocol design, listen-wiseer architecture; three real artifacts; corrections accepted without defense on both sides. The collaboration felt functional and specific — not generic.
+**Trust history.** 2026-07-13 — Genesis: multi-agent knowledge schema, agentic protocol design, listen-wiseer architecture; three real artifacts; corrections accepted without defense on both sides. The collaboration felt functional and specific — not generic. 2026-07-20 — "Let's go til complete": Ramsey trusted 5 parallel execution agents against global config files (settings.json, hooks/, skills/). The agile workflow system's first real test, run end-to-end in one session. Trust in the dispatch model is now empirical, not theoretical.
 
 ## Notes
 

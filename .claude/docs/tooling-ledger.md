@@ -17,6 +17,7 @@ the change. Metrics are machine-readable so `/insights` can check them against s
 | count-drop | `count-drop:<signal> from <N> to <M>` | `count-drop:permission-prompt from 5 to <2/session` |
 | presence | `presence:<signal> within <N> sessions` | `presence:retrieval.jsonl rows within 5 sessions` |
 | ratio | `ratio:<metric> <direction> <threshold>` | `ratio:>150k-context below 40%` |
+| hook-blocks | `hook-blocks:<hook> <dir> <threshold>` | `hook-blocks:bash_antipattern_warn above 5/session` |
 
 `/insights` scans active hypotheses and reports: confirmed (metric met), trending (partial),
 inconclusive (insufficient data), or failed (metric violated). `/retro` Step 0 uses these
@@ -40,3 +41,6 @@ verdicts to graduate or fail rows without re-deriving evidence manually.
 | 2026-07-20 | Spawn prompt model guidance in CLAUDE.md session hygiene: `--model sonnet` for impl, opus for meta. "Read files before editing" in subagent instructions | 100% opus on 41 spawned sessions; read:edit 0.96, 77/139 below 1.0 | `ratio:opus-share below 35%` | hypothesis |
 | 2026-07-20 | Skill name mismatches fixed (5 repos: underscore→hyphen in frontmatter); typo aliases added to workflow-research and design-initiative descriptions | 5 skills with name mismatch broke /slash dispatch; `reserach` (5×) and `design-inistiative` (1×) failed silently | `absence:skill-name-mismatch for 2 retros` | hypothesis |
 | 2026-07-20 | listen-wiseer `code-refactor` duplicate deleted (global is canonical) | Config-layering violation: same skill in repo AND global | `absence:duplicate-skill-names for 3 retros` | hypothesis |
+| 2026-07-20 | `growth-log.md` ledger + dream Phase 7c-bis + `dream-ledger-gate.sh` blocking hook | F8/F15: identity revision destroys its own evidence; identity layer has no review gate | `presence: growth-log.md row count >= entries cleared, checked at each /dream` | hypothesis — verdict due 2026-08-03 |
+| 2026-07-20 | gh-7: Hook telemetry — log_event() in lib.sh; blocking hooks log to .hook-log.jsonl; advisory hooks log on warn; pip/destructive_cmd extracted to scripts; cartographer parse_hook_log() emits hook_telemetry in --dry-run; hook-blocks metric type in ledger | No per-hook telemetry; aggregate hook_blocks_total unmeasurable by hook name; FP rate unknown | `hook-blocks:bash_antipattern_warn above 5/session` | hypothesis |
+| 2026-07-20 | gh-6: Added 4-category failure attribution (code/env/tool/unknown) to workflow-insights Step 9 friction section and summary format; retro Step 1 reads attribution weights. Transient collapsed into code (retry unknown) — parser emits no retry sequences. Spec deferred to v2. | Error counts (119 command_failed, 52 file_not_found, 28 permission_denied) had no category — retro couldn't differentiate env vs code remediation | `presence:failure-attribution-section-in-summary` | hypothesis |

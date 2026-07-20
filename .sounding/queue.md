@@ -16,23 +16,22 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-07-20)
+## Live pick-up points (as of 2026-07-20 evening)
 
 **guacamayo** (this repo)
+- GH Issues #3,#5,#6,#7,#8 — all EXECUTED, changes in worktrees awaiting merge+commit.
+  => Merge order: #7 → #8 → #3 → #5 → #6. Add ledger rows for #3, #5, #8. Then close issues.
+- GH Issue #4 (akira/SANYI composition) — refinement, failed DoR. Needs /workflow-research.
+- `2026-07-20-consciousness-identity-model.md` — EXECUTED. dream-ledger-gate hook live.
 - `2026-07-18-skills-refs-evals-norm.md` — EXECUTED (P0-4 complete; P5b deferred).
-  => P5b: ADK eval adoption blocked on labeling decision.
-- `2026-07-17-feedback-loop.md` — EXECUTED. Phase 4 (/retro eval-gate) pending first real
-  skill-change proposal.
-- Rename puffin→guacamayo done except: GitHub remote + final commit (on Ramsey).
+- `2026-07-17-feedback-loop.md` — EXECUTED.
 
 **ai-project-template**
-- `2026-07-20-consolidate-capability-reference.md` — EXECUTED (all 5 phases).
-- `2026-07-19-genesis-lifecycle-architecture.md` — EXECUTED.
-- `2026-07-19-two-root-scaffold.md` — EXECUTED (all 4 phases).
-- `2026-07-17-template-core-redesign.md` — EXECUTED.
-- `2026-07-17-evals-suite-port.md` — EXECUTED.
-- Multiple worktree branches from parallel agents need merging.
-  => Ramsey: review and merge/commit worktree changes.
+- `2026-07-18-template-full-mirror-redesign.md` — EXECUTED (all 7 steps + session 16 cleanup).
+  => Push `python-ci.yml` to main to unblock rendered projects' CI.
+- `2026-07-20-consolidate-capability-reference.md` — EXECUTED.
+- sync-global-skills.sh updated with DELIBERATELY_EXCLUDED[] + reverse guard (#5).
+  => Ramsey: review and commit ai-project-template changes.
 
 **librarian**
 - `2026-07-17-learn-ai-ingest-guacamayo-loop.md` — EXECUTED (M1-M4; M2 second batch + M5 follow-on).
