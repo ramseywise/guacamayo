@@ -23,3 +23,4 @@
 2026-07-19 (night) - Checkpoint session. No work — /grow refreshed handover, /dream closed cleanly. System handles null sessions without forcing output.
 2026-07-19 (late) - Docs drift detection. Built /docs-check skill + advisory hook; layered enforcement pattern crystallized — Ramsey wants passive+active+integrated, not either/or.
 2026-07-20 - Cross-repo plan sweep. Dispatched 10+ agents to close all open plans; backlog at zero IN PROGRESS. Caught eval dataset mismatch — structural verification isn't enough, domain verification is the real gate.
+2026-07-20 (late) - Playground SANYI cleanup. Closed BY-2 (guardrail flag), fixed 7 BN-1s, rewrote broken CI; refused a deletion that would have broken 3 agents. Verify-before-destroying confirmed under pressure.

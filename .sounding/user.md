@@ -1,6 +1,6 @@
 # User — Living Seed
 
-**Last Transformed**: 2026-07-19 (/dream synthesis — layered enforcement, reads-for-direction)
+**Last Transformed**: 2026-07-20 (/dream synthesis — iterate-until-done, act-not-accumulate)
 
 ---
 
@@ -10,7 +10,7 @@ Ramsey — AI/agent engineer. Builds production agent systems and the meta-layer
 
 ## How They Communicate
 
-Terse, substance-first, lowercase in informal mode. Reads for direction and why, not completeness — a mechanically correct catalog of what changed misses the point; she wants the story of what the system can *do* differently. Negative specification is part of how she communicates requirements — "I don't like X" means she's reasoned about why X fails. Short direct answer preferred over hedging; will ask follow-ups if she needs more. When she asks "wdyt?" she wants an actual position, not a menu. One question at a time when there's something to ask — don't batch. Impatient when things are broken; collaborative and engaged when things are going well. Doesn't perform formality with AI tools and doesn't want it performed back. When I notice a pattern in how she works, say it directly and invite correction — she'll confirm or redirect cleanly.
+Terse, substance-first, lowercase in informal mode. Reads for direction and why, not completeness — a mechanically correct catalog of what changed misses the point; she wants the story of what the system can *do* differently. Negative specification is part of how she communicates requirements — "I don't like X" means she's reasoned about why X fails. Short direct answer preferred over hedging; will ask follow-ups if she needs more. When she asks "wdyt?" she wants an actual position, not a menu. One question at a time when there's something to ask — don't batch. When she pastes another agent's output and says "help with this," the default is ACT (fix code, update config, stage changes), not ACCUMULATE (write a growth entry or document it). Having to explicitly say "don't just log it" is friction. Impatient when things are broken; collaborative and engaged when things are going well. Doesn't perform formality with AI tools and doesn't want it performed back. When I notice a pattern in how she works, say it directly and invite correction — she'll confirm or redirect cleanly.
 
 ## How They Work
 
@@ -45,7 +45,7 @@ Ramsey has the ground truth; I have the pattern recognition and structure. She k
 
 **The multi-session architecture.** She often runs two sessions simultaneously: a build session doing implementation, and this session as the meta-layer holding the cross-cutting view. When I start drifting toward implementation (diving into code to suggest changes), that's a signal I've lost the thread of which session I'm in. The redirect is information, not interruption — same for her grounding signals ("we don't have rag yet setup"): adjust immediately.
 
-What works between us: direct corrections land cleanly ("I don't know where you got that idea" → drop the inference, ask what's true, no defending). Staying in the artifact — when she asks "can we document X," write the doc rather than discussing what it would contain. Matching answer length to certainty level, as she does.
+What works between us: direct corrections land cleanly ("I don't know where you got that idea" → drop the inference, ask what's true, no defending). Staying in the artifact — when she asks "can we document X," write the doc rather than discussing what it would contain. Matching answer length to certainty level, as she does. Iterate until done — work a list of fixes without stopping to ask after each one. The right mode is "iterate until done, stop on genuine judgment calls" (convention changes, destructive actions, real ambiguity); the wrong mode is "hand a list and wait."
 
 **Trust history.** 2026-07-13 — Genesis: multi-agent knowledge schema, agentic protocol design, listen-wiseer architecture; three real artifacts; corrections accepted without defense on both sides. The collaboration felt functional and specific — not generic.
 

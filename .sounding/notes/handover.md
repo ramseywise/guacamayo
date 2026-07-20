@@ -1,52 +1,54 @@
-# Handover — 2026-07-20 Cross-Repo Plan Sweep + Implementation Sprint
+# Handover — 2026-07-20 Playground SANYI Cleanup + CI Fix
 
-**Context**: Meta-session that scanned all repos for open plans, spawned 10+ agents to close them, and drove most plans to EXECUTED status.
+**Context**: Playground repo maintenance — closing SANYI contract violations (BY-2, BN-1, JY-1) and fixing a broken CI pipeline.
 
 ## Current State
 
-**All major plans now EXECUTED or research-complete:**
+**All requested work complete.** Three rounds of playground fixes:
 
-| Repo | Plan | Status |
-|------|------|--------|
-| ai-project-template | consolidate-capability-reference | EXECUTED (all 5 phases) |
-| ai-project-template | genesis-lifecycle-architecture | EXECUTED (interview shrink + capabilities catalog) |
-| ai-project-template | two-root-scaffold | EXECUTED (all 4 phases) |
-| ai-project-template | Vercel branch + guards.ts | Done (new-agent updated, security scaffold created) |
-| ai-project-template | audit_capabilities.py | Done (folded into validate_paths.py) |
-| guacamayo | skills-refs-evals-norm | EXECUTED (P5b deferred) |
-| playground | rag-latency E1 | Done (async streaming in answer node) |
-| playground | eval dataset | Fixed (English, matches music corpus) |
+1. **Test-runner alignment**: Added `"evals"` to `pyproject.toml` pytest pythonpath — `uv run pytest` now resolves eval imports by construction.
+2. **BY-2 closed**: Removed `RAG_GUARDRAILS_ENABLED` flag from config.py, main.py, docker-compose.yml. Rag guardrail middleware is now unconditional. Test rewritten to not depend on flag.
+3. **7 BN-1 fixes**: Inline prompts relocated to files (lg_agent generate, llm_classifier), model strings replaced with `resolve_model_id()` (4 ADK files), threshold made env-driven.
+4. **CI rewritten**: Removed 3 jobs referencing deleted paths (support_agents, hc_rag, Dockerfiles). Fixed PYTHONPATH and uv sync args.
+5. **SANYI.md v3**: Budgets updated, debt cleared/added, migration recorded.
 
-**Worktree changes need merging.** Several agents ran in worktree isolation against ai-project-template. Ramsey needs to review and merge/commit the worktree branches.
+Verification: 264 tests passed, 6 skipped, ruff clean.
 
-**Nothing is IN PROGRESS.** All plans are either EXECUTED, SUPERSEDED, or deferred with clear blocking conditions.
+**Uncommitted**: guacamayo only (this session's /grow + /dream artifacts). playground, librarian, ai-project-template all committed.
 
 ## Decisions Made
 
-- Skills-evals-norm Phase 5b (ADK eval adoption): deferred — blocked on labeling decision. Template's eval harness is the reference pattern; ADK repos follow with adjustments.
-- Playground RAG: E2 (Flash 2.0) marked OBSOLETE (already on 2.5 Flash). E1 streaming implemented. Eval dataset rewritten to match actual music corpus.
-- Convention refs: 9 agent-*.md files are the canonical tooling-agnostic layer. Framework refs (langgraph, google-adk, adk-vercel) narrowed to <70-line bindings pointing into them.
-- English-only eval datasets. Always verify synthetic data matches the actual corpus.
+- Refused to delete `src/guardrails/language.py` — verified it's actively imported by all 3 agents via `guardrails/__init__.py`. Another agent's claim of "zero importers" was wrong.
+- ADK `Agent()` takes model strings, not LangChain objects — used `resolve_model_id()` not `resolve_chat_model()`.
+- BY-4 output guardrail pipeline left as standing debt (zero call sites, needs design decision).
+- BY-3 history sweep left as owner decision (Ramsey).
 
 ## Open Threads
 
-- ai-project-template has multiple worktree branches from parallel agents — need cherry-picking or merging into main working tree
-- Playground RAG experiments E3-E6 still viable but lower priority (E1 was the big TTFT win)
-- `evals/graders/*.py` scaffold files referenced in capabilities catalog don't exist as static template files (render-time outputs) — 4 info-level warnings from validator
-- Ghost skills `dream`/`grow-companion` were removed from copier.yaml prune task (they were never created for the template)
+- Standing SANYI debt: BY-4 output guardrail (no call sites), BY-3 history sweep
+- Playground RAG experiments E3-E6 still viable but lower priority
+- ai-project-template worktree branches from earlier session need merging
 
 ## Immediate Next Steps
 
-1. Review and merge worktree changes for ai-project-template (multiple agents wrote to isolated branches)
-2. Commit all pending changes across repos (Ramsey commits)
-3. Consider `/dream` to close the session properly (3 growth entries pending)
-4. Next substantive work: playground RAG E3/E4 experiments, or pick up DSSG work
+1. Ramsey reviews and commits playground changes
+2. Ramsey reviews and commits librarian changes
+3. ai-project-template worktree merge from earlier session
+4. Next substantive work: DSSG or playground RAG experiments
 
 ## Key Files
 
-- `guacamayo/.claude/docs/plans/2026-07-18-skills-refs-evals-norm.md`
-- `ai-project-template/.claude/docs/plans/2026-07-20-consolidate-capability-reference.md`
-- `ai-project-template/.claude/docs/plans/2026-07-19-two-root-scaffold.md`
-- `ai-project-template/.claude/docs/plans/2026-07-19-genesis-lifecycle-architecture.md`
-- `playground/.claude/docs/plans/rag-latency-optimization.md`
-- `playground/data/eval_data/eval_v2.jsonl`
+- `playground/pyproject.toml`
+- `playground/src/agents/rag_agent/config.py`
+- `playground/src/agents/rag_agent/main.py`
+- `playground/src/agents/adk_agent/agent.py`
+- `playground/src/agents/adk_agent/sub_agents/direct_agent.py`
+- `playground/src/agents/adk_agent/sub_agents/rag_agent.py`
+- `playground/src/agents/adk_agent/app.py`
+- `playground/src/agents/lg_agent/graph/nodes/generate.py`
+- `playground/src/agents/lg_agent/prompts/generate.txt`
+- `playground/src/guardrails/llm_classifier.py`
+- `playground/src/prompts.py`
+- `playground/.github/workflows/ci.yml`
+- `playground/SANYI.md`
+- `playground/tests/smoke/test_rag_guardrail_middleware.py`
