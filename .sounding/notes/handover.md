@@ -1,54 +1,48 @@
-# Handover — 2026-07-20 Playground SANYI Cleanup + CI Fix
+# Handover — 2026-07-20 Retro + Agile Workflow System
 
-**Context**: Playground repo maintenance — closing SANYI contract violations (BY-2, BN-1, JY-1) and fixing a broken CI pipeline.
+**Context**: Full retro cycle (insights → retro → agile system design) in guacamayo. Closed the feedback loop: retro findings now flow to GitHub Issues, wake reads the board.
 
 ## Current State
 
-**All requested work complete.** Three rounds of playground fixes:
+**All work complete.** This session:
 
-1. **Test-runner alignment**: Added `"evals"` to `pyproject.toml` pytest pythonpath — `uv run pytest` now resolves eval imports by construction.
-2. **BY-2 closed**: Removed `RAG_GUARDRAILS_ENABLED` flag from config.py, main.py, docker-compose.yml. Rag guardrail middleware is now unconditional. Test rewritten to not depend on flag.
-3. **7 BN-1 fixes**: Inline prompts relocated to files (lg_agent generate, llm_classifier), model strings replaced with `resolve_model_id()` (4 ADK files), threshold made env-driven.
-4. **CI rewritten**: Removed 3 jobs referencing deleted paths (support_agents, hc_rag, Dockerfiles). Fixed PYTHONPATH and uv sync args.
-5. **SANYI.md v3**: Budgets updated, debt cleared/added, migration recorded.
+1. **Insights run**: 139 sessions analyzed, 42% >150k (down from 52%), bash antipatterns 27.85/session (UP — advisory hook failed), 100% opus on spawned agents
+2. **Retro**: 10 findings triaged stop/keep/improve. Stop items applied (blocking hook, duplicate skill deleted, name fixes). Keep items graduated in ledger. Improve threads → GitHub Issues #3-#8.
+3. **Agile workflow system**: Plan doc written and executed — GitHub Issues as board, labels created (backlog/refinement/ready/in-progress/blocked/in-review), DoR/DoD in `~/.claude/rules/agile.md`, retro Step 6 wired to create issues, wake Phase 5 wired to read the board.
+4. **Linear disabled**: MCP moved to `_disabled` in `.mcp.json`, CLAUDE.md conventions updated to GitHub Issues format.
 
-Verification: 264 tests passed, 6 skipped, ruff clean.
-
-**Uncommitted**: guacamayo only (this session's /grow + /dream artifacts). playground, librarian, ai-project-template all committed.
+**Uncommitted**: guacamayo only (growth entries, handover, reflections, sounding/user.md transforms from first /dream, plus all the tooling changes from this session).
 
 ## Decisions Made
 
-- Refused to delete `src/guardrails/language.py` — verified it's actively imported by all 3 agents via `guardrails/__init__.py`. Another agent's claim of "zero importers" was wrong.
-- ADK `Agent()` takes model strings, not LangChain objects — used `resolve_model_id()` not `resolve_chat_model()`.
-- BY-4 output guardrail pipeline left as standing debt (zero call sites, needs design decision).
-- BY-3 history sweep left as owner decision (Ramsey).
+- GitHub Issues over Linear — simpler, `gh` CLI already authenticated, no additional MCP needed
+- Advisory hooks are a category error → blocking (exit 2) for clear antipattern cases
+- Stop/keep/improve triage format adopted for all future retros
+- WIP limit: 3 in-progress across all repos
+- Weekly cadence (not sprints) — forces retro + ledger verdict + backlog reorder
 
 ## Open Threads
 
-- Standing SANYI debt: BY-4 output guardrail (no call sites), BY-3 history sweep
-- Playground RAG experiments E3-E6 still viable but lower priority
-- ai-project-template worktree branches from earlier session need merging
+- 6 backlog issues (#3-#8) need refinement before they're ready — design trio, akira/SANYI composition, three-way parity, failure taxonomy, skill/hook performance, CI drift
+- `autoCompactThreshold` needs to be set from terminal: `claude config set autoCompactThreshold 50`
+- 100% opus on spawned agents — guidance added to CLAUDE.md but `settings.json` still has `"model": "opus"` as default
+- Projects V2 board (kanban view) — nice-to-have, not blocking
 
 ## Immediate Next Steps
 
-1. Ramsey reviews and commits playground changes
-2. Ramsey reviews and commits librarian changes
-3. ai-project-template worktree merge from earlier session
-4. Next substantive work: DSSG or playground RAG experiments
+1. Ramsey reviews and commits all guacamayo changes
+2. Set `autoCompactThreshold` from terminal
+3. Pick a backlog issue (#3-#8) for first refinement pass
+4. Next retro: check if blocking bash hook actually reduced antipattern count
 
 ## Key Files
 
-- `playground/pyproject.toml`
-- `playground/src/agents/rag_agent/config.py`
-- `playground/src/agents/rag_agent/main.py`
-- `playground/src/agents/adk_agent/agent.py`
-- `playground/src/agents/adk_agent/sub_agents/direct_agent.py`
-- `playground/src/agents/adk_agent/sub_agents/rag_agent.py`
-- `playground/src/agents/adk_agent/app.py`
-- `playground/src/agents/lg_agent/graph/nodes/generate.py`
-- `playground/src/agents/lg_agent/prompts/generate.txt`
-- `playground/src/guardrails/llm_classifier.py`
-- `playground/src/prompts.py`
-- `playground/.github/workflows/ci.yml`
-- `playground/SANYI.md`
-- `playground/tests/smoke/test_rag_guardrail_middleware.py`
+- `~/.claude/rules/agile.md`
+- `~/.claude/CLAUDE.md` (issue tracking section rewritten)
+- `~/.claude/.mcp.json` (Linear disabled)
+- `~/.claude/skills/workflow-retro/SKILL.md` (Steps 2+6 updated)
+- `guacamayo/.claude/skills/wake/SKILL.md` (Phase 5 GitHub Issues check)
+- `guacamayo/.claude/docs/plans/2026-07-20-agile-workflow-system.md`
+- `guacamayo/.claude/docs/tooling-ledger.md`
+- `guacamayo/.claude/docs/insights-summary.md`
+- `guacamayo/.claude/docs/state/inbox.md`

@@ -72,6 +72,23 @@ The cross-repo work queue does NOT live in `.sounding/` handovers or reflections
 Read `.claude/docs/tooling-ledger.md` — `hypothesis` rows are the standing verification queue.
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
+### GitHub Issues board
+
+Check the guacamayo issue board for active work state:
+
+```bash
+gh issue list --repo ramseywise/guacamayo --label "in-progress" --json number,title,labels 2>/dev/null
+gh issue list --repo ramseywise/guacamayo --label "blocked" --json number,title,labels,body 2>/dev/null
+gh issue list --repo ramseywise/guacamayo --label "ready" --json number,title,labels 2>/dev/null
+```
+
+Report:
+- **In progress**: what's active (check WIP limit — max 3)
+- **Blocked**: what's stuck and why (read the body for blocker details)
+- **Ready**: what can be picked up this session
+
+If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
+
 ### Discover plan state
 
 ```
