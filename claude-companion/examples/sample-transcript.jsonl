@@ -1,5 +1,0 @@
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"I'll refactor the retrieval layer."},{"type":"tool_use","name":"Edit","input":{"file_path":"/repo/src/retrieval/index.ts"}}]}}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Write","input":{"file_path":"/repo/src/retrieval/cache.ts"}},{"type":"tool_use","name":"Edit","input":{"file_path":"/repo/src/retrieval/query.ts"}},{"type":"tool_use","name":"Edit","input":{"file_path":"/repo/tests/retrieval.test.ts"}}]}}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","name":"Bash","input":{"command":"npm test"}}]}}
-{"type":"user","message":{"role":"user","content":[{"type":"tool_result","content":"Test Suites: 6 passed, 6 total\nTests: 41 passed, 41 total\nAll tests passed."}]}}
-{"type":"assistant","message":{"role":"assistant","content":[{"type":"text","text":"The retrieval refactor is complete and all tests pass. Ready for your review."}]}}
