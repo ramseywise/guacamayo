@@ -1,6 +1,7 @@
 ---
 name: wake
 description: Use at session start, when returning after time away, when user says 'wake', 'wake up', 'come back'. Loads identity, ingests recent cross-session context, orients on work state. The entry point — everything starts here.
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 ---
 
 # Wake
