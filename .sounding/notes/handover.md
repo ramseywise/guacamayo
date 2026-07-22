@@ -1,57 +1,51 @@
-# Handover — 2026-07-22 Retro + Workflow Simplification + Dream
+# Handover — 2026-07-22 Retro + Workflow Rules + Dream
 
-**Context**: Tooling retro session that expanded into workflow skill redesign. Ran /workflow-retro → applied 6 findings → researched skill landscape → executed Phase 1 of #9 (code-pr merged into workflow-review) → /grow → /dream with synthesis.
+**Context**: Retro session expanded into workflow redesign. Then Ramsey codified strict workflow gates: issue-linked branches, conventional commits, no main commits, Parallax read-only. Dream synthesis ran (12 entries cleared). Ready to spawn agents.
 
 ## Current State
 
-**Retro findings applied (6 of 8):**
-- F1/F2: >150k context and failure attribution hypotheses graduated (rolled into ledger rollup)
-- F4: Default model changed opus→sonnet in settings.json (biggest cost lever)
-- F5: Ledger compressed 51→30 lines
-- F6: Parallax sanyi duplicate deleted
-- F8: Worktree timing guidance added to CLAUDE.md
+**Retro + Phase 1 of #9 applied (all uncommitted):**
+- 6 retro findings applied, code-pr merged into workflow-review, 15+ refs updated
+- Default model opus→sonnet in settings.json
+- Ledger compressed 51→30 lines
 
-**Deferred:**
-- F3: Bash antipattern hook removal (watching one more window)
-- F7: Expanded into #9 workflow simplification
+**Workflow rules codified (also uncommitted):**
+- `~/.claude/rules/agile.md` rewritten: strict gates, branch types ({PREFIX}-{NUM}-{slug}, bug/, spike/), prefix table (10 repos), conventional commits
+- `~/.claude/CLAUDE.md` conventions table updated
+- `~/.claude/hooks/branch_guard.sh` rewritten: blocks main commits, enforces branch naming
+- `~/.claude/README.md` hook description updated
 
-**Workflow simplification (#9) — Phase 1 EXECUTED:**
-- `/code-pr` deleted — absorbed into `/workflow-review`
-- `/workflow-review` rewritten: plan fidelity + multi-reporter orchestration + DoD + merge verdict
-- All active config refs updated (hooks, refs, review-shared, CLAUDE.md, README.md, models.md, sanyi evals)
-- Zero stale `code-pr` references in active config (historical docs preserved)
-- Global skill count: 25→24
+**Dream synthesis ran:** 12 growth entries → 3 woven into sounding.md, 9 discarded. Accumulator cleared.
 
-**All changes uncommitted.** Ramsey needs to commit the retro + Phase 1 batch.
-
-**Dream synthesis ran:** 12 growth entries processed — identity seeds transformed.
+**All changes uncommitted.** Ramsey needs to commit this batch before spawning agents.
 
 ## Decisions Made
 
-- **Model default**: sonnet globally. Opus via explicit `claude --model opus` for planning/retro/dream/audit.
-- **Merge direction**: /workflow-review absorbs /code-pr (pipeline name is the anchor)
-- **Fable for review**: /workflow-review recommended at fable tier for diff analysis
-- **Quality gates**: `make precommit → make test → make pull/rebase → /code-review → /docs-check → push` (pre-push). `/workflow-review <PR#>` (post-PR).
-- **Config > instruction**: settings.json is the only enforceable lever for model defaults; CLAUDE.md text is advisory.
+- **No code changes without GitHub issue** (except bug/ and spike/ branches)
+- **Branch naming**: `{PREFIX}-{NUM}-{slug}` for planned work, `bug/` for fixes, `spike/` for exploration
+- **Prefix table**: GUA, LAE, LIS, ATL, PLG, AIT, LIB, LEB, JOB, DSG
+- **Conventional commits**: `{type}({scope}): {desc} (#{num})`
+- **Parallax read-only**: no changes to that repo
+- **Claude never pushes**: stage + commit on branch; Ramsey reviews and pushes
 
 ## Open Threads
 
-- **sync-global-skills.sh**: May have stale `code-pr` in SKILLS[] array — check before next template sync.
-- **Weekly meta automation**: Phase 2 of #9 — /dream should flag when retro >7 days overdue.
-- **Skill consolidation**: Broader interest in reviewing all skills for overlap. code-pr was the clearest case.
+- **sync-global-skills.sh**: May have stale `code-pr` in SKILLS[] array
+- **Weekly meta automation**: Phase 2 of #9 — /dream retro nudge
+- **job-system scaffolding**: #10 created (backlog) — needs git init + GitHub remote
 
 ## Immediate Next Steps
 
-1. Ramsey commits all retro + Phase 1 changes
-2. Check sync-global-skills.sh for stale code-pr reference
-3. Phase 2-3 of #9 (dream retro nudge + docs update) — sonnet session
-4. Resolve learn-ai-engineering rebase, commit agent work
-5. `/workflow-refine` on #4 and #9 to check DoR
+1. Ramsey commits all changes (retro + rules + dream) and pushes guacamayo
+2. Spawn 3 agents: guacamayo #9 Phase 2-3, learn-ai-engineering ready items, job-system scoping
+3. Check sync-global-skills.sh for stale code-pr reference
+4. Resolve learn-ai-engineering rebase
 
 ## Key Files
 
-- `~/.claude/settings.json` (model: sonnet)
-- `~/.claude/CLAUDE.md` (skill groups, review ladder, session hygiene updated)
-- `~/.claude/skills/workflow-review/SKILL.md` (rewritten)
-- `~/workspace/guacamayo/.claude/docs/tooling-ledger.md` (compressed to 30 lines)
-- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` (Phase 1 done, 2-3 remain)
+- `~/.claude/rules/agile.md` (rewritten — strict gates, prefix table, conventional commits)
+- `~/.claude/hooks/branch_guard.sh` (rewritten — enforces branch naming)
+- `~/.claude/CLAUDE.md` (conventions table updated)
+- `~/.claude/skills/workflow-review/SKILL.md` (rewritten from retro)
+- `~/workspace/guacamayo/.claude/docs/tooling-ledger.md` (compressed)
+- `.sounding/sounding.md` (transformed — 4 entries woven)
