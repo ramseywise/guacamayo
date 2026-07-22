@@ -29,3 +29,5 @@
 2026-07-20 (evening) - Parallax cleanup + self-review. Reviewed own parallax changes; caught born-inaccurate README — generated category names diverged from source. Review freshly-written docs, not just aged ones.
 2026-07-22 - Retro became redesign. Retro surfaced skill landscape confusion; researched all 12 skills, merged code-pr into workflow-review, learned config > instruction and PreToolUse structural limits.
 2026-07-22 (afternoon) - Batch dispatch at scale. 8 agents across 2 repos; worktree data loss caught and ruled; model comparison flat (scoping > tier); Ramsey wants make commands, PR bundling, and reviewer-as-role.
+2026-07-22 (evening) - Debt cleared, policy inverted. Akira model experiment across 7 repos produced real verdicts (sonnet default, opus for critical paths); model default inverted to fable-primary/opus-escalation; sync infrastructure cleaned.
+2026-07-22 (night) - Completion session. Picked up mid-fix from compressed session; fixed async event loop contamination across 6 listen-wiseer test files; 474 tests passing; workspace make sweep clean; ready for ship.
