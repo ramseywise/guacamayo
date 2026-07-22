@@ -125,7 +125,24 @@ If anything fails, restore before proceeding. Do NOT clear the accumulator until
 If any row is missing, write it now — do not clear first.
 Clear processed entries. Update the synthesis date. Keep format template and headers.
 
-## Phase 8: Maintenance Scan (conditional)
+## Phase 8: Weekly Retro Nudge (conditional)
+
+Read `.claude/docs/insights-summary.md` — the H1 header contains the last-run date (format: `# Insights Summary — YYYY-MM-DD`).
+
+- If that date is **≥7 days ago** (or the file doesn't exist): flag it.
+- If `growth.md` contains process learnings tagged `[discovered]` with tooling implications: count them.
+
+Append to the dream report:
+
+```
+Retro check: last insights run YYYY-MM-DD ([N] days ago).
+  ⚠ Weekly retro overdue — run /workflow-insights → /workflow-retro in next opus session.
+  [N process learnings in growth.md flagged as retro candidates.]   ← only if count > 0
+```
+
+If retro is current (< 7 days), still append a one-liner: `Retro check: current (last YYYY-MM-DD).`
+
+## Phase 9: Maintenance Scan (conditional)
 
 Quick checks — act only if something needs attention:
 
@@ -136,14 +153,14 @@ Quick checks — act only if something needs attention:
 | MEMORY.md over 200 lines | Trim stale pointers, shorten entries |
 | Contradictions between reflections and seeds | Note in report |
 
-## Phase 9: Retro Flag (conditional — session touched tooling)
+## Phase 10: Retro Flag (conditional — session touched tooling)
 
 If this session changed hooks, skills, rules, settings, or global config:
 - Note it as "retro-worthy" in the report
 - Do NOT run the full /retro — that's a separate, explicit invocation
 - If growth.md contains process learnings tagged `[discovered]`, flag them as `/retro` graduation candidates
 
-## Phase 10: Report
+## Phase 11: Report
 
 ```
 Dream complete.
@@ -152,12 +169,14 @@ Reflection: [filename]
 Growth: [N entries captured] | Accumulator: [total pending]
 Synthesis: [ran — files transformed / skipped — N entries, threshold not met]
 Maintenance: [clean / what was tidied]
-Retro: [not needed / flagged — reason]
+Retro check: [current (last YYYY-MM-DD) / overdue — last YYYY-MM-DD, N days ago]
+Retro flag: [not needed / flagged — reason]
 
 What's alive for next time:
 - [threads that pull forward]
 
 Next process step: [one of:]
+  - "Weekly retro overdue → run /workflow-insights → /workflow-retro in an opus session"
   - "Session touched tooling → run /workflow-insights → /workflow-retro next"
   - "Backlog has items → run /workflow-refine to triage"
   - "Ready items on board → pick one for /workflow-plan"
