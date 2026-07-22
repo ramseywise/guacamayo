@@ -1,51 +1,38 @@
-# Handover — 2026-07-22 Retro + Workflow Rules + Dream
+# Handover — 2026-07-22 Pipeline Reorder + Make Lint
 
-**Context**: Retro session expanded into workflow redesign. Then Ramsey codified strict workflow gates: issue-linked branches, conventional commits, no main commits, Parallax read-only. Dream synthesis ran (12 entries cleared). Ready to spawn agents.
+**Context**: Continuing the workflow infrastructure session. Reordered the process pipeline, renamed precommit→lint, updated all config files.
 
 ## Current State
-
-**Retro + Phase 1 of #9 applied (all uncommitted):**
-- 6 retro findings applied, code-pr merged into workflow-review, 15+ refs updated
-- Default model opus→sonnet in settings.json
-- Ledger compressed 51→30 lines
-
-**Workflow rules codified (also uncommitted):**
-- `~/.claude/rules/agile.md` rewritten: strict gates, branch types ({PREFIX}-{NUM}-{slug}, bug/, spike/), prefix table (10 repos), conventional commits
-- `~/.claude/CLAUDE.md` conventions table updated
-- `~/.claude/hooks/branch_guard.sh` rewritten: blocks main commits, enforces branch naming
-- `~/.claude/README.md` hook description updated
-
-**Dream synthesis ran:** 12 growth entries → 3 woven into sounding.md, 9 discarded. Accumulator cleared.
-
-**All changes uncommitted.** Ramsey needs to commit this batch before spawning agents.
+- Workspace Makefile: `lint` is the primary target, `precommit` is an alias. Help text shows the full pipeline.
+- Global CLAUDE.md: pipeline updated to groom → research → plan → refine → execute → review → ship
+- agile.md: ceremony table expanded to 8 rows (groom, research, plan, refine, execute, review, ship, retro)
+- Guacamayo CLAUDE.md: process layer pipeline updated
+- All "make precommit" references → "make lint" across quality gates and DoD
+- **Uncommitted**: workspace Makefile, global CLAUDE.md, agile.md, guacamayo CLAUDE.md, growth.md, this handover
 
 ## Decisions Made
-
-- **No code changes without GitHub issue** (except bug/ and spike/ branches)
-- **Branch naming**: `{PREFIX}-{NUM}-{slug}` for planned work, `bug/` for fixes, `spike/` for exploration
-- **Prefix table**: GUA, LAE, LIS, ATL, PLG, AIT, LIB, LEB, JOB, DSG
-- **Conventional commits**: `{type}({scope}): {desc} (#{num})`
-- **Parallax read-only**: no changes to that repo
-- **Claude never pushes**: stage + commit on branch; Ramsey reviews and pushes
+- **Pipeline order**: groom → research → plan → refine → execute → review → ship. Refine is a DoR gate AFTER plan, not backlog triage before research.
+- **`lint` over `precommit`**: clearer naming. `precommit` kept as alias for backward compat.
+- **Akira-wander = grooming tool**: finds backlog items at the front of the pipeline.
+- **Review ladder stays as-is**: scan inside L2+, wander separate (exploratory), sanyi inside L3.
 
 ## Open Threads
-
-- **sync-global-skills.sh**: May have stale `code-pr` in SKILLS[] array
-- **Weekly meta automation**: Phase 2 of #9 — /dream retro nudge
-- **job-system scaffolding**: #10 created (backlog) — needs git init + GitHub remote
+- **Dependabot auto-resolve**: needs a skill or `make deps` target — backlog idea
+- **`make groom`**: would print `/akira wander` command — easy add when ready
+- **GUA #11**: lifecycle ceremony redesign (backlog)
+- **GUA #12**: fable model integration (backlog)
+- **JOB PRs**: JOB-bootstrap branch needs PR creation + issue closure (#1-5)
+- **LAE PRs**: LAE-39-structural-cleanup branch needs PR creation + issue closure (14 issues)
 
 ## Immediate Next Steps
-
-1. Ramsey commits all changes (retro + rules + dream) and pushes guacamayo
-2. Spawn 3 agents: guacamayo #9 Phase 2-3, learn-ai-engineering ready items, job-system scoping
-3. Check sync-global-skills.sh for stale code-pr reference
-4. Resolve learn-ai-engineering rebase
+1. Commit all changes across repos (Ramsey commits)
+2. Run `make status` from workspace to see full picture
+3. Run `make ship` to push and create PRs for any open branches
+4. Consider creating GUA issue for dependabot auto-resolve skill
 
 ## Key Files
-
-- `~/.claude/rules/agile.md` (rewritten — strict gates, prefix table, conventional commits)
-- `~/.claude/hooks/branch_guard.sh` (rewritten — enforces branch naming)
-- `~/.claude/CLAUDE.md` (conventions table updated)
-- `~/.claude/skills/workflow-review/SKILL.md` (rewritten from retro)
-- `~/workspace/guacamayo/.claude/docs/tooling-ledger.md` (compressed)
-- `.sounding/sounding.md` (transformed — 4 entries woven)
+- `~/workspace/Makefile`
+- `~/.claude/CLAUDE.md`
+- `~/.claude/rules/agile.md`
+- `~/workspace/guacamayo/CLAUDE.md`
+- `~/workspace/guacamayo/.sounding/growth.md`

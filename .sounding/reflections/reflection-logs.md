@@ -28,3 +28,4 @@
 2026-07-20 (afternoon) - Dispatch at scale. Full agile cycle in one session: 11 agents, 5 issues executed, board cleared. Merge ordering for parallel worktrees is the new edge.
 2026-07-20 (evening) - Parallax cleanup + self-review. Reviewed own parallax changes; caught born-inaccurate README — generated category names diverged from source. Review freshly-written docs, not just aged ones.
 2026-07-22 - Retro became redesign. Retro surfaced skill landscape confusion; researched all 12 skills, merged code-pr into workflow-review, learned config > instruction and PreToolUse structural limits.
+2026-07-22 (afternoon) - Batch dispatch at scale. 8 agents across 2 repos; worktree data loss caught and ruled; model comparison flat (scoping > tier); Ramsey wants make commands, PR bundling, and reviewer-as-role.
