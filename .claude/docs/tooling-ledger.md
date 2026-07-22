@@ -31,3 +31,4 @@ Metric types: `absence:`, `count-drop:`, `presence:`, `ratio:`, `hook-blocks:`. 
 | 2026-07-22 | `make status/push/quick-pr` in LAE + JOB + GUA | `presence:make-status-used within 5 sessions` | hypothesis |
 | 2026-07-22 | PR body `Closes #N` convention + quick-pr auto-gen | `absence:manual-issue-close for 5 sessions` | hypothesis |
 | 2026-07-22 | Worktree agent commit convention in agile.md | `absence:worktree-data-loss for 5 sessions` | hypothesis |
+| 2026-07-22 | Default model → fable (`claude-sonnet-4-5-v2`); opus = escalation only; spawned agents haiku/sonnet per task | `ratio:fable-or-opus-session-share above 60%` | hypothesis |

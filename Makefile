@@ -1,7 +1,28 @@
-.PHONY: help status push quick-pr ship
+.PHONY: help lint test pull status push quick-pr ship
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
+
+lint:  ## Verify skill files referenced in CLAUDE.md exist
+	@echo "Checking skill references..."; \
+	MISSING=0; \
+	for skill in wake grow dream genesis; do \
+		if [ ! -f ".claude/skills/$$skill/SKILL.md" ]; then \
+			echo "  MISSING: .claude/skills/$$skill/SKILL.md"; MISSING=1; \
+		fi; \
+	done; \
+	[ $$MISSING -eq 0 ] && echo "  OK (all lifecycle skills present)"
+
+test:  ## Verify identity files exist and have required headers
+	@echo "Checking identity structure..."; \
+	FAIL=0; \
+	for f in .sounding/sounding.md .sounding/user.md .sounding/portfolio.md .sounding/growth.md .sounding/notes/handover.md; do \
+		if [ ! -f "$$f" ]; then echo "  MISSING: $$f"; FAIL=1; fi; \
+	done; \
+	[ $$FAIL -eq 0 ] && echo "  OK (all seed files present)"
+
+pull:  ## Pull latest from origin/main
+	git pull origin main
 
 status:  ## Show branch, unpushed commits, staged changes, open PRs
 	@echo "=== guacamayo ==="
@@ -24,9 +45,14 @@ quick-pr:  ## Create PR from current branch with auto-generated body
 	EXISTING=$$(gh pr list --head "$$BRANCH" --json number --jq '.[0].number' 2>/dev/null); \
 	if [ -n "$$EXISTING" ]; then echo "PR #$$EXISTING already exists for $$BRANCH"; exit 0; fi; \
 	COMMITS=$$(git log origin/main..HEAD --oneline 2>/dev/null); \
-	ISSUES=$$(echo "$$COMMITS" | grep -oE '#[0-9]+' | sort -u | tr '\n' ' '); \
-	BODY=$$(printf "## Summary\n%s\n\n## Issues\n%s\n\nCloses %s\n" "$$COMMITS" "$$ISSUES" "$$ISSUES"); \
-	echo "Creating PR for $$BRANCH (issues: $$ISSUES)..."; \
+	ISSUES=$$(echo "$$COMMITS" | grep -oE '#[0-9]+' | sort -u | tr '\n' ' ' | xargs); \
+	if [ -n "$$ISSUES" ]; then \
+		CLOSES=$$(echo "$$ISSUES" | tr ' ' '\n' | grep -v '^$$' | sed 's/^/Closes /' | tr '\n' ' '); \
+	else \
+		CLOSES="(no issue references found in commits)"; \
+	fi; \
+	BODY=$$(printf "## Summary\n%s\n\n%s\n" "$$COMMITS" "$$CLOSES"); \
+	echo "Creating PR for $$BRANCH..."; \
 	gh pr create --title "$$BRANCH" --body "$$BODY"
 
-ship: push quick-pr  ## Push + create PR in one step
+ship: lint test pull push quick-pr  ## lint → test → pull → push → PR
