@@ -71,6 +71,7 @@ The cross-repo work queue does NOT live in `.sounding/` handovers or reflections
 ### Ops state (this repo)
 
 Read `.claude/docs/tooling-ledger.md` — `hypothesis` rows are the standing verification queue.
+Read `.claude/docs/insights-summary.md` H1 header date — compare to today to detect retro overdue (≥7 days).
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board
@@ -109,6 +110,7 @@ If refinement items exist      → "Refinement queue: #4, #5, #7 → /workflow-r
 If ready items exist           → "Ready items available — pick one for /workflow-execute or spawn"
 If no backlog, no ready        → "Board is clear — work or run /workflow-insights to check for friction"
 If hypothesis rows > 2 wks    → "Stale hypotheses — run /workflow-insights → /workflow-retro"
+If insights-summary.md date ≥7d → "⚠ Weekly retro overdue (last: YYYY-MM-DD) — run /workflow-insights → /workflow-retro in next opus session"
 If PLANNED plans without issue → "Unissued plans: [name] — create issue or keep plan-only"
 ```
 
