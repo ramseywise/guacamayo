@@ -39,7 +39,7 @@ repo owns the first; `~/.claude` owns the other two.
 | Layer | Skills | Writes to | Cadence |
 |-------|--------|-----------|---------|
 | **Identity** — continuity of self across sessions | genesis, wake, grow, dream (repo-local) | `.sounding/` seeds + logs | per session |
-| **Process** — scaffolding one work item end to end | workflow-research → plan → execute → review; refine; insights → retro (weekly) | plan docs, GitHub Issues | per work item |
+| **Process** — scaffolding one work item end to end | groom → research → plan → refine → execute → review → ship; insights → retro (weekly) | plan docs, GitHub Issues | per work item |
 | **Execution** — the work itself | code-*, design-*, git-*, akira, sanyi, docs-check | the codebase | per change |
 
 **Metacognition is a loop across the layers, not a layer.** `/workflow-insights` and

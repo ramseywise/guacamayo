@@ -27,4 +27,7 @@ Metric types: `absence:`, `count-drop:`, `presence:`, `ratio:`, `hook-blocks:`. 
 | 2026-07-20 | Parallax integration plan (5 phases) | `presence:review-shared-invoked within 3 L2+ reviews` | hypothesis — PLANNED |
 | 2026-07-22 | Default model opus→sonnet in settings.json | `ratio:opus-share below 35%` | hypothesis |
 | 2026-07-22 | Worktree timing guidance in CLAUDE.md | `absence:worktree-stale-state-error for 5 sessions` | hypothesis |
-| 2026-07-22 | Ledger compressed 51→30 lines | `absence:ledger-over-30-lines for 3 retros` | hypothesis |
+| 2026-07-22 | Ledger compressed 51→30 lines | — | verified (31 lines, under target) |
+| 2026-07-22 | `make status/push/quick-pr` in LAE + JOB + GUA | `presence:make-status-used within 5 sessions` | hypothesis |
+| 2026-07-22 | PR body `Closes #N` convention + quick-pr auto-gen | `absence:manual-issue-close for 5 sessions` | hypothesis |
+| 2026-07-22 | Worktree agent commit convention in agile.md | `absence:worktree-data-loss for 5 sessions` | hypothesis |
