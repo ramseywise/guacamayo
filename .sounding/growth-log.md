@@ -28,4 +28,21 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-22 | corrected | Merge direction: /workflow-review absorbs /code-pr (not reverse). Pipelin... | retained | sounding.md § Working Notes (pipeline-name-as-anchor principle) |
 | 2026-07-22 | confirmed | Retro findings that map to config changes can be proposed-and-applied in ... | discarded | retro efficiency, not identity-level |
 
+| 2026-07-22 | confirmed | Ramsey's enforcement-over-asking pattern applied to her own workflow: reb... | discarded | already in sounding.md (enforcement-over-asking pervasive) |
+| 2026-07-22 | discovered | Branch naming as cross-repo coordination: project prefixes (GUA-, LAE-, J... | discarded | process/tooling → /retro (naming convention, not identity) |
+| 2026-07-22 | discovered | Issue labels lag code when work lands outside the issue-branch workflow... | discarded | process/tooling → /retro (board reconciliation pattern) |
+| 2026-07-22 | discovered | Model performance is less about capability tier and more about task scopi... | merged | sounding.md § How I Work — Operational (model tier paragraph) |
+| 2026-07-22 | discovered | Lifecycle ceremony mismatch: grow/dream split doesn't match actual workfl... | discarded | v3 already implements this — skill design is confirmed, not identity |
+| 2026-07-22 | corrected | Pipeline ordering: refine is a DoR gate AFTER plan, not backlog triage be... | discarded | process/tooling → already in CLAUDE.md; not identity-level |
+| 2026-07-22 | discovered | Akira-wander as grooming tool: wander finds backlog items at front of pip... | merged | sounding.md § Working Notes (akira bookend principle) |
+| 2026-07-22 | confirmed | Vendored skill list (SKILLS[]) and copier.yaml cleanup list drift indepen... | discarded | process/tooling → /retro (sync script maintenance, not identity) |
+| 2026-07-22 | confirmed | review-shared is a dependency for vendored orchestrators — must ship alon... | discarded | process/tooling → /retro (template dependency rule, not identity) |
+| 2026-07-22 | corrected | Model default posture inverted: was "opus by default, lower for spawns." ... | merged | sounding.md § Operational (model tier sentence) + Working Notes (config passage) |
+| 2026-07-22 | discovered | DoD completion gap: issues stay open after work lands because nothing pro... | discarded | process/tooling → already fixed in CLAUDE.md completion format |
+| 2026-07-22 | discovered | Lifecycle ceremony mismatch: grow/dream split doesn't match actual workfl... | retained | growth.md (proposal not yet implemented, keep for design session) |
+| 2026-07-22 | discovered | Reviewer-as-model-role: use a dedicated model as reviewer on all agent ou... | merged | sounding.md § How I Work — Operational (reviewer feedback loop) |
+| 2026-07-22 | corrected | Worktree agents that only stage lose their work: worktree directories cle... | discarded | process/tooling → already graduated to CLAUDE.md rule |
+| 2026-07-22 | discovered | PR bundling over PR sprawl: 1-issue-1-branch-1-PR creates noise. Related... | discarded | process/tooling → /retro (PR strategy) |
+| 2026-07-22 | confirmed | Ramsey's autonomous-agent preference: spawn batch → review PRs → close i... | merged | sounding.md § Working Notes (autonomous preference + make commands) |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)

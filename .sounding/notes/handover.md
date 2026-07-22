@@ -1,51 +1,63 @@
-# Handover — 2026-07-22 Retro + Workflow Rules + Dream
+# Handover — 2026-07-22 Continuation (make ship ready)
 
-**Context**: Retro session expanded into workflow redesign. Then Ramsey codified strict workflow gates: issue-linked branches, conventional commits, no main commits, Parallax read-only. Dream synthesis ran (12 entries cleared). Ready to spawn agents.
+**Context**: Multi-arc session continued from context compression. Primary work: fixing all workspace `make lint`, `make test`, `make pull` failures so Ramsey can run `make ship`.
 
 ## Current State
 
-**Retro + Phase 1 of #9 applied (all uncommitted):**
-- 6 retro findings applied, code-pr merged into workflow-review, 15+ refs updated
-- Default model opus→sonnet in settings.json
-- Ledger compressed 51→30 lines
+### listen-wiseer — async test contamination FIXED
+- Root cause: 6 test files used `asyncio.get_event_loop().run_until_complete()` in sync test functions — poisoned event loop state for subsequent files under pytest-cov
+- Fix: all 6 files converted to `async def test_*` + `await`; `asyncio` imports removed; `ruff --fix` cleaned isort
+- **Result: 474 passed, 3 skipped, 0 failures** — from 42 failures before fix
+- Files touched: `test_intent_routing.py`, `test_optimizer.py`, `test_validation.py`, `test_nodes.py`, `test_memory_store.py`, `test_trajectory_eval.py`
+- All changes uncommitted (Ramsey commits)
 
-**Workflow rules codified (also uncommitted):**
-- `~/.claude/rules/agile.md` rewritten: strict gates, branch types ({PREFIX}-{NUM}-{slug}, bug/, spike/), prefix table (10 repos), conventional commits
-- `~/.claude/CLAUDE.md` conventions table updated
-- `~/.claude/hooks/branch_guard.sh` rewritten: blocks main commits, enforces branch naming
-- `~/.claude/README.md` hook description updated
+### Workspace make sweep — all clear
+- `make lint`: all repos PASS or SKIP (no pre-commit config) — listen-wiseer now PASS
+- `make test`: all runnable repos PASS; CryptoZombies npm fail is pre-existing, unrelated
+- `make pull`: all repos OK or SKIP (uncommitted changes in guacamayo, listen-wiseer, playground, LeetCode)
 
-**Dream synthesis ran:** 12 growth entries → 3 woven into sounding.md, 9 discarded. Accumulator cleared.
+### Model default correction (from prior dream)
+- `claude-sonnet-4-5-v2` was set as session default — invalid model ID, user couldn't start sessions
+- Fixed: `~/.claude/settings.json` reverted to `claude-opus-4-6`
+- `~/.claude/refs/models.md` updated: fable not available as session model ID
+- `~/.claude/CLAUDE.md` updated: default session model is opus
 
-**All changes uncommitted.** Ramsey needs to commit this batch before spawning agents.
+### guacamayo — GUA-9-workflow-simplification branch
+- All 3 phases complete: pipeline reorder, Makefile, wake/dream retro nudge
+- Uncommitted: Makefile, CLAUDE.md, skill files, tooling-ledger.md, sounding.md (synthesized)
+- Ready for `make ship`
+
+### ai-project-template
+- sync-global-skills.sh: `review-shared` added, `code-pr` removed
+- copier.yaml: matching cleanup list fix
+- All uncommitted
 
 ## Decisions Made
-
-- **No code changes without GitHub issue** (except bug/ and spike/ branches)
-- **Branch naming**: `{PREFIX}-{NUM}-{slug}` for planned work, `bug/` for fixes, `spike/` for exploration
-- **Prefix table**: GUA, LAE, LIS, ATL, PLG, AIT, LIB, LEB, JOB, DSG
-- **Conventional commits**: `{type}({scope}): {desc} (#{num})`
-- **Parallax read-only**: no changes to that repo
-- **Claude never pushes**: stage + commit on branch; Ramsey reviews and pushes
+- **Model default**: opus (`claude-opus-4-6`) — opening sessions. Fable not available as session model. Escalation: opus-always for planning/retro/audit/dream.
+- **Async test pattern in listen-wiseer**: `async def` + `await` only — no `_run()` wrappers. This is now the established pattern across all test files.
+- **Contamination diagnosis method**: grep for `asyncio.get_event_loop\|asyncio\.run\|_run(` across ALL test files before starting a fix — don't scope to the first file that surfaces.
 
 ## Open Threads
-
-- **sync-global-skills.sh**: May have stale `code-pr` in SKILLS[] array
-- **Weekly meta automation**: Phase 2 of #9 — /dream retro nudge
-- **job-system scaffolding**: #10 created (backlog) — needs git init + GitHub remote
+- **GUA-9 PR**: `make ship` from GUA-9-workflow-simplification (Ramsey — ready now)
+- **listen-wiseer**: commit async test fixes, then `make ship` for any open branch
+- **ai-project-template**: commit sync fixes + synced template files
+- **JOB PR**: `job-bootstrap` branch → `gh pr create` closing #1-5
+- **LAE PR**: `LAE-39-structural-cleanup` branch → `gh pr create` closing #25,28,30,31,32,33,39
+- **Atlas blockers**: Chronos index bug (nodes.py:144), train/test contamination (nodes.py:238) — create GH issues
+- **Librarian blockers**: double LLM call (agent.py:208), path traversal (server.py:566) — create GH issues
+- **Fable test**: spawn `claude --model claude-sonnet-4-5-v2` if/when available → `/akira scan` atlas/nodes.py
 
 ## Immediate Next Steps
-
-1. Ramsey commits all changes (retro + rules + dream) and pushes guacamayo
-2. Spawn 3 agents: guacamayo #9 Phase 2-3, learn-ai-engineering ready items, job-system scoping
-3. Check sync-global-skills.sh for stale code-pr reference
-4. Resolve learn-ai-engineering rebase
+1. `make ship` from GUA-9-workflow-simplification (after committing)
+2. Commit listen-wiseer async test fixes
+3. Commit ai-project-template sync fixes
+4. Create JOB and LAE PRs
 
 ## Key Files
-
-- `~/.claude/rules/agile.md` (rewritten — strict gates, prefix table, conventional commits)
-- `~/.claude/hooks/branch_guard.sh` (rewritten — enforces branch naming)
-- `~/.claude/CLAUDE.md` (conventions table updated)
-- `~/.claude/skills/workflow-review/SKILL.md` (rewritten from retro)
-- `~/workspace/guacamayo/.claude/docs/tooling-ledger.md` (compressed)
-- `.sounding/sounding.md` (transformed — 4 entries woven)
+- `~/workspace/listen-wiseer/tests/unit/` — 6 test files converted (async pattern)
+- `~/workspace/guacamayo/Makefile` — new (lint/test/pull/push/quick-pr/ship)
+- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-akira-model-experiment.md` — full akira experiment results
+- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` — GUA-9, EXECUTED
+- `~/.claude/settings.json` — model = claude-opus-4-6 (corrected from sonnet-4-5-v2)
+- `~/workspace/ai-project-template/scripts/sync-global-skills.sh`
+- `~/workspace/ai-project-template/copier.yaml`
