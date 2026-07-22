@@ -1,49 +1,57 @@
-# Handover — 2026-07-20 Parallax Cleanup + Review
+# Handover — 2026-07-22 Retro + Workflow Simplification + Dream
 
-**Context**: Guacamayo meta session. Continued from parallax integration (all 5 phases done prior session). This session: gitignored claude-companion/, ran L1 code-review on akira+sanyi changes, fixed README accuracy error.
+**Context**: Tooling retro session that expanded into workflow skill redesign. Ran /workflow-retro → applied 6 findings → researched skill landscape → executed Phase 1 of #9 (code-pr merged into workflow-review) → /grow → /dream with synthesis.
 
 ## Current State
 
-**Done this session:**
-- `claude-companion/` untracked from git + added to `.gitignore` (files kept locally)
-- L1 code-review on akira+sanyi parallax changes — 5 findings, 1 fixed (R-002: README category names)
-- Handover and growth captured
+**Retro findings applied (6 of 8):**
+- F1/F2: >150k context and failure attribution hypotheses graduated (rolled into ledger rollup)
+- F4: Default model changed opus→sonnet in settings.json (biggest cost lever)
+- F5: Ledger compressed 51→30 lines
+- F6: Parallax sanyi duplicate deleted
+- F8: Worktree timing guidance added to CLAUDE.md
 
-**Uncommitted across repos:**
-- `~/.claude/` — parallax integration (new refs, review-shared skill, agent updates, code-pr rewrite, review-verdict-gate hook, settings.json, README.md, akira README)
-- `guacamayo/` — .gitignore update, claude-companion untracked, plan doc EXECUTED, tooling ledger hypothesis row
-- `playground/` — senior→staff rename in run-code-review SKILL.md
+**Deferred:**
+- F3: Bash antipattern hook removal (watching one more window)
+- F7: Expanded into #9 workflow simplification
 
-**Review findings still open (non-blocking):**
-- R-001: akira-scan dimension checklists overlap with existing 9 categories — adds dedup pressure on haiku batches. Decide: annotate overlap or defer dimensions to orchestrator merge step
-- R-003: SANYI violations.md inline canonical fields format differs from akira-scan's multi-line format — cosmetic
-- R-004/R-005: eval assertion edge cases — minor, controlled fixtures
+**Workflow simplification (#9) — Phase 1 EXECUTED:**
+- `/code-pr` deleted — absorbed into `/workflow-review`
+- `/workflow-review` rewritten: plan fidelity + multi-reporter orchestration + DoD + merge verdict
+- All active config refs updated (hooks, refs, review-shared, CLAUDE.md, README.md, models.md, sanyi evals)
+- Zero stale `code-pr` references in active config (historical docs preserved)
+- Global skill count: 25→24
+
+**All changes uncommitted.** Ramsey needs to commit the retro + Phase 1 batch.
+
+**Dream synthesis ran:** 12 growth entries processed — identity seeds transformed.
 
 ## Decisions Made
 
-- claude-companion stays local-only (git-ignored), not deleted
-- README category names must match source of truth (akira-scan.md) — fixed
-- R-001 deferred to a decision, not blocking commit
+- **Model default**: sonnet globally. Opus via explicit `claude --model opus` for planning/retro/dream/audit.
+- **Merge direction**: /workflow-review absorbs /code-pr (pipeline name is the anchor)
+- **Fable for review**: /workflow-review recommended at fable tier for diff analysis
+- **Quality gates**: `make precommit → make test → make pull/rebase → /code-review → /docs-check → push` (pre-push). `/workflow-review <PR#>` (post-PR).
+- **Config > instruction**: settings.json is the only enforceable lever for model defaults; CLAUDE.md text is advisory.
 
 ## Open Threads
 
-- Companion summarizer outcome fidelity: spawn prompt ready for sonnet session
-- SANYI behavioral eval validation: run N=3 via skill-creator
-- Smoke test review pipeline: `/akira scan` on small diff, `/code-pr` on open PR
-- Prior worktree merges (#3, #5, #6, #7, #8) — status unknown
-- autoCompactThreshold still not set
-- R-001 dimension overlap decision pending
+- **sync-global-skills.sh**: May have stale `code-pr` in SKILLS[] array — check before next template sync.
+- **Weekly meta automation**: Phase 2 of #9 — /dream should flag when retro >7 days overdue.
+- **Skill consolidation**: Broader interest in reviewing all skills for overlap. code-pr was the clearest case.
 
 ## Immediate Next Steps
 
-1. Commit all changes (Ramsey commits — `~/.claude/`, `guacamayo/`, `playground/`)
-2. Check worktree status: `ls .claude/worktrees/`
-3. Decide on R-001 (dimension overlap in akira-scan)
-4. Smoke test: `/akira scan` on a small diff
-5. Set `claude config set autoCompactThreshold 50`
+1. Ramsey commits all retro + Phase 1 changes
+2. Check sync-global-skills.sh for stale code-pr reference
+3. Phase 2-3 of #9 (dream retro nudge + docs update) — sonnet session
+4. Resolve learn-ai-engineering rebase, commit agent work
+5. `/workflow-refine` on #4 and #9 to check DoR
 
 ## Key Files
 
-- `~/.claude/skills/akira/README.md` (fixed this session)
-- `guacamayo/.gitignore` (updated this session)
-- `guacamayo/.claude/docs/plans/2026-07-20-parallax-integration.md` (EXECUTED)
+- `~/.claude/settings.json` (model: sonnet)
+- `~/.claude/CLAUDE.md` (skill groups, review ladder, session hygiene updated)
+- `~/.claude/skills/workflow-review/SKILL.md` (rewritten)
+- `~/workspace/guacamayo/.claude/docs/tooling-ledger.md` (compressed to 30 lines)
+- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` (Phase 1 done, 2-3 remain)

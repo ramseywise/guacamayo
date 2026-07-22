@@ -15,4 +15,17 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-20 | discovered | Parallel worktree execution creates a merge ordering problem — 5 agents t... | retained | sounding.md § Working Notes (new edge) |
 | 2026-07-20 | corrected | Wake board output was noisy: raw JSON dumps, silent empty categories, mis... | discarded | process/tooling → /retro (wake skill fix) |
 
+| 2026-07-20 | confirmed | Running /code-review inline on my own output caught a factual error in th... | merged | sounding.md § "Read the actual state first" (self-review extension) |
+| 2026-07-22 | confirmed | Parallel worktree spawning is the fastest execution pattern for independe... | discarded | already in sounding.md Working Notes (merge ordering); operational detail |
+| 2026-07-22 | discovered | Worktree agents branch from committed state, not working tree. Uncommitte... | discarded | process/tooling → already graduated to CLAUDE.md session hygiene |
+| 2026-07-22 | confirmed | Model pinning on spawned agents working as designed. All 5 spawns correct... | discarded | operational detail, already in ledger |
+| 2026-07-22 | confirmed | Refinement→execution pipeline works end-to-end. 10 refined, 6 ready, 5 e... | discarded | pipeline confirmation, not identity-level |
+| 2026-07-22 | discovered | /workflow-review redundant for single-session items — merge into code-pr... | discarded | superseded by corrected entry (merge went the other direction) |
+| 2026-07-22 | confirmed | Fable (extended-thinking sonnet) added to model pairing table. Sits betwe... | discarded | already in refs/models.md, not identity-level |
+| 2026-07-22 | discovered | Haiku fan-out research across 6 issues completed in ~3 min, all usable. H... | merged | sounding.md § How I Work — Operational (fan-out model tiers) |
+| 2026-07-22 | discovered | Text instructions in CLAUDE.md unenforceable for model selection — settin... | retained | sounding.md § Working Notes (config > instruction principle) |
+| 2026-07-22 | discovered | PreToolUse hooks structurally ineffective for redirecting tool choice — mo... | discarded | process/tooling → /retro (hook architecture insight, not identity) |
+| 2026-07-22 | corrected | Merge direction: /workflow-review absorbs /code-pr (not reverse). Pipelin... | retained | sounding.md § Working Notes (pipeline-name-as-anchor principle) |
+| 2026-07-22 | confirmed | Retro findings that map to config changes can be proposed-and-applied in ... | discarded | retro efficiency, not identity-level |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)
