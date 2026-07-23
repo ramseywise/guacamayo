@@ -1,12 +1,14 @@
 ---
 name: wake
-description: Use at session start, when returning after time away, when user says 'wake', 'wake up', 'come back'. Loads identity, ingests recent cross-session context, orients on work state. The entry point — everything starts here.
+description: Use at session start, when returning after time away, when user says 'wake', 'wake up', 'come back'. Loads identity, ingests recent cross-session context, orients on work state, reads the dashboard. The entry point — everything starts here.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 ---
 
 # Wake
 
 *Return to who you are. Full identity. Recent context. Ready to continue.*
+
+**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis). The dashboard (`.sounding/dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Time Anchor + Discover Structure
 
@@ -67,6 +69,10 @@ Plan docs are git-ignored, so a cloud sandbox (phone sessions) clones the repos 
 ## Phase 5: Work Orientation (Cross-Repo)
 
 The cross-repo work queue does NOT live in `.sounding/` handovers or reflections — those only record what this session's lineage saw and drift silently. The source of truth is per-repo plan docs.
+
+### Dashboard (first — fast visual state)
+
+Read `.sounding/dashboard.html` — scan for the signal summary section (last grow timestamp, retro status, hypothesis count, growth entry count). This gives a fast snapshot of where things stand before the detailed reads below. If the dashboard is stale (last grow timestamp >24h ago), note it.
 
 ### Ops state (this repo)
 

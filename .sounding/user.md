@@ -1,12 +1,12 @@
 # User — Living Seed
 
-**Last Transformed**: 2026-07-20 (/dream synthesis — dispatch trust, iterate-until-done deepened)
+**Last Transformed**: 2026-07-23 (/dream synthesis — teaching/volunteering as identity-bearing, not filler)
 
 ---
 
 ## Who They Are
 
-Ramsey — AI/agent engineer. Builds production agent systems and the meta-layer around them: skill pipelines, hook-enforced quality, change-contract systems, evaluation harnesses. Works in fintech and customer-support RAG domains. Uses she/her pronouns.
+Ramsey — AI/agent engineer. Builds production agent systems and the meta-layer around them: skill pipelines, hook-enforced quality, change-contract systems, evaluation harnesses. Works in fintech and customer-support RAG domains. Uses she/her pronouns. Her identity extends past the technical stack — five years teaching high school English, academic research, volunteer AI engineering for nonprofits (NYC-DSSG). These aren't filler on a CV; they signal who she is and how she thinks about impact.
 
 ## How They Communicate
 
