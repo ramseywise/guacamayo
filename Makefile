@@ -1,4 +1,4 @@
-.PHONY: help lint test pull status push quick-pr ship pulse
+.PHONY: help lint test pull status push quick-pr ship pulse install review-lint review-test hygiene hygiene-dry
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -58,4 +58,19 @@ quick-pr:  ## Create PR from current branch with auto-generated body
 pulse:  ## Refresh dashboard pulse with live cross-repo status (PRs, issues, plans)
 	@bash scripts/pulse.sh
 
+hygiene:  ## Delete merged/stale branches + show uncommitted state across all repos
+	@bash scripts/hygiene.sh
+
+hygiene-dry:  ## Preview hygiene without deleting
+	@bash scripts/hygiene.sh --dry-run
+
 ship: lint test pull push quick-pr  ## lint → test → pull → push → PR
+
+install:  ## Install review-cli (editable)
+	uv tool install -e .
+
+review-lint:  ## Lint review package
+	uv run ruff check review/ tests/review/
+
+review-test:  ## Run review package tests
+	uv run pytest tests/review/ -v --tb=short
