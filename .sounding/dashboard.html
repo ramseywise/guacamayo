@@ -589,113 +589,130 @@ section.tab-content { scroll-margin-top: 60px; }
     </div>
 
     <div class="explainer">
-      <strong>Live signal from /grow</strong> — updated mid-session. Status tiles show session-level health; the board below shows active work items and backlog across repos.
+      <strong>Live signal from /grow</strong> — last refreshed 2026-07-23 21:56. Cross-repo status from GitHub + plan docs.
     </div>
 
     <!-- Status tiles -->
     <div class="pulse-grid">
       <div class="pulse-tile">
-        <div class="tile-label">Last /grow</div>
-        <div class="tile-value">2026-07-23 20:52</div>
+        <div class="tile-label">Last pulse</div>
+        <div class="tile-value">2026-07-23 21:56</div>
       </div>
       <div class="pulse-tile">
         <div class="tile-label">Growth entries</div>
         <div class="tile-value">0 pending</div>
-        <div class="tile-note" style="color:var(--good)">synthesized this /dream</div>
+        <div class="tile-note" style="color:var(--good)">clear</div>
       </div>
       <div class="pulse-tile">
         <div class="tile-label">Retro status</div>
-        <div class="tile-value">1 day ago</div>
+        <div class="tile-value">1d ago</div>
         <div class="tile-note" style="color:var(--good)">current</div>
       </div>
       <div class="pulse-tile">
         <div class="tile-label">Hypotheses</div>
-        <div class="tile-value">24 pending</div>
-        <div class="tile-note" style="color:var(--warn)">2 stale (&gt;5 days)</div>
+        <div class="tile-value">23 pending</div>
       </div>
     </div>
 
-    <!-- Work state -->
+    <!-- Open PRs -->
     <div class="card">
-      <div class="card-title">Work state</div>
-      <p class="card-note">Active work items across repos. Source: plan docs + queue.md.</p>
+      <div class="card-title">Open PRs (0)</div>
+      <p class="card-note">Merge queue across repos.</p>
+      <p class="card-note" style="color:var(--good)">No open PRs across repos.</p>
+    </div>
+
+    <!-- Active plans -->
+    <div class="card">
+      <div class="card-title">Active plans</div>
+      <p class="card-note">Plan docs modified in last 7 days that aren't finished.</p>
       <div class="overflow-x">
       <table class="issue-table">
-        <thead><tr><th>Area</th><th>Status</th><th>Note</th></tr></thead>
+        <thead><tr><th>Repo</th><th>Plan</th><th>Status</th></tr></thead>
         <tbody>
-          <tr>
-            <td>GUA-9</td>
-            <td><span class="status-chip done">Executed</span></td>
-            <td>Uncommitted, ready for make ship</td>
-          </tr>
-          <tr>
-            <td>GUA-11</td>
-            <td><span class="status-chip closed">Closed</span></td>
-            <td>Lifecycle redesign — absorbed into /grow rewrite</td>
-          </tr>
-          <tr>
-            <td>job-system #14</td>
-            <td><span class="status-chip executing">Executing</span></td>
-            <td>10 Strong-fit apps complete, PDFs generated</td>
-          </tr>
-          <tr>
-            <td>librarian alignment</td>
-            <td><span class="status-chip done">Done</span></td>
-            <td>Structure alignment plan executed today</td>
-          </tr>
-          <tr>
-            <td>dashboard iteration</td>
-            <td><span class="status-chip done">Executed</span></td>
-            <td>UX improvements applied today</td>
-          </tr>
-          <tr>
-            <td>context-eng v2</td>
-            <td><span class="status-chip planned">Planned</span></td>
-            <td>Dashboard evolution + eval integration</td>
-          </tr>
-        </tbody>
+          <tr><td>learn-ai-engineering</td><td>2026-07-21-curriculum-buildout</td><td><span class="status-chip planned">planned</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>2026-07-21-ai-engineering-foundations</td><td><span class="status-chip planned">planned</span></td></tr>
+          <tr><td>guacamayo</td><td>2026-07-23-context-engineering-v2</td><td><span class="status-chip planned">planned</span></td></tr>
+          <tr><td>guacamayo</td><td>2026-07-22-dependabot-vuln-workflow</td><td><span class="status-chip planned">planned</span></td></tr>
+          <tr><td>guacamayo</td><td>2026-07-20-gh-4-akira-sanyi-research</td><td><span class="status-chip planned">planned</span></td></tr>
+          <tr><td>guacamayo</td><td>2026-07-20-companion-summarizer-outcome-fidelity</td><td><span class="status-chip executing">in-progress</span></td></tr>
+          <tr><td>atlas</td><td>ttd</td><td><span class="status-chip executing">in-progress</span></td></tr>        </tbody>
       </table>
       </div>
     </div>
 
     <!-- Issues board -->
     <div class="card">
-      <div class="card-title">Issues board</div>
-      <p class="card-note">Open GitHub issues across repos. Backlog items available for pickup.</p>
+      <div class="card-title">Issues board (58 open)</div>
+      <p class="card-note">All open GitHub issues across repos. guacamayo:9 listen-wiseer:7 learn-ai-engineering:7 atlas:7 ai-project-template:4 librarian:11 job-system:13 </p>
       <div class="overflow-x">
       <table class="issue-table">
-        <thead><tr><th>#</th><th>Title</th><th>State</th></tr></thead>
+        <thead><tr><th>Repo</th><th>#</th><th>Title</th><th>State</th></tr></thead>
         <tbody>
-          <tr>
-            <td>#12</td>
-            <td>Fable model integration: agent spawn + reviewer-as-role experiments</td>
-            <td><span class="status-chip ready">ready</span></td>
-          </tr>
-          <tr>
-            <td>#15</td>
-            <td>Enforce workflow-review before merge: hook + make ship gate</td>
-            <td><span class="status-chip backlog">backlog</span></td>
-          </tr>
-          <tr>
-            <td>#4</td>
-            <td>Akira and SANYI composition: shared scan layer</td>
-            <td><span class="status-chip backlog">backlog</span></td>
-          </tr>
-          <tr>
-            <td>#15a–19</td>
-            <td>Review gate + shared infra (sub-issues of #15)</td>
-            <td><span class="status-chip backlog">backlog</span></td>
-          </tr>
-          <tr>
-            <td>#4a–4b</td>
-            <td>SANYI violation codes + merge/dedup extraction (sub-issues of #4)</td>
-            <td><span class="status-chip backlog">backlog</span></td>
-          </tr>
-        </tbody>
+          <tr><td>guacamayo</td><td>#21</td><td>GUA-20: Consolidate dashboard optimization + akira experiment completion</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#20</td><td>GUA-20 Streamline stage transitions: auto-compact, label sync, spawn prompts</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#19</td><td>GUA-4b: Extract merge/dedup logic into review-shared reference</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#18</td><td>GUA-4a: Map SANYI violation codes to canonical finding schema</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#17</td><td>GUA-15b: Wire make ship to enforce workflow-review before merge</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#16</td><td>GUA-15a: Design review artifact contract for merge gate</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#15</td><td>Enforce workflow-review before merge: hook + make ship gate</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>guacamayo</td><td>#12</td><td>Fable model integration: add to agent spawn + reviewer-as-role experiments</td><td><span class="status-chip ready">ready</span></td></tr>
+          <tr><td>guacamayo</td><td>#4</td><td>Akira and SANYI composition: shared scan layer</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#73</td><td>[akira] History slice excludes current message (graph_nodes.py:240)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#72</td><td>[akira] route_after_agent lacks bounds check (graph_nodes.py:385)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#71</td><td>[akira] SYSTEM_PROMPT should be externalized (graph_nodes.py:74)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#70</td><td>[akira] Module-level LLM instantiation requires pre-mocking (graph_nodes.py:64)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#69</td><td>[akira] LLM calls lack timeout (graph_nodes.py:250,366)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#68</td><td>[akira] trim_messages budget calculation wrong (graph_nodes.py:161)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>listen-wiseer</td><td>#67</td><td>[akira] Episodic store logic inverted (graph_nodes.py:369)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#37</td><td>DS staleness: PyMC3 → PyMC 5</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#36</td><td>DS staleness: TensorFlow 1.x → 2.x</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#35</td><td>DS staleness: sklearn 0.20 → 1.4+</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#34</td><td>Design iterative learning skill + readings cron</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#33</td><td>DS staleness: update sklearn, TF, PyMC3 dependencies [PARENT]</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#30</td><td>Build up RL depth in gen-AI LLM fundamentals</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>learn-ai-engineering</td><td>#28</td><td>Integrate docs/ content into ai-eng + gen-AI depth pillars</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#15</td><td>[akira] _generate_reflection lacks timeout (nodes.py:330)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#14</td><td>[akira] Bare except blocks swallow errors (nodes.py:110,148,337)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#13</td><td>[akira] strategy_history lags by one cycle (nodes.py:382)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#12</td><td>[akira] Early termination checks missing consecutive passes (nodes.py:380)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#11</td><td>[akira] Eval data overlaps training set (nodes.py:238)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#10</td><td>[akira] Chronos predict_quantiles wrong index (nodes.py:144)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>atlas</td><td>#9</td><td>[akira] head() uses wrong series length (nodes.py:224)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>ai-project-template</td><td>#14</td><td>[akira] CSS regex recompiled per file (validate_paths.py:703)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>ai-project-template</td><td>#13</td><td>[akira] Jinja condition clause passes through to else segment (validate_paths.py:182)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>ai-project-template</td><td>#12</td><td>[akira] DELIBERATELY_EXCLUDED lists unavailable skills (sync-global-skills.sh:70)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>ai-project-template</td><td>#11</td><td>[akira] Copier.yaml grep misses trailing slash (sync-global-skills.sh:199)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#38</td><td>LIB-XX Refactor core/ ETL pipeline</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#36</td><td>[akira] manifest _load() called O(N²) times (manifest.py:25)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#35</td><td>[akira] sys.path.insert accumulates on repeated calls (relinker.py:149)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#34</td><td>[akira] Raw exception leaked to user (agent.py:250)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#33</td><td>[akira] Agent loop lacks timeout (agent.py:190)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#32</td><td>[akira] DuckDB connections leak on exception (server.py:346,521,571)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#31</td><td>[akira] FTS install failure silently swallowed (server.py:209)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#30</td><td>[akira] Path traversal in list_pages (server.py:566)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#29</td><td>[akira] Module-level stale state on repeated calls (lint_raw.py:22)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#28</td><td>[akira] Cosine similarity silently truncates vectors (server.py:91)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>librarian</td><td>#27</td><td>[akira] Double LLM call on final turn (agent.py:191,208)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#19</td><td>Browser capture: Ashby/LinkedIn unfetchable URLs (~13)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#18</td><td>Batch capture: run refresh-jobs on 38 live inbox entries</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#17</td><td>Build scan-sources skill for automated lead generation</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#16</td><td>Add rank-preferences skill</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#15</td><td>Ingest notes/ materials into evidence store</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#14</td><td>Add metadata schema to capture-job brief template</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#13</td><td>[akira] research-company precondition conflicts (SKILL.md:14)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#12</td><td>[akira] Guardrails conflict on VERIFY items (SKILL.md:27)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#11</td><td>[akira] Pipeline diagram incomplete (CLAUDE.md:48)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#10</td><td>[akira] Contradictory run/convert-cv instructions (SKILL.md:39)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#9</td><td>[akira] Greedy sed collapses multiple spans (export-pdf.sh:152)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#8</td><td>[akira] Trap unquoted variable (export-pdf.sh:33)</td><td><span class="status-chip backlog">backlog</span></td></tr>
+          <tr><td>job-system</td><td>#7</td><td>[akira] Markdown converter missing HTML tags (export-pdf.sh:148)</td><td><span class="status-chip backlog">backlog</span></td></tr>        </tbody>
       </table>
       </div>
     </div>
   </section>
+
+
+
 
   <section class="tab-content" id="cost">
     <div class="section-header">
