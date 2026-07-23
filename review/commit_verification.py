@@ -36,7 +36,7 @@ def parse_plan_steps(plan_text: str) -> list[dict]:
         files = []
         files_match = _FILES_SECTION.search(section)
         if files_match:
-            rest = section[files_match.start():]
+            rest = section[files_match.start() :]
             lines = rest.split("\n")
             for line in lines[1:]:
                 stripped = line.strip()
@@ -49,12 +49,14 @@ def parse_plan_steps(plan_text: str) -> list[dict]:
                 elif stripped == "" or stripped.startswith("**"):
                     break
 
-        steps.append({
-            "number": step_num,
-            "title": title,
-            "files": files,
-            "done": done,
-        })
+        steps.append(
+            {
+                "number": step_num,
+                "title": title,
+                "files": files,
+                "done": done,
+            }
+        )
 
     return steps
 
@@ -73,7 +75,17 @@ def _find_commits_for_files(
 
 
 def _file_in_commits(repo_path: str, filepath: str, branch: str | None = None) -> bool:
-    cmd = ["git", "-C", repo_path, "log", "--oneline", "--all", "--diff-filter=ACDMR", "--", filepath]
+    cmd = [
+        "git",
+        "-C",
+        repo_path,
+        "log",
+        "--oneline",
+        "--all",
+        "--diff-filter=ACDMR",
+        "--",
+        filepath,
+    ]
     result = subprocess.run(cmd, capture_output=True, text=True, check=False)
     return bool(result.stdout.strip())
 
@@ -96,12 +108,14 @@ def verify_commits(
             status = "partial"
         else:
             status = "missing"
-        results.append(StepVerification(
-            step=step["number"],
-            title=step["title"],
-            expected_files=step["files"],
-            status=status,
-            matching_commits=commits,
-            missing_files=missing,
-        ))
+        results.append(
+            StepVerification(
+                step=step["number"],
+                title=step["title"],
+                expected_files=step["files"],
+                status=status,
+                matching_commits=commits,
+                missing_files=missing,
+            )
+        )
     return results

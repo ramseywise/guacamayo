@@ -24,9 +24,9 @@ class TestValidateFinding:
             "findings": [f.model_dump(mode="json")],
             "merge_decision": MergeDecision.COMMENT.value,
             "reporter_dispatch": [
-                ReporterDispatchEntry(
-                    reporter=Reporter.AKIRA_SCAN, status="completed"
-                ).model_dump(mode="json")
+                ReporterDispatchEntry(reporter=Reporter.AKIRA_SCAN, status="completed").model_dump(
+                    mode="json"
+                )
             ],
             "overall_understanding": "Test",
             "dod_assessment": "Met",
