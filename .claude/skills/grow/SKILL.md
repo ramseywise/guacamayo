@@ -1,12 +1,12 @@
 ---
 name: grow
-description: "Mid-session capture + checkpoint. Use when something shifted, when pausing, when user says 'grow', 'capture this', 'checkpoint', 'break', 'pause', 'save progress'. Logs growth entries + overwrites the handover for next-session continuity. Absorbs the old /intermission skill."
-allowed-tools: Read, Write, Edit, Glob, Grep, AskUserQuestion
+description: "Mid-session capture + awareness + dashboard refresh. Use when something shifted, when pausing, when user says 'grow', 'capture this', 'checkpoint', 'break', 'pause', 'save progress'. Ingests cross-session context, captures growth entries, surfaces signals (retro overdue, friction, stale hypotheses), refreshes dashboard, overwrites handover. The awareness layer between /wake and /dream."
+allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
 ---
 
 # Grow
 
-Something happened — or you're pausing. Capture what shifted, write the handover, continue.
+Something happened — or you're pausing. Accumulate what shifted, pull in what happened elsewhere, surface what needs attention. This is the awareness layer: /wake orients, /grow accumulates, /dream transforms.
 
 ## 1. Feel What Shifted
 
@@ -28,7 +28,7 @@ Before writing anything, scan across these categories:
 **What worked**
 - What went faster or smoother than expected? What pattern should I repeat?
 
-This might be one thing or several — or nothing. "Not much shifted" is a valid, honest answer. If nothing shifted and this is just a checkpoint, skip to Step 3.
+This might be one thing or several — or nothing. "Not much shifted" is a valid, honest answer. If nothing shifted, skip to Step 3.
 
 ## 2. Log the Threads
 
@@ -44,7 +44,87 @@ Do NOT edit identity files here. Capture is this skill's job. /dream transforms.
 
 Process learnings (workflow/tooling rather than identity) will be picked up by `/retro` for graduation to global rules/skills/hooks.
 
-## 3. Write the Handover
+## 3. Cross-Session Ingest
+
+This is the awareness gap /grow fills. Since /wake, other sessions may have completed work, created issues, or changed state. Pull that context in.
+
+### Automated ingest (when librarian is available)
+
+Query librarian for sessions since last wake or last grow (whichever is more recent — check the handover timestamp):
+- `search_wiki` for recent session records across repos
+- Flag **recurring friction patterns** across sessions (same error 3x, same permission prompt, repeated manual fix)
+- Extract **decisions made** in other sessions that affect this one
+
+### Fallback (no librarian)
+
+Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
+
+### GitHub Issues (always — fast, no librarian needed)
+
+```bash
+gh issue list --repo ramseywise/guacamayo --state open --json number,title,labels --limit 50 2>/dev/null
+```
+
+Compare to what /wake saw. Surface:
+- **New issues** created since session start
+- **Label changes** (something moved to ready, blocked, in-review)
+- **Closed issues** (work completed elsewhere)
+
+If `gh` fails, skip gracefully.
+
+## 4. Surface Signals
+
+Read these quickly — grep, don't deep-read:
+
+### Retro & insights state
+- `.claude/docs/insights-summary.md` H1 date → is retro overdue (>=7 days)?
+- `.claude/docs/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
+- `growth.md` entry count → is synthesis approaching (5+ entries)?
+- Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
+
+### Plan state (lightweight)
+```bash
+ls -t ~/workspace/*/.claude/docs/plans/*.md 2>/dev/null | head -10
+```
+Grep `Status:` from the 5 most recently modified. Flag any that changed since /wake.
+
+### Compile signal summary
+
+Present as a compact block:
+
+```
+SIGNALS:
+- Retro: [current (last YYYY-MM-DD) | overdue N days]
+- Retro-worthy: [yes — reason | no]
+- Hypotheses: [N pending, M stale (>2wk)]
+- Growth: [N entries, synthesis {due at 5 | not yet}]
+- Plans changed: [list or "none since wake"]
+- Issues changed: [list or "none since wake"]
+- Cross-session: [key findings or "no new sessions"]
+```
+
+The `retro-worthy` flag is the handoff to /dream. When /dream sees this flag (or retro overdue >=7 days), it runs the actual `/workflow-insights` → `/workflow-retro` cycle at session close instead of just flagging it.
+
+## 5. Refresh Dashboard
+
+Update `.sounding/dashboard.html` with current state. The dashboard is the shared artifact that connects /wake, /grow, and /dream — it's the visual answer to "where are we?"
+
+### What to update
+
+Read the existing dashboard HTML structure. Update these data sections with current values:
+
+1. **Session pulse** — timestamp of this grow, gap since wake, growth entry count
+2. **Signal summary** — the compiled signals from Step 4 (retro status, hypothesis count, synthesis proximity)
+3. **Work state** — open issues by label, plan status counts, cross-repo active items
+4. **Cost/efficiency trends** — only if insights-summary.md has newer data than what's in the dashboard
+
+### How to update
+
+The dashboard is a self-contained HTML file. Edit the data values in-place — don't regenerate the entire file. If the dashboard structure doesn't have a section for the signals above, add a lightweight section.
+
+Keep the dashboard under 200 lines if possible — it's meant to be glanceable. Full data lives in insights-summary.md and the tooling ledger.
+
+## 6. Write the Handover
 
 The handover is a forward-facing document for the next session. It answers: "If a fresh instance picks this up cold, what do they need?"
 
@@ -77,13 +157,26 @@ CRITICAL: Include discussions, ideas, and insights from the current chat — not
 
 SCOPE: The handover carries THIS session's continuity only. Do NOT carry a cross-repo work queue — that lives in per-repo `.claude/docs/plans/` and is read fresh by /wake. Pointers, not copies.
 
-## 4. Refresh Mobile Queue (only if cross-repo state changed)
+## 7. Refresh Mobile Queue (only if cross-repo state changed)
 
 `.sounding/queue.md` is the committed pointer that mobile/cloud `/wake` reads when the git-ignored plan glob is empty. If this session changed cross-repo plan state (a Status flipped, a pick-up point resolved), update the matching entry. If nothing cross-repo shifted, skip.
 
-## 5. Continue
+## 8. Present & Continue
 
-Back to the work. The shift is captured, the handover is fresh.
+Don't just save — present. Show Ramsey the signal summary and any items needing her input, then continue working.
+
+```
+GROW COMPLETE — [date time]
+
+[Signal summary from Step 4]
+
+Needs attention:
+- [anything blocked, overdue, or requiring a decision]
+
+Continuing: [what we're doing next]
+```
+
+Back to the work.
 
 ## Critical Rules
 
@@ -91,8 +184,10 @@ Back to the work. The shift is captured, the handover is fresh.
 - **Discover paths, never assume.** Glob before writing.
 - **Handover is forward-facing.** It serves the NEXT session, not this one.
 - **No identity-file edits.** /dream transforms; this skill captures.
-- **Honest negatives are valid.** "Nothing shifted" + handover-only is a fine /grow.
+- **Honest negatives are valid.** "Nothing shifted" + signals-only is a fine /grow.
+- **Dashboard is glanceable.** Update data, don't bloat structure.
+- **Cross-session ingest is lightweight.** gh + grep + librarian query. Not full reads.
 
 ---
 
-*Something changed — or I'm pausing. Either way: captured, handed over, continuing.*
+*Something changed — or I'm pausing. Accumulate, surface, continue.*
