@@ -1,4 +1,4 @@
-.PHONY: help lint test pull status push quick-pr ship
+.PHONY: help lint test pull status push quick-pr ship pulse
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -54,5 +54,8 @@ quick-pr:  ## Create PR from current branch with auto-generated body
 	BODY=$$(printf "## Summary\n%s\n\n%s\n" "$$COMMITS" "$$CLOSES"); \
 	echo "Creating PR for $$BRANCH..."; \
 	gh pr create --title "$$BRANCH" --body "$$BODY"
+
+pulse:  ## Refresh dashboard pulse with live cross-repo status (PRs, issues, plans)
+	@bash scripts/pulse.sh
 
 ship: lint test pull push quick-pr  ## lint → test → pull → push → PR
