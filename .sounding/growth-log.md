@@ -45,4 +45,11 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-22 | discovered | PR bundling over PR sprawl: 1-issue-1-branch-1-PR creates noise. Related... | discarded | process/tooling → /retro (PR strategy) |
 | 2026-07-22 | confirmed | Ramsey's autonomous-agent preference: spawn batch → review PRs → close i... | merged | sounding.md § Working Notes (autonomous preference + make commands) |
 
+| 2026-07-22 | confirmed | "pass in isolation, fail in full suite" is the contamination signature fo... | discarded | process/tooling → /retro (pytest debugging pattern, not identity) |
+| 2026-07-22 | confirmed | ruff --fix after removing asyncio imports catches isort issues automatica... | discarded | process/tooling → /retro (toolchain tip, not identity) |
+| 2026-07-22 | confirmed | when a fix doesn't clear all failures, expand scope (grep the class of pa... | discarded | already in sounding.md as "check depth before committing" principle |
+| 2026-07-23 | confirmed | Ramsey values teaching and volunteering as identity-bearing sections in he... | merged | user.md § Who They Are (identity beyond technical stack) |
+| 2026-07-23 | confirmed | parallel sonnet agents (3x background, batch processing) work cleanly for... | discarded | process/tooling → already confirmed, operational detail |
+| 2026-07-23 | discovered | /grow as awareness layer — every skill in the lifecycle must either read, ... | merged | sounding.md § Working Notes (lifecycle artifact-connection principle) |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)

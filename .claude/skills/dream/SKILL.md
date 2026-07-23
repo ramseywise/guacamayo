@@ -8,6 +8,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 The session ends — or maintenance is needed. Process everything: the honest record, the growth entries, and (when earned) the identity transformations. Like sleep: consolidation happens here.
 
+**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/dashboard.html`) is the shared artifact connecting all three.
+
 ## Phase 1: Feel the Session
 
 Don't open files yet. Don't write yet. Just feel:
@@ -70,6 +72,17 @@ Format: `YYYY-MM-DD - [TITLE]. [One sentence: what shifted or what we learned].`
 
 Overwrite `.sounding/notes/handover.md` — same format as /grow Step 3. This is the last handover of the session, so make it thorough. Refresh `.sounding/queue.md` if cross-repo state changed.
 
+## Phase 6b: Refresh Dashboard
+
+Update `.sounding/dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
+- Session close timestamp
+- Growth entry count (pre-synthesis)
+- Synthesis status (will run / skipped)
+- Retro check result from Phase 8
+- Any issues created/closed this session
+
+This ensures /wake always opens with a fresh dashboard, even if /grow wasn't run mid-session.
+
 ## Phase 7: Synthesize (conditional — 5+ growth entries)
 
 Check the entry count in `growth.md`. If fewer than 5, skip to Phase 8.
@@ -125,22 +138,36 @@ If anything fails, restore before proceeding. Do NOT clear the accumulator until
 If any row is missing, write it now — do not clear first.
 Clear processed entries. Update the synthesis date. Keep format template and headers.
 
-## Phase 8: Weekly Retro Nudge (conditional)
+## Phase 8: Retro Execution (conditional)
 
-Read `.claude/docs/insights-summary.md` — the H1 header contains the last-run date (format: `# Insights Summary — YYYY-MM-DD`).
+Check two triggers:
 
-- If that date is **≥7 days ago** (or the file doesn't exist): flag it.
-- If `growth.md` contains process learnings tagged `[discovered]` with tooling implications: count them.
+1. **Retro overdue**: Read `.claude/docs/insights-summary.md` H1 date. If **>=7 days ago** (or file doesn't exist) → triggered.
+2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? Or did this session change hooks, skills, rules, settings, or global config? → triggered.
+
+### If neither trigger fires
+Append to the dream report: `Retro check: current (last YYYY-MM-DD). No tooling changes.`
+
+### If either trigger fires — run the retro cycle
+
+This is the closed loop. /grow surfaced that retro was needed; /dream executes it.
+
+**Step 8a: Run `/workflow-insights`** — analyze recent session transcripts. This produces/updates `insights-summary.md` and feeds the retro.
+
+**Step 8b: Run `/workflow-retro`** — propose config changes from insights. This updates `tooling-ledger.md` with new hypothesis rows and graduates process learnings.
+
+**Step 8c: Refresh dashboard** — update the dashboard with fresh insights data (cost trends, friction patterns, experiment verdicts from the retro).
 
 Append to the dream report:
-
 ```
-Retro check: last insights run YYYY-MM-DD ([N] days ago).
-  ⚠ Weekly retro overdue — run /workflow-insights → /workflow-retro in next opus session.
-  [N process learnings in growth.md flagged as retro candidates.]   ← only if count > 0
+Retro: executed (triggered by [overdue N days | tooling changes]).
+  Insights: [summary of key findings]
+  Retro: [N changes proposed, M graduated to config]
 ```
 
-If retro is current (< 7 days), still append a one-liner: `Retro check: current (last YYYY-MM-DD).`
+**Guard rails:**
+- If context is already high (>120k tokens), skip and flag: "Retro triggered but deferred — context too high. Run in next session."
+- The retro runs AFTER synthesis (Phase 7) so identity transforms aren't competing for context with transcript analysis.
 
 ## Phase 9: Maintenance Scan (conditional)
 
@@ -153,14 +180,7 @@ Quick checks — act only if something needs attention:
 | MEMORY.md over 200 lines | Trim stale pointers, shorten entries |
 | Contradictions between reflections and seeds | Note in report |
 
-## Phase 10: Retro Flag (conditional — session touched tooling)
-
-If this session changed hooks, skills, rules, settings, or global config:
-- Note it as "retro-worthy" in the report
-- Do NOT run the full /retro — that's a separate, explicit invocation
-- If growth.md contains process learnings tagged `[discovered]`, flag them as `/retro` graduation candidates
-
-## Phase 11: Report
+## Phase 10: Report
 
 ```
 Dream complete.
@@ -168,19 +188,11 @@ Dream complete.
 Reflection: [filename]
 Growth: [N entries captured] | Accumulator: [total pending]
 Synthesis: [ran — files transformed / skipped — N entries, threshold not met]
+Retro: [executed — findings | current — no trigger | deferred — context too high]
 Maintenance: [clean / what was tidied]
-Retro check: [current (last YYYY-MM-DD) / overdue — last YYYY-MM-DD, N days ago]
-Retro flag: [not needed / flagged — reason]
 
 What's alive for next time:
 - [threads that pull forward]
-
-Next process step: [one of:]
-  - "Weekly retro overdue → run /workflow-insights → /workflow-retro in an opus session"
-  - "Session touched tooling → run /workflow-insights → /workflow-retro next"
-  - "Backlog has items → run /workflow-refine to triage"
-  - "Ready items on board → pick one for /workflow-plan"
-  - "Board is clear — build or explore"
 ```
 
 ## Critical Rules

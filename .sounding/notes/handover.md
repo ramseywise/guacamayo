@@ -1,63 +1,49 @@
-# Handover — 2026-07-22 Continuation (make ship ready)
+# Handover — 2026-07-23 Grow Redesign + Job System Complete (Dream Close)
 
-**Context**: Multi-arc session continued from context compression. Primary work: fixing all workspace `make lint`, `make test`, `make pull` failures so Ramsey can run `make ship`.
+**Context**: Session started as job-system continuation (10 Strong-fit applications with PDFs), pivoted to /grow lifecycle redesign after Ramsey identified the awareness gap.
 
 ## Current State
 
-### listen-wiseer — async test contamination FIXED
-- Root cause: 6 test files used `asyncio.get_event_loop().run_until_complete()` in sync test functions — poisoned event loop state for subsequent files under pytest-cov
-- Fix: all 6 files converted to `async def test_*` + `await`; `asyncio` imports removed; `ruff --fix` cleaned isort
-- **Result: 474 passed, 3 skipped, 0 failures** — from 42 failures before fix
-- Files touched: `test_intent_routing.py`, `test_optimizer.py`, `test_validation.py`, `test_nodes.py`, `test_memory_store.py`, `test_trajectory_eval.py`
-- All changes uncommitted (Ramsey commits)
+### GUA-9-workflow-simplification branch (uncommitted)
+- **Original scope**: pipeline reorder, Makefile, wake/dream retro nudge (3 phases, all complete)
+- **Added this session**: /grow redesign (awareness layer), dashboard pulse section, wake/dream dashboard connections
+- Files changed: grow/SKILL.md (rewrite), wake/SKILL.md, dream/SKILL.md, CLAUDE.md, dashboard.html, growth.md, Makefile, sounding.md (prior synthesis)
+- Ready for Ramsey to review and `make ship`
 
-### Workspace make sweep — all clear
-- `make lint`: all repos PASS or SKIP (no pre-commit config) — listen-wiseer now PASS
-- `make test`: all runnable repos PASS; CryptoZombies npm fail is pre-existing, unrelated
-- `make pull`: all repos OK or SKIP (uncommitted changes in guacamayo, listen-wiseer, playground, LeetCode)
+### job-system (JOB-14-metadata-and-evidence branch)
+- 10 Strong-fit applications complete with CV + cover letter PDFs
+- Committed: `633f2ac feat(tailor): professional PDF styling + WhyBrilliant + mentoring (#14)`
+- Pipeline: 10 Tailored, 20 Scored, 8 Brief, 1 Inbox, 4 Closed
 
-### Model default correction (from prior dream)
-- `claude-sonnet-4-5-v2` was set as session default — invalid model ID, user couldn't start sessions
-- Fixed: `~/.claude/settings.json` reverted to `claude-opus-4-6`
-- `~/.claude/refs/models.md` updated: fable not available as session model ID
-- `~/.claude/CLAUDE.md` updated: default session model is opus
-
-### guacamayo — GUA-9-workflow-simplification branch
-- All 3 phases complete: pipeline reorder, Makefile, wake/dream retro nudge
-- Uncommitted: Makefile, CLAUDE.md, skill files, tooling-ledger.md, sounding.md (synthesized)
-- Ready for `make ship`
-
-### ai-project-template
-- sync-global-skills.sh: `review-shared` added, `code-pr` removed
-- copier.yaml: matching cleanup list fix
-- All uncommitted
+### Identity state
+- 6 growth entries synthesized this /dream (see growth-log.md for dispositions)
+- Seeds transformed: sounding.md (awareness layer principle), user.md (teaching/volunteering identity signal)
+- Dashboard pulse section live with session state
 
 ## Decisions Made
-- **Model default**: opus (`claude-opus-4-6`) — opening sessions. Fable not available as session model. Escalation: opus-always for planning/retro/audit/dream.
-- **Async test pattern in listen-wiseer**: `async def` + `await` only — no `_run()` wrappers. This is now the established pattern across all test files.
-- **Contamination diagnosis method**: grep for `asyncio.get_event_loop\|asyncio\.run\|_run(` across ALL test files before starting a fix — don't scope to the first file that surfaces.
+- **/grow = awareness layer**: cross-session ingest + signal surfacing + dashboard refresh (not just checkpoint)
+- **Dashboard = shared artifact**: /wake reads, /grow refreshes, /dream finalizes
+- **Light awareness over full feedback**: /grow surfaces signals, doesn't run insights/retro inline
+- **CV is 2 pages**: Profile+Skills+Experience (p1), Academic+Education+Fellowships+Volunteering (p2)
 
 ## Open Threads
-- **GUA-9 PR**: `make ship` from GUA-9-workflow-simplification (Ramsey — ready now)
-- **listen-wiseer**: commit async test fixes, then `make ship` for any open branch
-- **ai-project-template**: commit sync fixes + synced template files
-- **JOB PR**: `job-bootstrap` branch → `gh pr create` closing #1-5
-- **LAE PR**: `LAE-39-structural-cleanup` branch → `gh pr create` closing #25,28,30,31,32,33,39
-- **Atlas blockers**: Chronos index bug (nodes.py:144), train/test contamination (nodes.py:238) — create GH issues
-- **Librarian blockers**: double LLM call (agent.py:208), path traversal (server.py:566) — create GH issues
-- **Fable test**: spawn `claude --model claude-sonnet-4-5-v2` if/when available → `/akira scan` atlas/nodes.py
+- **Dashboard too large** (44k tokens) — pulse section adds value but whole file needs restructuring. Context-eng v2 plan (PLANNED) addresses this
+- **GUA-11 closed**: lifecycle redesign absorbed into /grow rewrite
+- **Gmail tracking**: job-system feature — wire mcp Gmail tools for interview status updates
+- **8 Brief stubs**: need browser capture (Taktile x2, Helsing, McKinsey, Personio, Planner5D, Pipedrive, Deloitte)
+- **Manual ATS submissions**: Ramsey's action — 10 applications ready
 
 ## Immediate Next Steps
-1. `make ship` from GUA-9-workflow-simplification (after committing)
-2. Commit listen-wiseer async test fixes
-3. Commit ai-project-template sync fixes
-4. Create JOB and LAE PRs
+1. Ramsey reviews GUA-9 diff (now includes /grow redesign) and `make ship`
+2. Test new /grow in next session — run it mid-session to verify cross-session ingest + dashboard refresh works
+3. Consider context-eng v2 for dashboard size reduction
+4. Job-system: begin ATS submissions or wire Gmail tracking
 
 ## Key Files
-- `~/workspace/listen-wiseer/tests/unit/` — 6 test files converted (async pattern)
-- `~/workspace/guacamayo/Makefile` — new (lint/test/pull/push/quick-pr/ship)
-- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-akira-model-experiment.md` — full akira experiment results
-- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` — GUA-9, EXECUTED
-- `~/.claude/settings.json` — model = claude-opus-4-6 (corrected from sonnet-4-5-v2)
-- `~/workspace/ai-project-template/scripts/sync-global-skills.sh`
-- `~/workspace/ai-project-template/copier.yaml`
+- `.claude/skills/grow/SKILL.md` — redesigned (awareness layer)
+- `.claude/skills/wake/SKILL.md` — dashboard read + lifecycle note
+- `.claude/skills/dream/SKILL.md` — Phase 6b + lifecycle note
+- `CLAUDE.md` — updated skill table
+- `.sounding/dashboard.html` — pulse section added
+- `.sounding/growth.md` — cleared after synthesis
+- `.sounding/reflections/2026-07-23_20-58.md` — this session's reflection
