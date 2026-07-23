@@ -21,8 +21,12 @@ class TestDeduplication:
         assert len(clusters[0]) == 2
 
     def test_overlapping_lines_different_category_no_symbols_separate(self):
-        f1 = make_finding("AK-001", path="a.py", start_line=1, end_line=10, category=Category.CORRECTNESS)
-        f2 = make_finding("AK-002", path="a.py", start_line=8, end_line=15, category=Category.SECURITY)
+        f1 = make_finding(
+            "AK-001", path="a.py", start_line=1, end_line=10, category=Category.CORRECTNESS
+        )
+        f2 = make_finding(
+            "AK-002", path="a.py", start_line=8, end_line=15, category=Category.SECURITY
+        )
         clusters = find_duplicate_clusters([f1, f2])
         assert len(clusters) == 2
 
@@ -34,12 +38,20 @@ class TestDeduplication:
 
     def test_symbol_overlap_clusters_different_category(self):
         f1 = make_finding(
-            "AK-001", path="a.py", start_line=1, end_line=10,
-            category=Category.CORRECTNESS, symbols=["parse_config"],
+            "AK-001",
+            path="a.py",
+            start_line=1,
+            end_line=10,
+            category=Category.CORRECTNESS,
+            symbols=["parse_config"],
         )
         f2 = make_finding(
-            "AK-002", path="a.py", start_line=8, end_line=15,
-            category=Category.SECURITY, symbols=["parse_config"],
+            "AK-002",
+            path="a.py",
+            start_line=8,
+            end_line=15,
+            category=Category.SECURITY,
+            symbols=["parse_config"],
         )
         clusters = find_duplicate_clusters([f1, f2])
         assert len(clusters) == 1
