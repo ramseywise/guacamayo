@@ -26,6 +26,7 @@ frontmatter > skill-text spawn instructions > this ref (session choice is Ramsey
 | `parallel-research` fan-out | haiku | skill text |
 | Explore lookups | haiku | Agent tool `model` param |
 | Finding verification + report merge | session model | deliberate — cheap generate, narrow expensive verify (the 2026-07-17 false-positive catch is the proof) |
+| Triage / review / opening-session agents | fable (`claude-sonnet-4-5-v2`) | Agent tool `model` param — use when the task needs reasoning depth but not full opus judgment (e.g., PR triage, plan-doc review, opening a scoped session). **Note**: fable is not yet available as an Agent enum value in Claude Code; use sonnet until `claude-sonnet-4-5-v2` appears in the Agent model picker, then pin it here |
 
 ## Guacamayo lifecycle (repo-local skills)
 

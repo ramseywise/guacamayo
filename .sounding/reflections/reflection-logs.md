@@ -32,3 +32,6 @@
 2026-07-22 (evening) - Debt cleared, policy inverted. Akira model experiment across 7 repos produced real verdicts (sonnet default, opus for critical paths); model default inverted to fable-primary/opus-escalation; sync infrastructure cleaned.
 2026-07-22 (night) - Completion session. Picked up mid-fix from compressed session; fixed async event loop contamination across 6 listen-wiseer test files; 474 tests passing; workspace make sweep clean; ready for ship.
 2026-07-23 - Grow redesign. /grow exposed as dead weight (checkpoint-only); redesigned as awareness layer with cross-session ingest, signal surfacing, and dashboard refresh. Dashboard becomes shared artifact connecting wake/grow/dream.
+2026-07-24 - Cross-repo sweep. Merged 3 PRs, synced 5 repos, fixed LFS hooks, cleaned pycache, built Makefile.common as shared include across 6 repos. Operational debt clearing at fleet scale.
+2026-07-24 (afternoon) - Shipping + process design. 6 repos reviewed/pushed/PR'd; designed review scope detection (lightweight vs full) and worktree cleanup stage; Ramsey validated lifecycle design independently.
+2026-07-24 (evening) - Observability loop fix. Ramsey caught stale insights data; wired /grow to spawn insights and /dream to spawn retro as background agents. Passive reads became active refresh.

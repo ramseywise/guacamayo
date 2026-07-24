@@ -209,7 +209,7 @@ This repo is one node in a larger loop wired through the global Claude setup:
 1. **Observe** — sessions generate friction signals: transcripts (mined by the keyless
    insights engine), growth entries, hook fire patterns, plan-doc deviations.
 2. **Diagnose** — global `/workflow-retro` reads those sources plus the tooling ledger
-   (`guacamayo/.claude/docs/tooling-ledger.md`), where every unverified change is the top queue item.
+   (`guacamayo/.sounding/tooling-ledger.md`), where every unverified change is the top queue item.
 3. **Codify** — findings become proposed diffs at the strongest enforcement level that
    fits: **hooks > skills/protocols > CLAUDE.md/rules > memory**. Proposals are diffs,
    never auto-applied; Ramsey reviews and commits.
@@ -283,7 +283,7 @@ report-only; human-consumed docs are flagged, never auto-edited.
 ├── growth.md                    # accumulator: tagged one-liners, cleared by /dream
 ├── queue.md                     # COMMITTED cross-repo pointer set — survives clone so a
 │                                # mobile /wake has state even without git-ignored plan docs
-├── dashboard.html               # rendered status view (generated)
+├── context-dashboard.html               # rendered status view (generated)
 ├── refs/                        # mobile mirror of ~/.claude/refs/ — shadows, not canon
 ├── reflections/                 # episodic record (subjective, stays local)
 │   ├── YYYY-MM-DD_HH-MM.md      #   per-session reflection — written by /dream
@@ -299,8 +299,9 @@ report-only; human-consumed docs are flagged, never auto-edited.
 .claude/
 ├── skills/                      # genesis (inert), wake, grow, dream — identity lifecycle only.
 │                                # Generic skills live in global ~/.claude/skills/ (canonical)
-├── docs/                        # plans/, research/, state/ (cross-repo workstream state),
-│                                # tooling-ledger.md, insights-summary.md — all git-ignored
+├── docs/                        # plans/ (one dated doc per work item), research/, state/ (cross-repo
+│                                # workstream state). Plans are git-ignored;
+│                                # tooling-ledger + insights-log live in .sounding/ (committed)
 └── settings.local.json          # permissions + SessionStart wake nudge
 ```
 

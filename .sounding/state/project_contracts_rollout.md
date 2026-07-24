@@ -1,7 +1,7 @@
 ---
 name: project-contracts-rollout
 description: SANYI/akira dev-tools rollout state (2026-07-17) — sanyi global + contracts drafted in 3 repos + review-skill enforcement + template seeding; akira blocked on hardcoded scan roots; Buyi interviews owed
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 73f6b61f-286a-46fc-bc5b-a18d1d260fff

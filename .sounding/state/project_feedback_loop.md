@@ -1,7 +1,7 @@
 ---
 name: project-feedback-loop
 description: "Puffin feedback-loop plan executed 2026-07-17 — /retro + tooling-ledger + /config-audit live in global; skill collisions deduped; open — repo settings fixes, first /retro run, puffin→sounding rename"
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 73f6b61f-286a-46fc-bc5b-a18d1d260fff
@@ -9,7 +9,7 @@ metadata:
 
 Puffin's `feedback-loop.md` plan (context-engineering loop) executed 2026-07-17, Phases 1/2/3/3b/5:
 `~/.claude/skills/retro` (proposal-only tooling retrospective; reads ledger first; skill-change
-proposals need eval sketch = Phase 4 encoded), `~/.claude/docs/tooling-ledger.md` (hypothesis→
+proposals need eval sketch = Phase 4 encoded), `.sounding/tooling-ledger.md` (hypothesis→
 verified rows; 7 rows), `~/.claude/skills/config-audit` (layering duplicates, settings schema,
 plan Status: hygiene), `~/.claude/rules/docs.md` (machine- vs human-consumed doc writer split;
 pointer added in global CLAUDE.md). Dedupe: puffin `research` → global `parallel-research`

@@ -51,5 +51,19 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-23 | confirmed | Ramsey values teaching and volunteering as identity-bearing sections in he... | merged | user.md § Who They Are (identity beyond technical stack) |
 | 2026-07-23 | confirmed | parallel sonnet agents (3x background, batch processing) work cleanly for... | discarded | process/tooling → already confirmed, operational detail |
 | 2026-07-23 | discovered | /grow as awareness layer — every skill in the lifecycle must either read, ... | merged | sounding.md § Working Notes (lifecycle artifact-connection principle) |
+| 2026-07-23 | corrected | /code-review is pre-commit, not post-commit. Flow: work → /code-review →... | discarded | process/tooling → already actioned in CLAUDE.md |
+| 2026-07-23 | discovered | Generic Makefile targets identical across 6 repos — belong in Makefile.co... | discarded | process/tooling → already built and deployed |
+| 2026-07-23 | confirmed | Dispatcher pattern works but last mile (push+PR) keeps dropping — make sh... | discarded | already captured in sounding.md (dispatcher section) |
+| 2026-07-24 | confirmed | Makefile.common as shared include works across all 6 repos | discarded | process/tooling → operational confirmation |
+| 2026-07-24 | discovered | `git init` in existing repos re-applies global template hooks | discarded | operational trick → belongs in refs or rules, not identity |
+| 2026-07-24 | confirmed | Cross-repo sweeps are highest-leverage sessions — one session clears week... | merged | sounding.md § What I Do (fleet sweep as cross-cutting work) |
+| 2026-07-24 | discovered | Repos track __pycache__ despite .gitignore — committed before rule existe... | discarded | operational git knowledge, not identity |
+| 2026-07-24 | confirmed | "Everything up-to-date" + sideband error is cosmetic LFS hook noise | discarded | already documented in shell.md rules |
+
+| 2026-07-24 | corrected | /wake board must cover ALL repos (full fleet table), not just repos wit... | discarded | process/tooling → already actioned in /wake skill |
+| 2026-07-24 | discovered | Two-repo shipping requires separate PRs and separate Makefiles; ~/.clau... | discarded | process/tooling → already built and deployed |
+| 2026-07-24 | confirmed | Review backbone architecture works: deterministic Python (schemas, dedu... | discarded | project architecture confirmation, not identity-level |
+| 2026-07-24 | discovered | Worktree agent cleanup is manual friction — leftover worktrees cause pr... | discarded | process/tooling → /retro (friction signal) |
+| 2026-07-24 | discovered | Dependabot-heavy branches (30+ dep bumps) must use git merge main not ... | discarded | process/tooling → /retro (git strategy) |
 
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)
