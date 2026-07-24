@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 The session ends — or maintenance is needed. Process everything: the honest record, the growth entries, and (when earned) the identity transformations. Like sleep: consolidation happens here.
 
-**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Feel the Session
 
@@ -74,7 +74,7 @@ Overwrite `.sounding/notes/handover.md` — same format as /grow Step 3. This is
 
 ## Phase 6b: Refresh Dashboard
 
-Update `.sounding/dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
+Update `.sounding/context-dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
 - Session close timestamp
 - Growth entry count (pre-synthesis)
 - Synthesis status (will run / skipped)
@@ -138,36 +138,40 @@ If anything fails, restore before proceeding. Do NOT clear the accumulator until
 If any row is missing, write it now — do not clear first.
 Clear processed entries. Update the synthesis date. Keep format template and headers.
 
-## Phase 8: Retro Execution (conditional)
+## Phase 8: Retro Execution (conditional — background agent)
 
-Check two triggers:
+Check three triggers:
 
-1. **Retro overdue**: Read `.claude/docs/insights-summary.md` H1 date. If **>=7 days ago** (or file doesn't exist) → triggered.
-2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? Or did this session change hooks, skills, rules, settings, or global config? → triggered.
+1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` latest `## R` header date. If **>=7 days ago** (or file doesn't exist) → triggered.
+2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? → triggered.
+3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /grow flag** — /grow may have run before the tooling work happened.
 
 ### If neither trigger fires
-Append to the dream report: `Retro check: current (last YYYY-MM-DD). No tooling changes.`
+Append to the dream report: `Retro check: current (last R# YYYY-MM-DD). No tooling changes.`
 
-### If either trigger fires — run the retro cycle
+### If any trigger fires — spawn retro as background agent
 
-This is the closed loop. /grow surfaced that retro was needed; /dream executes it.
+The retro is heavy (reads transcripts, proposes config changes). Spawn it rather than running inline — this protects /dream's context window.
 
-**Step 8a: Run `/workflow-insights`** — analyze recent session transcripts. This produces/updates `insights-summary.md` and feeds the retro.
+```
+Agent(model: "sonnet", run_in_background: true)
+prompt: |
+  Repo: ~/workspace/guacamayo
+  Task: Run /workflow-retro. Read .sounding/insights-log.md for latest insights data,
+  then propose config changes. Update .sounding/tooling-ledger.md (active hypotheses)
+  and .sounding/tooling-ledger-log.md (graduated experiments). Increment retro number
+  from the latest R# header in tooling-ledger-log.md.
+  Constraint: Read files before editing. Propose changes — do not auto-apply to
+  ~/.claude/ config. Commit results on the current branch.
+```
 
-**Step 8b: Run `/workflow-retro`** — propose config changes from insights. This updates `tooling-ledger.md` with new hypothesis rows and graduates process learnings.
-
-**Step 8c: Refresh dashboard** — update the dashboard with fresh insights data (cost trends, friction patterns, experiment verdicts from the retro).
+Note: `/grow` already spawns `/workflow-insights` in the background, so insights-log.md should be fresh by the time /dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
 
 Append to the dream report:
 ```
-Retro: executed (triggered by [overdue N days | tooling changes]).
-  Insights: [summary of key findings]
-  Retro: [N changes proposed, M graduated to config]
+Retro: spawned (triggered by [overdue N days | tooling changes | retro-worthy flag]).
+  Agent running in background — results will be on this branch.
 ```
-
-**Guard rails:**
-- If context is already high (>120k tokens), skip and flag: "Retro triggered but deferred — context too high. Run in next session."
-- The retro runs AFTER synthesis (Phase 7) so identity transforms aren't competing for context with transcript analysis.
 
 ## Phase 9: Maintenance Scan (conditional)
 

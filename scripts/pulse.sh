@@ -1,10 +1,10 @@
 #!/bin/bash
 # pulse.sh — Generate live cross-repo status for the dashboard pulse section.
 # Called by: make pulse, /grow skill
-# Writes: replaces the <section id="pulse"> block in .sounding/dashboard.html
+# Writes: replaces the <section id="pulse"> block in .sounding/context-dashboard.html
 set -euo pipefail
 
-DASHBOARD=".sounding/dashboard.html"
+DASHBOARD=".sounding/context-dashboard.html"
 REPOS="guacamayo listen-wiseer learn-ai-engineering atlas ai-project-template librarian job-system playground lebanese-blonde"
 OWNER="ramseywise"
 NOW=$(date '+%Y-%m-%d %H:%M')
@@ -23,7 +23,7 @@ else
 fi
 
 # Retro status
-INSIGHTS_DATE=$(head -1 .claude/docs/insights-summary.md 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' || echo "unknown")
+INSIGHTS_DATE=$(head -5 .sounding/insights-log.md 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1 || echo "unknown")
 if [ "$INSIGHTS_DATE" != "unknown" ]; then
   INSIGHTS_EPOCH=$(date -j -f '%Y-%m-%d' "$INSIGHTS_DATE" '+%s' 2>/dev/null || echo "0")
   NOW_EPOCH=$(date '+%s')
@@ -41,7 +41,7 @@ else
 fi
 
 # Hypotheses
-HYPO_COUNT=$(grep -c '| hypothesis' .claude/docs/tooling-ledger.md 2>/dev/null || echo "0")
+HYPO_COUNT=$(grep -c '| hypothesis' .sounding/tooling-ledger.md 2>/dev/null || echo "0")
 
 # ── PRs across repos ─────────────────────────────────────────────────────────
 
