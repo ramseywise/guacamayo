@@ -1,7 +1,7 @@
 ---
 name: dssg-planning-pipeline
 description: DSSG planning pipeline state (2026-07-16) — 5 initiatives with milestones + scoping docs; new per-initiative decision-ID scheme replaces exec-summary A/B IDs
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: fc67b3f0-0e01-48ef-a08c-858f1a569b24
