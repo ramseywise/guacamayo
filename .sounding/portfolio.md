@@ -34,7 +34,7 @@
 
 - Full portfolio state + tier tables: `~/workspace/portfolio.md` (human-owned; sessions flag staleness, don't edit)
 - Live work state: each repo's `.claude/docs/plans/*.md` (Status lines) or Linear — /wake reads fresh
-- Tooling change state: `~/.claude/docs/tooling-ledger.md`
+- Tooling change state: `.sounding/tooling-ledger.md` (active) + `.sounding/tooling-ledger-log.md` (archive)
 
 ---
 

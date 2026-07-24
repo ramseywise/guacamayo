@@ -1,0 +1,1287 @@
+<title>Context Engineering Dashboard</title>
+<style>
+@font-face {
+  font-family: 'DM Sans';
+  font-weight: 400;
+  font-style: normal;
+  src: local('DM Sans Regular'), local('DMSans-Regular'), local('system-ui');
+}
+@font-face {
+  font-family: 'DM Sans';
+  font-weight: 600;
+  font-style: normal;
+  src: local('DM Sans SemiBold'), local('DMSans-SemiBold'), local('system-ui');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-weight: 400;
+  font-style: normal;
+  src: local('DM Mono Regular'), local('DMSans-Regular'), local('SF Mono'), local('Menlo');
+}
+
+:root {
+  --surface: #f6f5f1;
+  --card: #ffffff;
+  --card-border: rgba(11,11,11,0.06);
+  --text-1: #1a1917;
+  --text-2: #6b6a65;
+  --text-3: #9c9b95;
+  --border: rgba(11,11,11,0.08);
+  --accent: #2a78d6;
+  --accent-muted: rgba(42,120,214,0.08);
+
+  /* chart series — validated dataviz palette */
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+
+  /* status */
+  --good: #1a8a5a;
+  --good-bg: rgba(26,138,90,0.08);
+  --warn: #b5760a;
+  --warn-bg: rgba(181,118,10,0.06);
+  --bad: #c93d3d;
+  --bad-bg: rgba(201,61,61,0.06);
+
+  --grid: rgba(11,11,11,0.04);
+  --regime-band: rgba(11,11,11,0.03);
+  --nav-hover: rgba(11,11,11,0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --surface: #111110;
+    --card: #1a1a18;
+    --card-border: rgba(255,255,255,0.06);
+    --text-1: #eeedea;
+    --text-2: #a3a29c;
+    --text-3: #6b6a65;
+    --border: rgba(255,255,255,0.08);
+    --accent: #5a9ee6;
+    --accent-muted: rgba(90,158,230,0.08);
+
+    --s1: #5a9ee6;
+    --s2: #e07c50;
+    --s3: #2cb882;
+    --s4: #d4960a;
+    --s5: #d55181;
+
+    --good: #2cb882;
+    --good-bg: rgba(44,184,130,0.1);
+    --warn: #d4960a;
+    --warn-bg: rgba(212,150,10,0.08);
+    --bad: #e06060;
+    --bad-bg: rgba(224,96,96,0.08);
+
+    --grid: rgba(255,255,255,0.04);
+    --regime-band: rgba(255,255,255,0.03);
+    --nav-hover: rgba(255,255,255,0.06);
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #111110;
+  --card: #1a1a18;
+  --card-border: rgba(255,255,255,0.06);
+  --text-1: #eeedea;
+  --text-2: #a3a29c;
+  --text-3: #6b6a65;
+  --border: rgba(255,255,255,0.08);
+  --accent: #5a9ee6;
+  --accent-muted: rgba(90,158,230,0.08);
+  --s1: #5a9ee6;
+  --s2: #e07c50;
+  --s3: #2cb882;
+  --s4: #d4960a;
+  --s5: #d55181;
+  --good: #2cb882;
+  --good-bg: rgba(44,184,130,0.1);
+  --warn: #d4960a;
+  --warn-bg: rgba(212,150,10,0.08);
+  --bad: #e06060;
+  --bad-bg: rgba(224,96,96,0.08);
+  --grid: rgba(255,255,255,0.04);
+  --regime-band: rgba(255,255,255,0.03);
+  --nav-hover: rgba(255,255,255,0.06);
+}
+:root[data-theme="light"] {
+  --surface: #f6f5f1;
+  --card: #ffffff;
+  --card-border: rgba(11,11,11,0.06);
+  --text-1: #1a1917;
+  --text-2: #6b6a65;
+  --text-3: #9c9b95;
+  --border: rgba(11,11,11,0.08);
+  --accent: #2a78d6;
+  --accent-muted: rgba(42,120,214,0.08);
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --good: #1a8a5a;
+  --good-bg: rgba(26,138,90,0.08);
+  --warn: #b5760a;
+  --warn-bg: rgba(181,118,10,0.06);
+  --bad: #c93d3d;
+  --bad-bg: rgba(201,61,61,0.06);
+  --grid: rgba(11,11,11,0.04);
+  --regime-band: rgba(11,11,11,0.03);
+  --nav-hover: rgba(11,11,11,0.04);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--surface);
+  color: var(--text-1);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dash {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+}
+
+/* Header */
+.dash-header {
+  margin-bottom: 32px;
+}
+.dash-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin-bottom: 4px;
+}
+.dash-header .subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+  max-width: 640px;
+}
+.dash-header .date-range {
+  font-family: 'DM Mono', 'SF Mono', Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-3);
+  margin-top: 8px;
+}
+
+/* Nav */
+.dash-nav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 28px;
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.dash-nav a {
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 14px;
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text-2);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+.dash-nav a:hover {
+  color: var(--text-1);
+  background: var(--nav-hover);
+}
+.dash-nav a.active {
+  color: var(--accent);
+  background: var(--accent-muted);
+}
+
+/* Sections */
+section.tab-content { display: none; }
+section.tab-content.active { display: block; }
+section.tab-content { scroll-margin-top: 60px; }
+
+.section-header {
+  margin-bottom: 20px;
+}
+.section-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.section-header .section-question {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-top: 2px;
+  font-style: italic;
+}
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+@media (max-width: 700px) {
+  .card-row { grid-template-columns: 1fr; }
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 2px;
+}
+.card-note {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+.card-note .direction {
+  display: inline-block;
+  font-weight: 600;
+  margin-right: 2px;
+}
+.card-note .direction.good { color: var(--good); }
+.card-note .direction.bad { color: var(--bad); }
+
+/* Stat tiles */
+.stat-row {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 100px;
+}
+.stat .value {
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.stat .label {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.stat .change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 1px;
+}
+.stat .change.improving { color: var(--good); }
+.stat .change.worsening { color: var(--bad); }
+.stat .change.neutral { color: var(--text-3); }
+
+/* Charts */
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 180px;
+  margin-top: 4px;
+}
+.chart-wrap canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+.chart-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.axis-text {
+  font-family: 'DM Mono', 'SF Mono', Menlo, monospace;
+  font-size: 10px;
+  fill: var(--text-3);
+}
+.grid-line {
+  stroke: var(--grid);
+  stroke-width: 1;
+}
+
+/* Tooltip */
+.tooltip {
+  position: absolute;
+  pointer-events: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  z-index: 30;
+  opacity: 0;
+  transition: opacity 0.1s;
+  white-space: nowrap;
+}
+.tooltip.visible { opacity: 1; }
+.tooltip .tt-date {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.tooltip .tt-value {
+  color: var(--text-2);
+  font-variant-numeric: tabular-nums;
+}
+.tooltip .tt-note {
+  color: var(--text-3);
+  font-size: 11px;
+}
+
+/* Legend */
+.legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Explainer blocks */
+.explainer {
+  background: var(--accent-muted);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+.explainer strong { color: var(--text-1); }
+
+/* Experiment table */
+.exp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.exp-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.exp-table td {
+  padding: 8px 12px 8px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+  vertical-align: top;
+}
+.exp-table tr:last-child td { border-bottom: none; }
+.exp-table td:first-child { color: var(--text-1); font-weight: 500; }
+
+.badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.badge.confirmed { background: var(--good-bg); color: var(--good); }
+.badge.failed { background: var(--bad-bg); color: var(--bad); }
+.badge.pending { background: var(--regime-band); color: var(--text-3); }
+
+/* Regime annotations */
+.regime-label {
+  font-size: 10px;
+  color: var(--text-3);
+  font-style: italic;
+}
+
+/* Data table (collapsible) */
+.data-table-toggle {
+  font-size: 11px;
+  color: var(--text-3);
+  cursor: pointer;
+  margin-top: 8px;
+  border: none;
+  background: none;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+.data-table-toggle:hover { color: var(--text-2); }
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  margin-top: 8px;
+}
+.data-table th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-3);
+  padding: 4px 10px 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 3px 10px 3px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+
+/* Callout */
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.45;
+  margin-bottom: 12px;
+}
+.callout.warn { background: var(--warn-bg); color: var(--warn); }
+.callout.info { background: var(--accent-muted); color: var(--text-2); }
+.callout-icon { flex-shrink: 0; font-size: 14px; }
+
+/* Repo table */
+.repo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.repo-table th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.repo-table td {
+  padding: 6px 12px 6px 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-2);
+}
+.repo-table td:first-child { color: var(--text-1); font-weight: 500; }
+.repo-table .bar-cell { width: 120px; }
+.repo-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--s1);
+  opacity: 0.7;
+}
+
+.overflow-x { overflow-x: auto; }
+</style>
+
+<div class="dash">
+  <header class="dash-header">
+    <h1>Context Engineering Dashboard</h1>
+    <p class="subtitle">Operational view of Claude Code session economics, context health, and tooling experiments. Work sessions only (meta-sessions excluded).</p>
+    <p class="date-range">Apr 10 – Jul 23, 2026 &middot; 49 data points &middot; 4 instrumentation regimes</p>
+  </header>
+
+  <nav class="dash-nav" id="nav">
+    <a href="#cost" class="active" data-tab="cost">Cost &amp; Efficiency</a>
+    <a href="#context" data-tab="context">Context Health</a>
+    <a href="#friction" data-tab="friction">Friction</a>
+    <a href="#experiments" data-tab="experiments">Experiments</a>
+  </nav>
+
+  <!-- ═══════════════════ COST & EFFICIENCY ═══════════════════ -->
+  <section class="tab-content active" id="cost">
+    <div class="section-header">
+      <h2>Cost &amp; Efficiency</h2>
+      <p class="section-question">Am I spending well? What's driving cost?</p>
+    </div>
+
+    <div class="explainer">
+      <strong>How to read this:</strong> Cost is measured in "cost units" — each unit is roughly the price of reading 1M input tokens. Output tokens cost 5&times; more than input, so a session that writes a lot costs far more than one that reads a lot. Cache hits reduce input cost to near zero. The key lever is <strong>fewer output tokens per session</strong> and <strong>higher cache rates</strong>.
+    </div>
+
+    <!-- Cost p50 + p90 combined chart -->
+    <div class="card">
+      <div class="card-title">Cost per session</div>
+      <p class="card-note"><span class="direction good">&darr; Lower is better.</span> Shows both median (p50) and tail (p90) cost. Spikes in p90 = runaway context or long opus runs.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--s1)">2.5M</span>
+          <span class="label">p50 today</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--s2)">4.3M</span>
+          <span class="label">p90 today</span>
+        </div>
+        <div class="stat">
+          <span class="value">1.7&times;</span>
+          <span class="label">p90/p50 ratio</span>
+          <span class="change improving">tightening (was 3&times; in May)</span>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chart-cost"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--s1)"></div>p50 (median)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--s2)"></div>p90 (tail)</div>
+      </div>
+    </div>
+
+    <!-- Output tokens vs cost -->
+    <div class="card-row">
+      <div class="card">
+        <div class="card-title">Output tokens per session</div>
+        <p class="card-note"><span class="direction good">&darr; Lower saves money.</span> Output is 5&times; the price of input — it's the primary cost driver, not reading.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">67k</span>
+            <span class="label">p50 today</span>
+            <span class="change improving">&darr; from 200k Jul 15</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-output"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cache hit rate</div>
+        <p class="card-note"><span class="direction good">&uarr; Higher is better.</span> Below 90% means context churn is breaking the prompt cache. Stable 95-98% since May.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">97%</span>
+            <span class="label">today</span>
+            <span class="change neutral">stable</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-cache"></div>
+      </div>
+    </div>
+
+    <!-- Subagent cost breakdown -->
+    <div class="card">
+      <div class="card-title">Where the cost goes: models &amp; agents</div>
+      <p class="card-note">Subagent transcripts charged to their parent session. Shows whether background agent work or direct writing drives spend.</p>
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <span>90% of subagent cost predates CLI 2.1.201 and has no agent name. Named shares understate true share.</span>
+      </div>
+      <div class="card-row">
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;">By model</div>
+          <div class="overflow-x">
+          <table class="repo-table">
+            <thead><tr><th>Model</th><th>Cost</th><th>Share</th><th>Output tokens</th></tr></thead>
+            <tbody>
+              <tr><td>opus 4.6</td><td>84.1M</td><td>55%</td><td>1.6M</td></tr>
+              <tr><td>sonnet 4.6</td><td>36.2M</td><td>23%</td><td>759k</td></tr>
+              <tr><td>haiku 4.5</td><td>21.0M</td><td>14%</td><td>496k</td></tr>
+              <tr><td>opus 4.8</td><td>9.6M</td><td>6%</td><td>195k</td></tr>
+              <tr><td>sonnet 5</td><td>3.4M</td><td>2%</td><td>57k</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px;">By agent type</div>
+          <div class="overflow-x">
+          <table class="repo-table">
+            <thead><tr><th>Agent</th><th>Cost</th><th>Transcripts</th></tr></thead>
+            <tbody>
+              <tr><td style="color:var(--text-3)">unattributed</td><td>139.1M</td><td>190</td></tr>
+              <tr><td>general-purpose</td><td>6.6M</td><td>8</td></tr>
+              <tr><td>Explore</td><td>6.5M</td><td>20</td></tr>
+              <tr><td>Plan</td><td>1.0M</td><td>2</td></tr>
+              <tr><td>akira-wander</td><td>615k</td><td>8</td></tr>
+              <tr><td>akira-scan</td><td>358k</td><td>1</td></tr>
+            </tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CONTEXT HEALTH ═══════════════════ -->
+  <section class="tab-content" id="context">
+    <div class="section-header">
+      <h2>Context Health</h2>
+      <p class="section-question">Is context under control? Are sessions staying lean?</p>
+    </div>
+
+    <div class="explainer">
+      <strong>The 150k cliff:</strong> Sessions that grow past 150k context tokens cost 5&times; more per turn because the overflow can't be cached. In early July, 66-75% of sessions were hitting this cliff. The goal is &lt;30%. <strong>Compaction</strong> is the mechanism — it compresses prior conversation to reclaim context space. Autocompact was active briefly (~Jul 17-18) but currently requires manual invocation from terminal.
+    </div>
+
+    <div class="callout warn">
+      <span class="callout-icon">!</span>
+      <span><strong>Autocompact is not running.</strong> It was active around Jul 17-18 (visible in the compaction rate spike) but now requires daily manual invocation from terminal. This is a known friction point — see Experiments tab.</span>
+    </div>
+
+    <!-- Max context p50/p90 -->
+    <div class="card">
+      <div class="card-title">Peak context per session (since Jul 15)</div>
+      <p class="card-note"><span class="direction good">&darr; Lower is better.</span> Staying below 150k avoids the 5&times; cost cliff. The red line marks that threshold.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--s1)">117k</span>
+          <span class="label">p50 today</span>
+          <span class="change improving">&darr; from 360k Jul 15</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--s2)">141k</span>
+          <span class="label">p90 today</span>
+          <span class="change improving">&darr; from 385k Jul 15</span>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chart-context"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--s1)"></div>p50 (median)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--s2)"></div>p90 (tail)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--bad);opacity:0.4"></div>150k cost cliff</div>
+      </div>
+    </div>
+
+    <div class="card-row">
+      <!-- % over 150k -->
+      <div class="card">
+        <div class="card-title">% sessions over 150k</div>
+        <p class="card-note"><span class="direction good">&darr; Lower is better.</span> Was 75% on Jul 15, target &lt;30%.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">0%</span>
+            <span class="label">today</span>
+            <span class="change improving">&darr; from 75%</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-over150k"></div>
+      </div>
+
+      <!-- Session shape -->
+      <div class="card">
+        <div class="card-title">Session shape</div>
+        <p class="card-note">Turns per session (how deep) and single-turn rate (how often a session is just one prompt-response). More single-turn sessions = more cold starts paying full context load.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">8</span>
+            <span class="label">turns p50</span>
+          </div>
+          <div class="stat">
+            <span class="value">0%</span>
+            <span class="label">single-turn today</span>
+            <span class="change improving">was 56% Jul 18</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-shape"></div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--s1)"></div>turns p50</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--s5)"></div>single-turn %</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compaction rate -->
+    <div class="card">
+      <div class="card-title">Compaction rate — by instrumentation regime</div>
+      <p class="card-note">How often sessions compact their context. This metric is <strong>not comparable across regimes</strong> — before July, the logger only wrote notes when a session compacted, so the rate was always 100% (a sampling artifact, not a real property). Only the Jul 17+ data (session-hygiene-v1) reflects actual compaction behavior.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value">100%</span>
+          <span class="label">Jul 23 (today)</span>
+        </div>
+        <div class="stat">
+          <span class="value">9.5%</span>
+          <span class="label">Jul 17 (first real day)</span>
+        </div>
+      </div>
+      <div class="chart-wrap" id="chart-compaction"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--s3)"></div>session-hygiene-v1 (real data)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--text-3);opacity:0.3"></div>older regimes (always 0% or 100% — structural)</div>
+      </div>
+    </div>
+
+    <!-- Sessions per week -->
+    <div class="card">
+      <div class="card-title">Sessions per week</div>
+      <p class="card-note">Volume of work sessions. More sessions can mean more work <em>or</em> the same work restarted. Cross-reference with turns-per-session to tell apart.</p>
+      <div class="chart-wrap" id="chart-sessions-week"></div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ FRICTION ═══════════════════ -->
+  <section class="tab-content" id="friction">
+    <div class="section-header">
+      <h2>Friction &amp; Quality</h2>
+      <p class="section-question">Where does work break? What causes corrections?</p>
+    </div>
+
+    <div class="explainer">
+      <strong>Tool error rate</strong> = errors per 100 tool calls (normalized, so long sessions aren't penalized). <strong>User interruptions</strong> = fast follow-up turns arriving &lt;5s apart, meaning the agent went off-track and was corrected (tool results excluded). Both are since Jul 15 only.
+    </div>
+
+    <div class="card-row">
+      <div class="card">
+        <div class="card-title">Tool error rate</div>
+        <p class="card-note">Errors per 100 tool calls. <span class="direction good">&darr; Lower is better.</span> Steady 2-4% range, slight uptick today.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">5.3%</span>
+            <span class="label">today</span>
+            <span class="change worsening">&uarr; from 3.1% avg</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-errors"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">User interruptions</div>
+        <p class="card-note">Median fast follow-up corrections per session. <span class="direction good">&darr; Lower is better.</span> Consistently 0 — the agent rarely goes off-track.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">0</span>
+            <span class="label">p50 (all days)</span>
+            <span class="change neutral">no change</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-interruptions" style="height:80px"></div>
+      </div>
+    </div>
+
+    <!-- Repo effort -->
+    <div class="card">
+      <div class="card-title">Repo effort &amp; outcome (since Jul 15)</div>
+      <p class="card-note">Session cost and landed commits per repo. These are <strong>deliberately not divided</strong> — Ramsey commits, so a cost-per-commit ratio would read as Claude-authored output.</p>
+      <div class="overflow-x">
+      <table class="repo-table">
+        <thead><tr><th>Repo</th><th>Cost (Jul+)</th><th class="bar-cell"></th><th>Commits</th></tr></thead>
+        <tbody>
+          <tr><td>ai-project-template</td><td>109.9M</td><td class="bar-cell"><div class="repo-bar" style="width:100%"></div></td><td>21</td></tr>
+          <tr><td>guacamayo</td><td>73.5M</td><td class="bar-cell"><div class="repo-bar" style="width:67%"></div></td><td>23</td></tr>
+          <tr><td>librarian</td><td>58.2M</td><td class="bar-cell"><div class="repo-bar" style="width:53%"></div></td><td>23</td></tr>
+          <tr><td>dssg</td><td>41.9M</td><td class="bar-cell"><div class="repo-bar" style="width:38%"></div></td><td style="color:var(--warn)">0</td></tr>
+          <tr><td>playground</td><td>31.4M</td><td class="bar-cell"><div class="repo-bar" style="width:29%"></div></td><td>12</td></tr>
+          <tr><td>puffin</td><td>14.4M</td><td class="bar-cell"><div class="repo-bar" style="width:13%"></div></td><td style="color:var(--warn)">0</td></tr>
+          <tr><td>learn-ai-engineering</td><td>14.1M</td><td class="bar-cell"><div class="repo-bar" style="width:13%"></div></td><td>37</td></tr>
+          <tr><td>listen-wiseer</td><td>10.7M</td><td class="bar-cell"><div class="repo-bar" style="width:10%"></div></td><td>17</td></tr>
+          <tr><td>atlas</td><td>6.9M</td><td class="bar-cell"><div class="repo-bar" style="width:6%"></div></td><td>15</td></tr>
+          <tr><td>NRR</td><td>1.5M</td><td class="bar-cell"><div class="repo-bar" style="width:1%"></div></td><td>3</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">Cost split across repos by session cwd records. 22% of sessions touch multiple repos. Repos with cost but 0 commits = spend without landed work.</p>
+    </div>
+
+    <!-- Totals -->
+    <div class="card">
+      <div class="card-title">Totals since Apr 2026</div>
+      <div class="stat-row">
+        <div class="stat"><span class="value">324</span><span class="label">human commits</span></div>
+        <div class="stat"><span class="value">203</span><span class="label">bot commits</span></div>
+        <div class="stat"><span class="value">+978k</span><span class="label">lines added</span></div>
+        <div class="stat"><span class="value">-402k</span><span class="label">lines removed</span></div>
+        <div class="stat"><span class="value">26</span><span class="label">PRs opened</span></div>
+        <div class="stat"><span class="value">14</span><span class="label">active repos</span></div>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);font-style:italic">Source files only — PDFs, notebooks, lockfiles, vendored JS excluded. Unfiltered, those were 50% of insertions.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ EXPERIMENTS ═══════════════════ -->
+  <section class="tab-content" id="experiments">
+    <div class="section-header">
+      <h2>Experiments &amp; Progress</h2>
+      <p class="section-question">Are my changes working? What's been tried?</p>
+    </div>
+
+    <div class="explainer">
+      <strong>How experiments work:</strong> Each tooling change is logged in the tooling ledger with a hypothesis and a metric formula. After 1-2 retro cycles, the experiment is either <strong>confirmed</strong> (metric met), <strong>failed</strong> (metric missed), or stays pending. The ledger is the source of truth — this panel reads from it.
+    </div>
+
+    <div class="card">
+      <div class="card-title">Experiment verdicts</div>
+      <p class="card-note">1 confirmed, 0 failed, 23 pending. Most experiments are &lt;5 days old — too early to call.</p>
+
+      <div class="stat-row" style="margin-bottom:16px">
+        <div class="stat">
+          <span class="value" style="color:var(--good)">1</span>
+          <span class="label">confirmed</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--bad)">0</span>
+          <span class="label">failed</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--text-3)">23</span>
+          <span class="label">pending</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+      <table class="exp-table">
+        <thead><tr><th>Change</th><th>Metric</th><th>Status</th><th>Date</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Ledger compressed 51&rarr;30 lines</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">&mdash;</td>
+            <td><span class="badge confirmed">confirmed</span></td>
+            <td>Jul 22</td>
+          </tr>
+          <tr>
+            <td>Default model &rarr; fable</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">fable-or-opus share &gt;60%</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 22</td>
+          </tr>
+          <tr>
+            <td>Default model opus&rarr;sonnet</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">opus share &lt;35%</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 22</td>
+          </tr>
+          <tr>
+            <td>Spawn model guidance (haiku/sonnet)</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">opus-subagent &lt;20%</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 20</td>
+          </tr>
+          <tr>
+            <td>Bash antipattern blocking hook</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">bash-antipatterns &lt;15</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 20</td>
+          </tr>
+          <tr>
+            <td>/docs-check + docs_drift_warn.sh</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">presence in 3 L2 reviews</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 19</td>
+          </tr>
+          <tr>
+            <td>growth-log.md + dream gate hook</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">audit trail integrity</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 20</td>
+          </tr>
+          <tr>
+            <td>Hook telemetry (log_event)</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">hook-blocks &gt;5/session</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 20</td>
+          </tr>
+          <tr>
+            <td>memory_route_guard.sh</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">&mdash;</td>
+            <td><span class="badge pending">pending</span></td>
+            <td>Jul 18</td>
+          </tr>
+          <tr>
+            <td>20 verified/failed experiments (rollup)</td>
+            <td style="font-family:'DM Mono',monospace;font-size:11px">consolidated</td>
+            <td><span class="badge confirmed">rollup</span></td>
+            <td>Jul&nbsp;retro</td>
+          </tr>
+        </tbody>
+      </table>
+      </div>
+      <p style="font-size:11px;color:var(--text-3);margin-top:8px">Showing top 10 of 24. Full list in tooling-ledger.md.</p>
+    </div>
+
+    <!-- Promotion funnel -->
+    <div class="card">
+      <div class="card-title">Identity promotion funnel</div>
+      <p class="card-note">Growth entries flow: captured &rarr; synthesized into identity seeds &rarr; flagged for retro. Last synthesis: Jul 22.</p>
+      <div class="stat-row">
+        <div class="stat"><span class="value">6</span><span class="label">entries in</span></div>
+        <div class="stat"><span class="value">&mdash;</span><span class="label">to sounding</span></div>
+        <div class="stat"><span class="value">&mdash;</span><span class="label">to portfolio</span></div>
+        <div class="stat"><span class="value">&mdash;</span><span class="label">flagged for retro</span></div>
+        <div class="stat"><span class="value">3</span><span class="label">in buffer now</span></div>
+      </div>
+    </div>
+
+    <!-- Signal coverage -->
+    <div class="card">
+      <div class="card-title">Signal coverage</div>
+      <p class="card-note">Where each metric comes from and the earliest date it's honest.</p>
+      <div class="overflow-x">
+      <table class="repo-table">
+        <thead><tr><th>Signal</th><th>Source</th><th>Since</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Cost, tokens, cache</td><td>JSONL + migrated notes</td><td>Apr 10</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Compaction flag</td><td>note hook, then JSONL</td><td>Apr 10</td><td style="color:var(--warn)">regime-bound</td></tr>
+          <tr><td>Max context</td><td>JSONL per-request</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Session turns</td><td>JSONL session boundary</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Tool errors</td><td>JSONL tool-call events</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Interruptions</td><td>JSONL &lt;5s human turns</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Subagent attribution</td><td>CLI 2.1.201+ transcript</td><td>Jul 15</td><td style="color:var(--warn)">90% unattributed</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <div class="tooltip" id="tooltip">
+    <div class="tt-date"></div>
+    <div class="tt-value"></div>
+    <div class="tt-note"></div>
+  </div>
+</div>
+
+<script>
+// ─── Data ───
+const DATA = {
+  cost_p50: [
+    {d:'2026-04-10',v:1.73,n:1,r:'migrated-jsonl'},{d:'2026-04-11',v:2.09,n:5,r:'migrated-jsonl'},{d:'2026-04-12',v:0.46,n:2,r:'migrated-jsonl'},{d:'2026-04-14',v:0.74,n:9,r:'migrated-jsonl'},{d:'2026-04-15',v:1.22,n:8,r:'migrated-jsonl'},{d:'2026-04-16',v:1.83,n:4,r:'migrated-jsonl'},{d:'2026-04-17',v:1.51,n:3,r:'migrated-jsonl'},{d:'2026-04-18',v:1.05,n:3,r:'migrated-jsonl'},{d:'2026-04-19',v:0.30,n:3,r:'migrated-jsonl'},{d:'2026-04-20',v:0.13,n:2,r:'migrated-jsonl'},{d:'2026-04-21',v:2.46,n:5,r:'migrated-jsonl'},
+    {d:'2026-04-26',v:10.53,n:4,r:'note-hook'},{d:'2026-04-27',v:2.66,n:3,r:'note-hook'},{d:'2026-04-29',v:4.37,n:13,r:'note-hook'},{d:'2026-04-30',v:7.02,n:3,r:'note-hook'},{d:'2026-05-04',v:6.83,n:8,r:'note-hook'},{d:'2026-05-05',v:3.10,n:23,r:'note-hook'},{d:'2026-05-06',v:3.25,n:15,r:'note-hook'},{d:'2026-05-07',v:2.74,n:16,r:'note-hook'},{d:'2026-05-08',v:4.45,n:12,r:'note-hook'},{d:'2026-05-09',v:4.92,n:15,r:'note-hook'},{d:'2026-05-10',v:20.74,n:5,r:'note-hook'},{d:'2026-05-11',v:1.62,n:6,r:'note-hook'},{d:'2026-05-12',v:2.53,n:6,r:'note-hook'},{d:'2026-05-13',v:3.17,n:14,r:'note-hook'},{d:'2026-05-14',v:4.48,n:7,r:'note-hook'},{d:'2026-05-15',v:5.73,n:8,r:'note-hook'},{d:'2026-05-16',v:13.90,n:3,r:'note-hook'},
+    {d:'2026-05-18',v:0,n:6,r:'note-hook'},{d:'2026-05-19',v:0,n:4,r:'note-hook'},{d:'2026-05-20',v:0,n:12,r:'note-hook'},{d:'2026-05-21',v:0,n:1,r:'note-hook'},
+    {d:'2026-05-24',v:5.82,n:16,r:'note-hook'},{d:'2026-05-25',v:15.02,n:4,r:'note-hook'},{d:'2026-05-26',v:2.25,n:1,r:'note-hook'},{d:'2026-05-30',v:2.65,n:4,r:'note-hook'},{d:'2026-06-01',v:1.84,n:2,r:'note-hook'},{d:'2026-06-02',v:6.57,n:10,r:'note-hook'},{d:'2026-06-03',v:3.38,n:9,r:'note-hook'},{d:'2026-06-04',v:2.26,n:5,r:'note-hook'},
+    {d:'2026-07-15',v:11.02,n:8,r:'telemetry-v1'},{d:'2026-07-16',v:3.28,n:13,r:'telemetry-v1'},{d:'2026-07-17',v:1.09,n:21,r:'session-hygiene-v1'},{d:'2026-07-18',v:1.23,n:9,r:'session-hygiene-v1'},{d:'2026-07-19',v:1.51,n:36,r:'session-hygiene-v1'},{d:'2026-07-20',v:0.83,n:5,r:'session-hygiene-v1'},{d:'2026-07-21',v:1.97,n:2,r:'session-hygiene-v1'},{d:'2026-07-22',v:1.12,n:7,r:'session-hygiene-v1'},{d:'2026-07-23',v:2.48,n:4,r:'session-hygiene-v1'}
+  ],
+  cost_p90: [
+    {d:'2026-04-10',v:1.73,n:1},{d:'2026-04-11',v:3.95,n:5},{d:'2026-04-12',v:0.98,n:2},{d:'2026-04-14',v:1.55,n:9},{d:'2026-04-15',v:1.51,n:8},{d:'2026-04-16',v:2.91,n:4},{d:'2026-04-17',v:1.99,n:3},{d:'2026-04-18',v:1.65,n:3},{d:'2026-04-19',v:3.66,n:3},{d:'2026-04-20',v:2.62,n:2},{d:'2026-04-21',v:20.15,n:5},
+    {d:'2026-04-26',v:14.38,n:4},{d:'2026-04-27',v:3.85,n:3},{d:'2026-04-29',v:7.95,n:13},{d:'2026-04-30',v:8.97,n:3},{d:'2026-05-04',v:8.23,n:8},{d:'2026-05-05',v:11.03,n:23},{d:'2026-05-06',v:11.69,n:15},{d:'2026-05-07',v:5.58,n:16},{d:'2026-05-08',v:8.78,n:12},{d:'2026-05-09',v:15.78,n:15},{d:'2026-05-10',v:32.82,n:5},{d:'2026-05-11',v:8.99,n:6},{d:'2026-05-12',v:5.40,n:6},{d:'2026-05-13',v:12.99,n:14},{d:'2026-05-14',v:7.54,n:7},{d:'2026-05-15',v:8.23,n:8},{d:'2026-05-16',v:15.49,n:3},
+    {d:'2026-05-18',v:1.65,n:6},{d:'2026-05-19',v:0,n:4},{d:'2026-05-20',v:0,n:12},{d:'2026-05-21',v:0,n:1},
+    {d:'2026-05-24',v:22.79,n:16},{d:'2026-05-25',v:16.64,n:4},{d:'2026-05-26',v:2.25,n:1},{d:'2026-05-30',v:3.87,n:4},{d:'2026-06-01',v:2.94,n:2},{d:'2026-06-02',v:21.40,n:10},{d:'2026-06-03',v:9.25,n:9},{d:'2026-06-04',v:2.72,n:5},
+    {d:'2026-07-15',v:12.76,n:8},{d:'2026-07-16',v:11.66,n:13},{d:'2026-07-17',v:8.78,n:21},{d:'2026-07-18',v:1.51,n:9},{d:'2026-07-19',v:8.05,n:36},{d:'2026-07-20',v:5.30,n:5},{d:'2026-07-21',v:13.09,n:2},{d:'2026-07-22',v:1.87,n:7},{d:'2026-07-23',v:4.29,n:4}
+  ],
+  output_p50: [
+    {d:'2026-04-10',v:139},{d:'2026-04-11',v:103},{d:'2026-04-12',v:51},{d:'2026-04-14',v:58},{d:'2026-04-15',v:79},{d:'2026-04-16',v:91},{d:'2026-04-17',v:42},{d:'2026-04-18',v:28},{d:'2026-04-19',v:21},{d:'2026-04-20',v:12},{d:'2026-04-21',v:45},
+    {d:'2026-04-26',v:537},{d:'2026-04-27',v:155},{d:'2026-04-29',v:204},{d:'2026-04-30',v:159},{d:'2026-05-04',v:182},{d:'2026-05-05',v:113},{d:'2026-05-06',v:311},{d:'2026-05-07',v:152},{d:'2026-05-08',v:260},{d:'2026-05-09',v:302},{d:'2026-05-10',v:1028},{d:'2026-05-11',v:117},{d:'2026-05-12',v:137},{d:'2026-05-13',v:188},{d:'2026-05-14',v:245},{d:'2026-05-15',v:373},{d:'2026-05-16',v:988},
+    {d:'2026-05-18',v:0},{d:'2026-05-19',v:0},{d:'2026-05-20',v:0},{d:'2026-05-21',v:0},
+    {d:'2026-05-24',v:253},{d:'2026-05-25',v:786},{d:'2026-05-26',v:173},{d:'2026-05-30',v:135},{d:'2026-06-01',v:138},{d:'2026-06-02',v:369},{d:'2026-06-03',v:156},{d:'2026-06-04',v:92},
+    {d:'2026-07-15',v:200},{d:'2026-07-16',v:174},{d:'2026-07-17',v:66},{d:'2026-07-18',v:45},{d:'2026-07-19',v:50},{d:'2026-07-20',v:23},{d:'2026-07-21',v:105},{d:'2026-07-22',v:31},{d:'2026-07-23',v:67}
+  ],
+  cache: [
+    {d:'2026-04-10',v:100},{d:'2026-04-11',v:100},{d:'2026-04-12',v:100},{d:'2026-04-14',v:99.83},{d:'2026-04-15',v:99.98},{d:'2026-04-16',v:99.99},{d:'2026-04-17',v:99.99},{d:'2026-04-18',v:100},{d:'2026-04-19',v:100},{d:'2026-04-20',v:99.99},{d:'2026-04-21',v:100},
+    {d:'2026-04-26',v:95.16},{d:'2026-04-27',v:95.04},{d:'2026-04-29',v:94.08},{d:'2026-04-30',v:99.07},{d:'2026-05-04',v:94.76},{d:'2026-05-05',v:94.63},{d:'2026-05-06',v:94.60},{d:'2026-05-07',v:95.53},{d:'2026-05-08',v:95.26},{d:'2026-05-09',v:97.26},{d:'2026-05-10',v:96.97},{d:'2026-05-11',v:96.13},{d:'2026-05-12',v:95.96},{d:'2026-05-13',v:95.89},{d:'2026-05-14',v:97.30},{d:'2026-05-15',v:96.93},{d:'2026-05-16',v:97.30},
+    {d:'2026-05-18',v:96.26},{d:'2026-05-19',v:0},{d:'2026-05-20',v:0},{d:'2026-05-21',v:0},
+    {d:'2026-05-24',v:98.01},{d:'2026-05-25',v:96.77},{d:'2026-05-26',v:96.77},{d:'2026-05-30',v:95.29},{d:'2026-06-01',v:93.11},{d:'2026-06-02',v:94.84},{d:'2026-06-03',v:95.52},{d:'2026-06-04',v:96.63},
+    {d:'2026-07-15',v:98.40},{d:'2026-07-16',v:97.69},{d:'2026-07-17',v:97.76},{d:'2026-07-18',v:96.08},{d:'2026-07-19',v:97.90},{d:'2026-07-20',v:95.31},{d:'2026-07-21',v:96.30},{d:'2026-07-22',v:94.52},{d:'2026-07-23',v:97.03}
+  ],
+  context_p50: [
+    {d:'2026-07-15',v:360},{d:'2026-07-16',v:175},{d:'2026-07-17',v:98},{d:'2026-07-18',v:95},{d:'2026-07-19',v:109},{d:'2026-07-20',v:67},{d:'2026-07-21',v:67},{d:'2026-07-22',v:84},{d:'2026-07-23',v:117}
+  ],
+  context_p90: [
+    {d:'2026-07-15',v:385},{d:'2026-07-16',v:319},{d:'2026-07-17',v:281},{d:'2026-07-18',v:103},{d:'2026-07-19',v:199},{d:'2026-07-20',v:157},{d:'2026-07-21',v:163},{d:'2026-07-22',v:95},{d:'2026-07-23',v:141}
+  ],
+  over150k: [
+    {d:'2026-07-15',v:75},{d:'2026-07-16',v:53.85},{d:'2026-07-17',v:33.33},{d:'2026-07-18',v:0},{d:'2026-07-19',v:27.78},{d:'2026-07-20',v:20},{d:'2026-07-21',v:50},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0}
+  ],
+  turns_p50: [
+    {d:'2026-07-15',v:12},{d:'2026-07-16',v:7},{d:'2026-07-17',v:3},{d:'2026-07-18',v:1},{d:'2026-07-19',v:4},{d:'2026-07-20',v:3},{d:'2026-07-21',v:13},{d:'2026-07-22',v:7},{d:'2026-07-23',v:8}
+  ],
+  single_turn: [
+    {d:'2026-07-15',v:0},{d:'2026-07-16',v:7.69},{d:'2026-07-17',v:19.05},{d:'2026-07-18',v:55.56},{d:'2026-07-19',v:11.11},{d:'2026-07-20',v:20},{d:'2026-07-21',v:0},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0}
+  ],
+  errors: [
+    {d:'2026-07-15',v:3.13},{d:'2026-07-16',v:3.95},{d:'2026-07-17',v:2.93},{d:'2026-07-18',v:2.15},{d:'2026-07-19',v:3.13},{d:'2026-07-20',v:2.56},{d:'2026-07-21',v:3.23},{d:'2026-07-22',v:3.64},{d:'2026-07-23',v:5.28}
+  ],
+  interruptions: [
+    {d:'2026-07-15',v:0},{d:'2026-07-16',v:0},{d:'2026-07-17',v:0},{d:'2026-07-18',v:0},{d:'2026-07-19',v:0},{d:'2026-07-20',v:0},{d:'2026-07-21',v:0},{d:'2026-07-22',v:0},{d:'2026-07-23',v:0}
+  ],
+  compaction: [
+    {d:'2026-07-17',v:9.52,r:'session-hygiene-v1'},{d:'2026-07-18',v:11.11,r:'session-hygiene-v1'},{d:'2026-07-19',v:13.89,r:'session-hygiene-v1'},{d:'2026-07-20',v:40,r:'session-hygiene-v1'},{d:'2026-07-21',v:100,r:'session-hygiene-v1'},{d:'2026-07-22',v:57.14,r:'session-hygiene-v1'},{d:'2026-07-23',v:100,r:'session-hygiene-v1'}
+  ],
+  sessions_week: [
+    {d:'2026-04-10',v:8,r:'migrated-jsonl'},{d:'2026-04-14',v:30,r:'migrated-jsonl'},{d:'2026-04-20',v:7,r:'migrated-jsonl'},
+    {d:'2026-04-26',v:4,r:'note-hook'},{d:'2026-04-27',v:19,r:'note-hook'},{d:'2026-05-04',v:94,r:'note-hook'},{d:'2026-05-11',v:44,r:'note-hook'},{d:'2026-05-18',v:39,r:'note-hook'},{d:'2026-05-25',v:9,r:'note-hook'},{d:'2026-06-01',v:26,r:'note-hook'},
+    {d:'2026-07-15',v:21,r:'telemetry-v1'},
+    {d:'2026-07-17',v:66,r:'session-hygiene-v1'},{d:'2026-07-20',v:18,r:'session-hygiene-v1'}
+  ]
+};
+
+// ─── Chart rendering ───
+const cs = getComputedStyle(document.documentElement);
+function cssVar(name) { return cs.getPropertyValue(name).trim(); }
+
+function parseDate(s) { return new Date(s + 'T00:00:00'); }
+function fmtDate(s) {
+  const d = parseDate(s);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[d.getMonth()] + ' ' + d.getDate();
+}
+function fmtMonth(s) {
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return months[parseDate(s).getMonth()];
+}
+
+function fmtVal(v, unit) {
+  if (unit === 'pct') return v.toFixed(v < 10 ? 1 : 0) + '%';
+  if (unit === 'cost') return v < 1 ? v.toFixed(2) + 'M' : v.toFixed(1) + 'M';
+  if (unit === 'tokens') return v < 1 ? Math.round(v * 1000) + '' : v >= 1000 ? (v/1000).toFixed(0) + 'M' : Math.round(v) + 'k';
+  if (unit === 'count') return v.toFixed(v < 10 ? 1 : 0);
+  return v.toFixed(1);
+}
+
+function drawLine(container, datasets, opts = {}) {
+  const { unit = 'cost', yMin: forceMin, yMax: forceMax, threshold, height } = opts;
+  const wrap = document.getElementById(container);
+  if (!wrap) return;
+  if (height) wrap.style.height = height + 'px';
+
+  const rect = wrap.getBoundingClientRect();
+  const W = rect.width || 640;
+  const H = height || 180;
+  const pad = { l: 48, r: 12, t: 12, b: 24 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  // Merge all dates
+  let allDates = [];
+  let allVals = [];
+  datasets.forEach(ds => {
+    ds.data.forEach(p => {
+      if (!allDates.includes(p.d)) allDates.push(p.d);
+      if (p.v !== undefined && p.v !== null) allVals.push(p.v);
+    });
+  });
+  allDates.sort();
+
+  const minDate = parseDate(allDates[0]).getTime();
+  const maxDate = parseDate(allDates[allDates.length - 1]).getTime();
+  const dateRange = maxDate - minDate || 1;
+
+  let yMin = forceMin !== undefined ? forceMin : Math.min(...allVals);
+  let yMax = forceMax !== undefined ? forceMax : Math.max(...allVals);
+  if (threshold !== undefined) {
+    yMax = Math.max(yMax, threshold * 1.1);
+  }
+  if (yMin === yMax) { yMin = 0; yMax = yMax || 1; }
+  const yPad = (yMax - yMin) * 0.08;
+  if (forceMin === undefined) yMin = Math.max(0, yMin - yPad);
+  if (forceMax === undefined) yMax = yMax + yPad;
+  const yRange = yMax - yMin || 1;
+
+  function xPos(d) { return pad.l + ((parseDate(d).getTime() - minDate) / dateRange) * plotW; }
+  function yPos(v) { return pad.t + plotH - ((v - yMin) / yRange) * plotH; }
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">`;
+
+  // Grid lines (3 horizontal)
+  for (let i = 0; i <= 3; i++) {
+    const gv = yMin + (yRange * i / 3);
+    const gy = yPos(gv);
+    svg += `<line x1="${pad.l}" y1="${gy}" x2="${W - pad.r}" y2="${gy}" class="grid-line"/>`;
+    svg += `<text x="${pad.l - 6}" y="${gy}" text-anchor="end" dominant-baseline="middle" class="axis-text">${fmtVal(gv, unit)}</text>`;
+  }
+
+  // Threshold line
+  if (threshold !== undefined) {
+    const ty = yPos(threshold);
+    svg += `<line x1="${pad.l}" y1="${ty}" x2="${W - pad.r}" y2="${ty}" stroke="${cssVar('--bad')}" stroke-width="1" stroke-dasharray="4,3" opacity="0.4"/>`;
+    svg += `<text x="${W - pad.r}" y="${ty - 4}" text-anchor="end" class="axis-text" fill="${cssVar('--bad')}" opacity="0.6">${fmtVal(threshold, unit)}</text>`;
+  }
+
+  // X-axis month labels
+  const seenMonths = new Set();
+  allDates.forEach(d => {
+    const m = d.substring(0, 7);
+    if (!seenMonths.has(m)) {
+      seenMonths.add(m);
+      svg += `<text x="${xPos(d)}" y="${H - 2}" text-anchor="start" class="axis-text">${fmtMonth(d)}</text>`;
+    }
+  });
+
+  // Data lines
+  datasets.forEach((ds, di) => {
+    const color = ds.color;
+    const points = ds.data.filter(p => p.v !== undefined && p.v !== null);
+    if (points.length < 2) return;
+
+    // Area fill
+    if (ds.area) {
+      let areaPath = `M ${xPos(points[0].d)} ${yPos(points[0].v)}`;
+      points.slice(1).forEach(p => { areaPath += ` L ${xPos(p.d)} ${yPos(p.v)}`; });
+      areaPath += ` L ${xPos(points[points.length-1].d)} ${yPos(yMin)} L ${xPos(points[0].d)} ${yPos(yMin)} Z`;
+      svg += `<path d="${areaPath}" fill="${color}" opacity="0.06"/>`;
+    }
+
+    // Line
+    let path = `M ${xPos(points[0].d)} ${yPos(points[0].v)}`;
+    points.slice(1).forEach(p => { path += ` L ${xPos(p.d)} ${yPos(p.v)}`; });
+    svg += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+
+    // Dots
+    points.forEach(p => {
+      const cx = xPos(p.d);
+      const cy = yPos(p.v);
+      svg += `<circle cx="${cx}" cy="${cy}" r="3" fill="${color}" opacity="0.8">`;
+      svg += `<title>${fmtDate(p.d)}: ${fmtVal(p.v, unit)}${p.n ? ' (n='+p.n+')' : ''}${p.r ? ' · '+p.r : ''}</title>`;
+      svg += `</circle>`;
+    });
+
+    // Endpoint label
+    const last = points[points.length - 1];
+    svg += `<text x="${xPos(last.d) + 6}" y="${yPos(last.v)}" dominant-baseline="middle" class="axis-text" fill="${color}" font-weight="600">${fmtVal(last.v, unit)}</text>`;
+  });
+
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+}
+
+function drawBar(container, data, opts = {}) {
+  const { unit = 'count', height = 180 } = opts;
+  const wrap = document.getElementById(container);
+  if (!wrap) return;
+  wrap.style.height = height + 'px';
+
+  const rect = wrap.getBoundingClientRect();
+  const W = rect.width || 640;
+  const H = height;
+  const pad = { l: 48, r: 12, t: 12, b: 24 };
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+
+  const maxV = Math.max(...data.map(p => p.v)) * 1.1;
+  const barW = Math.min(24, (plotW / data.length) * 0.6);
+  const gap = plotW / data.length;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img">`;
+
+  // Grid
+  for (let i = 0; i <= 2; i++) {
+    const gv = maxV * i / 2;
+    const gy = pad.t + plotH - (gv / maxV) * plotH;
+    svg += `<line x1="${pad.l}" y1="${gy}" x2="${W - pad.r}" y2="${gy}" class="grid-line"/>`;
+    svg += `<text x="${pad.l - 6}" y="${gy}" text-anchor="end" dominant-baseline="middle" class="axis-text">${Math.round(gv)}</text>`;
+  }
+
+  data.forEach((p, i) => {
+    const x = pad.l + i * gap + gap/2 - barW/2;
+    const h = (p.v / maxV) * plotH;
+    const y = pad.t + plotH - h;
+    const color = cssVar('--s3');
+    svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" rx="2" fill="${color}" opacity="0.7">`;
+    svg += `<title>${fmtDate(p.d)}: ${p.v} sessions${p.r ? ' · '+p.r : ''}</title>`;
+    svg += `</rect>`;
+    // Label every few
+    if (i % Math.ceil(data.length / 6) === 0 || i === data.length - 1) {
+      svg += `<text x="${x + barW/2}" y="${H - 2}" text-anchor="middle" class="axis-text">${fmtDate(p.d).replace(/\s\d+/, '')}</text>`;
+    }
+  });
+
+  svg += '</svg>';
+  wrap.innerHTML = svg;
+}
+
+// ─── Render all charts ───
+function renderCharts() {
+  const s1 = cssVar('--s1');
+  const s2 = cssVar('--s2');
+  const s3 = cssVar('--s3');
+  const s5 = cssVar('--s5');
+
+  drawLine('chart-cost', [
+    { data: DATA.cost_p50, color: s1, area: true },
+    { data: DATA.cost_p90, color: s2 }
+  ], { unit: 'cost', yMin: 0 });
+
+  drawLine('chart-output', [
+    { data: DATA.output_p50, color: s1, area: true }
+  ], { unit: 'tokens', yMin: 0 });
+
+  drawLine('chart-cache', [
+    { data: DATA.cache.filter(p => p.v > 0), color: s3, area: true }
+  ], { unit: 'pct', yMin: 88, yMax: 101 });
+
+  drawLine('chart-context', [
+    { data: DATA.context_p50, color: s1, area: true },
+    { data: DATA.context_p90, color: s2 }
+  ], { unit: 'tokens', yMin: 0, threshold: 150 });
+
+  drawLine('chart-over150k', [
+    { data: DATA.over150k, color: cssVar('--bad'), area: true }
+  ], { unit: 'pct', yMin: 0, yMax: 100 });
+
+  drawLine('chart-shape', [
+    { data: DATA.turns_p50, color: s1 },
+    { data: DATA.single_turn, color: s5 }
+  ], { unit: 'count', yMin: 0 });
+
+  drawLine('chart-compaction', [
+    { data: DATA.compaction, color: s3, area: true }
+  ], { unit: 'pct', yMin: 0, yMax: 105 });
+
+  drawBar('chart-sessions-week', DATA.sessions_week, { unit: 'count', height: 140 });
+
+  drawLine('chart-errors', [
+    { data: DATA.errors, color: cssVar('--warn'), area: true }
+  ], { unit: 'pct', yMin: 0 });
+
+  drawLine('chart-interruptions', [
+    { data: DATA.interruptions, color: cssVar('--text-3') }
+  ], { unit: 'count', yMin: 0, yMax: 3, height: 80 });
+}
+
+// ─── Tab navigation ───
+document.querySelectorAll('.dash-nav a').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    const tab = a.dataset.tab;
+    document.querySelectorAll('.dash-nav a').forEach(x => x.classList.remove('active'));
+    a.classList.add('active');
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+    const target = document.getElementById(tab);
+    if (target) {
+      target.classList.add('active');
+      // Re-render charts when tab becomes visible
+      requestAnimationFrame(renderCharts);
+    }
+  });
+});
+
+// Initial render
+renderCharts();
+// Re-render on resize
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderCharts, 150);
+});
+
+// Re-render when theme changes
+const observer = new MutationObserver(() => {
+  setTimeout(renderCharts, 50);
+});
+observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+// Also watch for color scheme media change
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+  setTimeout(renderCharts, 50);
+});
+</script>

@@ -60,4 +60,10 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-24 | discovered | Repos track __pycache__ despite .gitignore — committed before rule existe... | discarded | operational git knowledge, not identity |
 | 2026-07-24 | confirmed | "Everything up-to-date" + sideband error is cosmetic LFS hook noise | discarded | already documented in shell.md rules |
 
+| 2026-07-24 | corrected | /wake board must cover ALL repos (full fleet table), not just repos wit... | discarded | process/tooling → already actioned in /wake skill |
+| 2026-07-24 | discovered | Two-repo shipping requires separate PRs and separate Makefiles; ~/.clau... | discarded | process/tooling → already built and deployed |
+| 2026-07-24 | confirmed | Review backbone architecture works: deterministic Python (schemas, dedu... | discarded | project architecture confirmation, not identity-level |
+| 2026-07-24 | discovered | Worktree agent cleanup is manual friction — leftover worktrees cause pr... | discarded | process/tooling → /retro (friction signal) |
+| 2026-07-24 | discovered | Dependabot-heavy branches (30+ dep bumps) must use git merge main not ... | discarded | process/tooling → /retro (git strategy) |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)

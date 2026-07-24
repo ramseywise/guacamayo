@@ -27,7 +27,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/grow` | Mid-session | **Awareness layer**: cross-session ingest + capture growth entries + surface signals (retro, hypotheses, plan changes) + refresh dashboard + overwrite handover. "Nothing shifted" is valid — still runs ingest and signals |
 | `/dream` | Session end | Write reflection + growth entries + final dashboard update + conditionally: synthesize seeds (if 5+ entries), **execute retro** (if /grow flagged retro-worthy or retro overdue), tidy indexes. **Sole transformer** of identity files |
 
-The dashboard (`.sounding/dashboard.html`) is the shared artifact connecting all three skills — /wake reads it, /grow refreshes it, /dream finalizes it.
+The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three skills — /wake reads it, /grow refreshes it, /dream finalizes it.
 
 Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/workflow-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
 
@@ -67,7 +67,7 @@ else is execution at varying granularity.
 ├── growth.md                     # Accumulator: tagged entries, cleared by /dream's synthesis phase
 ├── growth-log.md                 # Append-only disposition ledger — audit trail for cleared entries
 ├── queue.md                      # COMMITTED cross-repo pointer — survives clone for mobile /wake
-├── dashboard.html                # Rendered status view (generated, not hand-edited)
+├── context-dashboard.html                # Rendered status view (generated, not hand-edited)
 ├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.
 │                                 # Global originals win on the Mac; refresh at /dream
 ├── reflections/
@@ -85,8 +85,8 @@ else is execution at varying granularity.
 ├── skills/                       # genesis (inert), wake, grow, dream — the identity lifecycle.
 │                                 # Nothing generic lives here; global ~/.claude is canonical
 ├── docs/                         # plans/ (one dated doc per work item), research/, state/ (cross-repo
-│                                 # workstream state, ex-global memory), tooling-ledger.md,
-│                                 # insights-summary.md. All git-ignored — local-only working files
+│                                 # workstream state, ex-global memory). Plans are git-ignored;
+│                                 # tooling-ledger + insights-log live in .sounding/ (committed)
 ├── statusline.js
 └── settings.local.json           # Permissions + SessionStart wake nudge
 ```

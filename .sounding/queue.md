@@ -16,33 +16,38 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-07-20 evening)
+## Live pick-up points (as of 2026-07-24)
 
 **guacamayo** (this repo)
-- GH Issues #3,#5,#6,#7,#8 — all EXECUTED, changes in worktrees awaiting merge+commit.
-  => Merge order: #7 → #8 → #3 → #5 → #6. Add ledger rows for #3, #5, #8. Then close issues.
-- GH Issue #4 (akira/SANYI composition) — refinement, failed DoR. Needs /workflow-research.
-- `2026-07-20-consciousness-identity-model.md` — EXECUTED. dream-ledger-gate hook live.
-- `2026-07-18-skills-refs-evals-norm.md` — EXECUTED (P0-4 complete; P5b deferred).
-- `2026-07-17-feedback-loop.md` — EXECUTED.
+- PR #25 (`GUA-23-review-backbone`) — APPROVED. Ramsey to merge.
+  => After merge: delete branches GUA-16, GUA-17, GUA-18. Close #23.
+- GH Issues #20 (stage transitions), #21 (dashboard consolidation), #24 (friction signals) — backlog.
+
+**~/.claude (dotclaude)**
+- PR #1 (`GUA-16-review-artifact-contract`) — APPROVED. Ramsey to merge.
+  => Makefile.common updated: `pull` (rebase + auto-stash), `review` (print target).
+
+**learn-ai-engineering**
+- PR #74 (`LAE-39-structural-cleanup`) — APPROVED. 36 commits (30 dependabot + structural).
+  => `.pre-commit-config.yaml` added (minimal, notebooks excluded).
+  => `make pull` (rebase) incompatible with this branch — used `git merge main`.
 
 **ai-project-template**
-- `2026-07-18-template-full-mirror-redesign.md` — EXECUTED (all 7 steps + session 16 cleanup).
-  => Push `python-ci.yml` to main to unblock rendered projects' CI.
-- `2026-07-20-consolidate-capability-reference.md` — EXECUTED.
-- sync-global-skills.sh updated with DELIBERATELY_EXCLUDED[] + reverse guard (#5).
-  => Ramsey: review and commit ai-project-template changes.
+- PR #18 (`AIT-makefile-updates`) — APPROVED. Vendored skill sync + dependabot workflow.
+
+**atlas**
+- PR #26 (`ATL-22-remove-pycache`) — APPROVED. Pycache removal + Makefile updates.
+  => 22 pre-existing ruff errors need separate cleanup PR.
+- `ttd.md` — IN PROGRESS (unrelated to current shipping).
 
 **librarian**
-- `2026-07-17-learn-ai-ingest-guacamayo-loop.md` — EXECUTED (M1-M4; M2 second batch + M5 follow-on).
-- `2026-07-17-knowledge-compaction.md` — EXECUTED.
+- PR #41 (`LIB-makefile-dependabot`) — APPROVED. Makefile + dependabot workflow.
 
 **listen-wiseer**
 - All phases EXECUTED or COMPLETE. Phase 7a ABANDONED.
 
 **playground**
-- `rag-latency-optimization.md` — E1 DONE (streaming), E2 OBSOLETE. E3-E6 viable, lower priority.
-  => Next: E3 (Flash-Lite quality regression) or E4 (context chunk reduction).
+- `rag-latency-optimization.md` — E1 DONE, E2 OBSOLETE. E3-E6 lower priority.
 
 **contracts rollout** (cross-repo)
 - SANYI confirmation interviews still owed on all three SANYI.md files.
