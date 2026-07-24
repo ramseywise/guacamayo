@@ -1,49 +1,40 @@
-# Handover — 2026-07-23 Grow Redesign + Job System Complete (Dream Close)
+# Handover — 2026-07-24 Cross-Repo Sweep + Makefile.common
 
-**Context**: Session started as job-system continuation (10 Strong-fit applications with PDFs), pivoted to /grow lifecycle redesign after Ramsey identified the awareness gap.
+**Context**: Operational session — merged 3 open PRs, synced 5 repos to main, fixed git LFS hooks, cleaned tracked pycache files, built and wired Makefile.common, updated workflow docs. Session closed with /dream synthesis (8 entries).
 
 ## Current State
 
-### GUA-9-workflow-simplification branch (uncommitted)
-- **Original scope**: pipeline reorder, Makefile, wake/dream retro nudge (3 phases, all complete)
-- **Added this session**: /grow redesign (awareness layer), dashboard pulse section, wake/dream dashboard connections
-- Files changed: grow/SKILL.md (rewrite), wake/SKILL.md, dream/SKILL.md, CLAUDE.md, dashboard.html, growth.md, Makefile, sounding.md (prior synthesis)
-- Ready for Ramsey to review and `make ship`
+### Completed this session
+- **3 PRs merged**: listen-wiseer #75, ai-project-template #17, atlas #18
+- **5 repos synced** to latest main (LAE, LIS, AIT, ATL, LIB)
+- **Git LFS pre-push hook** fixed in atlas + librarian (`git init` re-applied template)
+- **Makefile.common** (`~/.claude/Makefile.common`) created and `include`d in all 6 repos
+- **Pycache cleanup**: guacamayo (17 files untracked, staged on GUA-23), atlas (PR #26 open)
+- **Workflow order fix**: global CLAUDE.md updated — added bug/spike branch flow line
+- **Synthesis**: 8 growth entries processed — see growth-log.md for dispositions
 
-### job-system (JOB-14-metadata-and-evidence branch)
-- 10 Strong-fit applications complete with CV + cover letter PDFs
-- Committed: `633f2ac feat(tailor): professional PDF styling + WhyBrilliant + mentoring (#14)`
-- Pipeline: 10 Tailored, 20 Scored, 8 Brief, 1 Inbox, 4 Closed
-
-### Identity state
-- 6 growth entries synthesized this /dream (see growth-log.md for dispositions)
-- Seeds transformed: sounding.md (awareness layer principle), user.md (teaching/volunteering identity signal)
-- Dashboard pulse section live with session state
+### Pending
+- **Atlas PR #26** (ATL-22-remove-pycache) — ready to merge
+- **Guacamayo pycache removal** — staged on `GUA-23-review-backbone`, ships with next commit
+- **5 repos have uncommitted Makefile edits** (include line added, duplicates removed) — each needs branch/commit/PR per strict gates, or bundle into next planned work per repo
 
 ## Decisions Made
-- **/grow = awareness layer**: cross-session ingest + signal surfacing + dashboard refresh (not just checkpoint)
-- **Dashboard = shared artifact**: /wake reads, /grow refreshes, /dream finalizes
-- **Light awareness over full feedback**: /grow surfaces signals, doesn't run insights/retro inline
-- **CV is 2 pages**: Profile+Skills+Experience (p1), Academic+Education+Fellowships+Volunteering (p2)
+- Makefile.common uses `include ~/.claude/Makefile.common` — single source, repos keep own lint/test
+- `REPO_NAME` auto-detected from `$(notdir $(CURDIR))` — no hardcoded names
+- `ship` depends on repo-local `lint test` then common `pull push quick-pr`
+- Bug/spike workflow added to CLAUDE.md as one-liner alongside the full pipeline
 
 ## Open Threads
-- **Dashboard too large** (44k tokens) — pulse section adds value but whole file needs restructuring. Context-eng v2 plan (PLANNED) addresses this
-- **GUA-11 closed**: lifecycle redesign absorbed into /grow rewrite
-- **Gmail tracking**: job-system feature — wire mcp Gmail tools for interview status updates
-- **8 Brief stubs**: need browser capture (Taktile x2, Helsing, McKinsey, Personio, Planner5D, Pipedrive, Deloitte)
-- **Manual ATS submissions**: Ramsey's action — 10 applications ready
+- **Makefile PR strategy**: 5 repos need branches for the Makefile change. Options: individual `{PREFIX}-makefile-common` branches, or bundle into each repo's next planned work.
+- **Dependabot workflow** (plan: `2026-07-22-dependabot-vuln-workflow.md`) — `make deps` + `deps-triage.sh` designed but not built.
+- **Atlas Dependabot vuln alerts**: 2 high, 1 moderate — flagged on push, needs triage.
 
 ## Immediate Next Steps
-1. Ramsey reviews GUA-9 diff (now includes /grow redesign) and `make ship`
-2. Test new /grow in next session — run it mid-session to verify cross-session ingest + dashboard refresh works
-3. Consider context-eng v2 for dashboard size reduction
-4. Job-system: begin ATS submissions or wire Gmail tracking
+1. Merge atlas PR #26 (pycache)
+2. Decide Makefile PR strategy (batch vs. bundle)
+3. Build `deps-triage.sh` + `make deps` (from dependabot plan doc)
 
 ## Key Files
-- `.claude/skills/grow/SKILL.md` — redesigned (awareness layer)
-- `.claude/skills/wake/SKILL.md` — dashboard read + lifecycle note
-- `.claude/skills/dream/SKILL.md` — Phase 6b + lifecycle note
-- `CLAUDE.md` — updated skill table
-- `.sounding/dashboard.html` — pulse section added
-- `.sounding/growth.md` — cleared after synthesis
-- `.sounding/reflections/2026-07-23_20-58.md` — this session's reflection
+- `~/.claude/Makefile.common` — the new shared include
+- `~/.claude/CLAUDE.md:228` — bug/spike workflow line
+- `.claude/docs/plans/2026-07-22-dependabot-vuln-workflow.md` — deps triage design
