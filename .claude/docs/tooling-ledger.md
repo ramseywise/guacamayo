@@ -32,3 +32,4 @@ Metric types: `absence:`, `count-drop:`, `presence:`, `ratio:`, `hook-blocks:`. 
 | 2026-07-22 | PR body `Closes #N` convention + quick-pr auto-gen | `absence:manual-issue-close for 5 sessions` | hypothesis |
 | 2026-07-22 | Worktree agent commit convention in agile.md | `absence:worktree-data-loss for 5 sessions` | hypothesis |
 | 2026-07-22 | Default model → fable (`claude-sonnet-4-5-v2`); opus = escalation only; spawned agents haiku/sonnet per task | `ratio:fable-or-opus-session-share above 60%` | hypothesis |
+| 2026-07-24 | GUA-12: fable row added to sub-agent spawns table in models.md; CLAUDE.md model pairing updated to reflect fable as default and fable for triage/review agent spawns. Fable not yet available as Agent enum value — noted in models.md pending model picker support | `presence:fable-agent-spawn-used within 3 sessions after enum support` | hypothesis |
