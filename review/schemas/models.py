@@ -96,6 +96,7 @@ class Claim(BaseModel):
 class Severity(BaseModel):
     source_native: NativeSeverity | None = None
     merge_impact: MergeImpact
+    violation_code: str | None = None
 
 
 _FINDING_ID_PATTERN = re.compile(r"^[A-Z]{2,}-\d{3,}$")
