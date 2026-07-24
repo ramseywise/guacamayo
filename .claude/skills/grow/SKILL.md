@@ -72,12 +72,26 @@ Compare to what /wake saw. Surface:
 
 If `gh` fails, skip gracefully.
 
-## 4. Surface Signals
+## 4. Surface Signals + Refresh Insights
 
-Read these quickly — grep, don't deep-read:
+### 4a. Spawn insights (background)
 
-### Retro & insights state
-- `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → is retro overdue (>=7 days)?
+Always spawn `/workflow-insights` as a background agent. This keeps `insights-log.md` fresh so signals below and `/wake` reads are never stale.
+
+```
+Agent(model: "haiku", run_in_background: true)
+prompt: |
+  Repo: ~/workspace/guacamayo
+  Task: Run /workflow-insights. Append a new dated section to .sounding/insights-log.md.
+  Constraint: Append only — do not overwrite existing sections. Read the file first.
+```
+
+Don't wait for it — continue with signal reads below using existing data. The background agent updates the file for the next reader (/wake or /dream).
+
+### 4b. Read signals (fast, grep-based)
+
+- `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
+- `.sounding/tooling-ledger-log.md` latest `## R` header → last retro date
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
@@ -94,7 +108,8 @@ Present as a compact block:
 
 ```
 SIGNALS:
-- Retro: [current (last YYYY-MM-DD) | overdue N days]
+- Insights: [last YYYY-MM-DD | refreshing in background]
+- Retro: [last R# YYYY-MM-DD | overdue N days]
 - Retro-worthy: [yes — reason | no]
 - Hypotheses: [N pending, M stale (>2wk)]
 - Growth: [N entries, synthesis {due at 5 | not yet}]
@@ -103,7 +118,7 @@ SIGNALS:
 - Cross-session: [key findings or "no new sessions"]
 ```
 
-The `retro-worthy` flag is the handoff to /dream. When /dream sees this flag (or retro overdue >=7 days), it runs the actual `/workflow-insights` → `/workflow-retro` cycle at session close instead of just flagging it.
+The `retro-worthy` flag is the handoff to /dream. When /dream sees this flag (or retro overdue >=7 days), it spawns `/workflow-retro` at session close.
 
 ## 5. Refresh Dashboard
 
