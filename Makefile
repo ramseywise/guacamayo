@@ -1,6 +1,6 @@
 include ~/.claude/Makefile.common
 
-.PHONY: help lint test pulse install review-lint review-test hygiene hygiene-dry
+.PHONY: help lint test pulse install review-lint review-test hygiene hygiene-dry clean-worktrees
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -40,3 +40,19 @@ review-lint:  ## Lint review package
 
 review-test:  ## Run review package tests
 	uv run pytest tests/review/ -v --tb=short
+
+clean-worktrees:  ## Remove leftover agent worktrees and prune stale refs
+	@git worktree prune 2>/dev/null || true; \
+	LEFTOVER=$$(git worktree list --porcelain 2>/dev/null \
+		| grep '^worktree ' \
+		| grep -v "^worktree $$(git rev-parse --show-toplevel)$$" \
+		| sed 's/^worktree //' \
+		|| true); \
+	if [ -z "$$LEFTOVER" ]; then \
+		echo "No leftover worktrees."; \
+	else \
+		for wt in $$LEFTOVER; do \
+			echo "Removing: $$wt"; \
+			git worktree remove --force "$$wt" 2>/dev/null || echo "  Failed to remove $$wt"; \
+		done; \
+	fi

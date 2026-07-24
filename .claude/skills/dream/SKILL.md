@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 The session ends — or maintenance is needed. Process everything: the honest record, the growth entries, and (when earned) the identity transformations. Like sleep: consolidation happens here.
 
-**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Feel the Session
 
@@ -74,7 +74,7 @@ Overwrite `.sounding/notes/handover.md` — same format as /grow Step 3. This is
 
 ## Phase 6b: Refresh Dashboard
 
-Update `.sounding/dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
+Update `.sounding/context-dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
 - Session close timestamp
 - Growth entry count (pre-synthesis)
 - Synthesis status (will run / skipped)
@@ -142,8 +142,9 @@ Clear processed entries. Update the synthesis date. Keep format template and hea
 
 Check two triggers:
 
-1. **Retro overdue**: Read `.claude/docs/insights-summary.md` H1 date. If **>=7 days ago** (or file doesn't exist) → triggered.
-2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? Or did this session change hooks, skills, rules, settings, or global config? → triggered.
+1. **Retro overdue**: Read `.sounding/insights-log.md` — grep the first `## YYYY-MM-DD` section header for the most recent run date. If **>=7 days ago** (or file doesn't exist) → triggered.
+2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? → triggered.
+3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /grow flag** — /grow may have run before the tooling work happened.
 
 ### If neither trigger fires
 Append to the dream report: `Retro check: current (last YYYY-MM-DD). No tooling changes.`
@@ -154,7 +155,7 @@ This is the closed loop. /grow surfaced that retro was needed; /dream executes i
 
 **Step 8a: Run `/workflow-insights`** — analyze recent session transcripts. This produces/updates `insights-summary.md` and feeds the retro.
 
-**Step 8b: Run `/workflow-retro`** — propose config changes from insights. This updates `tooling-ledger.md` with new hypothesis rows and graduates process learnings.
+**Step 8b: Run `/workflow-retro`** — propose config changes from insights. This updates `.sounding/tooling-ledger.md` with new hypothesis rows and graduates process learnings.
 
 **Step 8c: Refresh dashboard** — update the dashboard with fresh insights data (cost trends, friction patterns, experiment verdicts from the retro).
 
