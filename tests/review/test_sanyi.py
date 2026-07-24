@@ -1,7 +1,7 @@
 import pytest
 
 from review.sanyi import violation_merge_impact, violation_source_native
-from review.schemas.models import MergeImpact, NativeSeverity, Reporter, Severity
+from review.schemas.models import MergeImpact, NativeSeverity, Reporter
 from review.validation import validate_finding
 from tests.review.conftest import make_finding
 
