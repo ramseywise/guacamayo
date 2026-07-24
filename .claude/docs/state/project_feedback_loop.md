@@ -1,7 +1,7 @@
 ---
 name: project-feedback-loop
 description: "Puffin feedback-loop plan executed 2026-07-17 — /retro + tooling-ledger + /config-audit live in global; skill collisions deduped; open — repo settings fixes, first /retro run, puffin→sounding rename"
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 73f6b61f-286a-46fc-bc5b-a18d1d260fff

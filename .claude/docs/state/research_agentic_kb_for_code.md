@@ -1,7 +1,7 @@
 ---
 name: research-agentic-kb-for-code
 description: "2025-2026 patterns for agentic knowledge bases over live source repos (AST chunking, code graphs, agentic retrieval, incremental indexing) — researched while evaluating librarian repo for DSSG use"
-metadata: 
+metadata:
   node_type: memory
   type: reference
   originSessionId: 375f1cfb-f126-468e-890b-e09a210aa4cf

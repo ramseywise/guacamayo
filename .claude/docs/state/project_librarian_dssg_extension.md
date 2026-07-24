@@ -1,7 +1,7 @@
 ---
 name: project-librarian-dssg-extension
 description: Plan/decision context for extending librarian into a reusable DSSG knowledge-base template that houses both compiled wiki knowledge and code/vector/graph indexes for real repos
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 375f1cfb-f126-468e-890b-e09a210aa4cf

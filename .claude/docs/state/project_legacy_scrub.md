@@ -1,7 +1,7 @@
 ---
 name: project-legacy-scrub
 description: "Former-employer reference scrub (2026-07-16) — decisions and remaining follow-ups"
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 179f5f51-baa7-4216-983b-26a1eec59616

@@ -1,7 +1,7 @@
 ---
 name: project-config-layering
 description: Global ~/.claude is canonical for generic skills/hooks/commands; repo .claude is repo-specific only — dedup done 2026-07-16
-metadata: 
+metadata:
   node_type: memory
   type: project
   originSessionId: 09046113-8f02-4a31-96a3-9a981b951740
