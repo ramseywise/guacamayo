@@ -1,62 +1,45 @@
-# Handover — 2026-07-24 Observability Loop Fix + Review Fixes
+# Handover — 2026-07-26 Cross-Repo Pipeline Dispatch
 
-**Context**: Guacamayo meta session. Fixed review findings (F-R1/F-R2/F-R3), wired the observability loop (/grow spawns insights, /dream spawns retro), consolidated all changes onto GUA-23-review-backbone.
+**Context**: Meta-session dispatching agents across job-system and learn-ai-engineering to move 15+ backlog issues through plan→refine→execute. Also fixed /wake and /grow to check all repos.
 
 ## Current State
 
-All changes uncommitted on `GUA-23-review-backbone`. Ready to commit. Key changes:
+**job-system**: #10-14 closed. #15-18 DONE (committed on `JOB-15-pipeline-work` branch). #19 PARTIAL — browser-capture URLs need chrome MCP session + Ramsey input. Plan: `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md` (Status: IN PROGRESS).
 
-**Observability loop wiring (new this grow):**
-- `/grow` now background-spawns `/workflow-insights` (haiku) at Step 4a
-- `/dream` now background-spawns `/workflow-retro` (sonnet) at Phase 8 if triggered
-- Signal summary split: separate `Insights:` date and `Retro:` date (were conflated)
-- CLAUDE.md lifecycle table updated to reflect background spawns
-- Retro overdue check now reads `tooling-ledger-log.md` R# date, not insights-log
+**learn-ai-engineering**: #30 executed (committed on `LAE-30-rl-depth-content`). #35, #37 executed (committed on `LAE-35-staleness-migrations`). #36 Phase 2 (tf.contrib→tf.keras rewrite) NOT YET DONE — needs separate session. #34 agent was spawned (learning skill + librarian arxiv fetch + cron) — check completion. Plan: `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md` (Status: PLANNED — not updated by agents).
 
-**Review fixes (from prior grow):**
-- F-R1: `.claude/docs/state/` → `.sounding/state/` (git rm + add, shows as renames)
-- F-R2: README.md stale tooling-ledger path → `.sounding/tooling-ledger.md`
-- F-R3: wake/grow/dream "H1 date" → `## YYYY-MM-DD` section header format
+**guacamayo**: Uncommitted changes on main — wake/grow skill fixes (cross-repo gh loop), growth.md updates, handover. Need `bug/` branch + commit.
 
-**From earlier session (retro R1):**
-- Tooling ledger split: active + archive
-- Insights-log (append-only, replaces insights-summary)
-- State files migrated to `.sounding/`
-- Dream Phase 8 trigger 3 (independent tooling-change detection)
-- PULL_STRATEGY variable, bash hook deleted
-
-**Known broken:**
-- `scripts/pulse.sh` — regex targets `<section id="pulse">` but dashboard now has cost/context/friction/experiments tabs
-- `make pulse` fails — needs rewrite for new dashboard structure
+**Branches needing PRs**: `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`.
 
 ## Decisions Made
 
-- **Consolidate to GUA-23**: All changes (retro R1 + review fixes + loop wiring) go on one branch
-- **Background agents for observability**: insights and retro run as spawned agents, not inline — protects context windows
-- **Separate insights vs retro dates**: These track different things (analysis vs action) and need independent staleness checks
-- **pulse.sh is broken**: Known, don't fix mid-commit — separate issue
+- **/workflow-refine must use fable, not sonnet** — sonnet defers verification questions instead of resolving them. Process learning for /retro.
+- **Serialize worktree agents per-repo** — two agents in same repo caused branch collision (LAE #30 commits on #35 branch). Fixed by branch rename + fresh branch from main.
+- **Agent rebase convention** updated: `git fetch origin main && git rebase origin/main` (not `git pull --rebase`).
 
 ## Open Threads
 
-- **pulse.sh rewrite**: Needs to match new dashboard tab structure. Could fold into GUA-26.
-- **6 cross-repo PRs still awaiting merge**
-- **`make ship-all`**: Ramsey wants workspace-level shipping target
-- **`bug/worktree-auto-cleanup` branch**: Orphaned — delete after GUA-23 commit
+- **LAE #34 agent** may still be running — check task status. Covers librarian arxiv fetch + LAE learning skill.
+- **LAE #36 Phase 2** (tf.contrib→tf.keras for Ng DL notebooks) — separate execute session needed.
+- **LAE-35-staleness-migrations push rejection** — remote had old #30 commits. Needs `--force-with-lease` or delete+re-push.
+- **22 hypothesis rows** in tooling ledger — 13 from July 18-20 approaching 2-week stale threshold.
+- **pulse.sh broken** — regex targets old dashboard structure (carried from prior session, still unfixed).
+- **companion-summarizer plan** still IN PROGRESS with uncommitted work (paused July 20).
+- **GUA-28** (CLA: Claude Code plugins) — new backlog issue on guacamayo board.
 
 ## Immediate Next Steps
 
-1. **Commit on GUA-23** — all changes ready
-2. **Push + update/create PR**
-3. **Delete orphaned `bug/worktree-auto-cleanup` branch**
-4. **Merge 6 cross-repo PRs**
-5. **Fix pulse.sh** — align with new dashboard tabs (new issue or GUA-26)
+1. Check LAE #34 agent completion — verify librarian + LAE learning skill work
+2. Ramsey: push branches + create PRs for `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`
+3. Create `bug/` branch on guacamayo, commit wake/grow skill fixes
+4. Spawn LAE #36 Phase 2 execute session (tf.contrib→tf.keras)
+5. Close issues after PR merge: job #15-19, LAE #30, #35, #37 (hold #36 for Phase 2)
 
 ## Key Files
 
-- `.claude/skills/grow/SKILL.md` (Step 4 split into 4a spawn + 4b signals)
-- `.claude/skills/dream/SKILL.md` (Phase 8 → background agent)
-- `.claude/skills/wake/SKILL.md` (path + format fixes)
-- `CLAUDE.md` (lifecycle table updated)
-- `.sounding/tooling-ledger.md`, `.sounding/tooling-ledger-log.md`, `.sounding/insights-log.md`
-- `.sounding/state/` (migrated from `.claude/docs/state/`)
-- `scripts/pulse.sh` (BROKEN — needs rewrite)
+- `.claude/skills/wake/SKILL.md:83` (cross-repo gh loop)
+- `.claude/skills/grow/SKILL.md:62` (cross-repo gh loop)
+- `.sounding/growth.md` (5 entries — synthesis due at /dream)
+- `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md`
+- `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md`
