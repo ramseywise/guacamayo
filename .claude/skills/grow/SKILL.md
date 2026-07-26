@@ -59,16 +59,20 @@ Query librarian for sessions since last wake or last grow (whichever is more rec
 
 Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
 
-### GitHub Issues (always — fast, no librarian needed)
+### GitHub Issues (always — fast, no librarian needed, cross-repo)
 
 ```bash
-gh issue list --repo ramseywise/guacamayo --state open --json number,title,labels --limit 50 2>/dev/null
+for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+  echo "--- $repo ---"
+  gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
+done
 ```
 
-Compare to what /wake saw. Surface:
+Present as a cross-repo status table (same format as /wake). Compare to what /wake saw and surface:
 - **New issues** created since session start
 - **Label changes** (something moved to ready, blocked, in-review)
 - **Closed issues** (work completed elsewhere)
+- **Repos with changes** get a table row; unchanged repos get a one-line summary
 
 If `gh` fails, skip gracefully.
 
