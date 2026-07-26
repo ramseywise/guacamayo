@@ -80,27 +80,33 @@ Read `.sounding/tooling-ledger.md` — `hypothesis` rows are the standing verifi
 Read `.sounding/insights-log.md` — grep the first `## YYYY-MM-DD` section header for the most recent run date. Compare to today to detect retro overdue (≥7 days).
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
-### GitHub Issues board
+### GitHub Issues board (cross-repo)
 
-Check the guacamayo issue board for active work state:
+Check ALL active repos for open issues — the meta-session's job is the cross-cutting view, not just this repo:
 
 ```bash
-gh issue list --repo ramseywise/guacamayo --state open --json number,title,labels --limit 50 2>/dev/null
+for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+  echo "--- $repo ---"
+  gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
+done
 ```
 
-Present as a **single table** grouped by label state, covering ALL open issues:
+Present as a **cross-repo status table** grouped by repo, showing ALL open issues:
 
-| # | Title | State | Note |
-|---|-------|-------|------|
-| 3 | Design skill trio | ready | plan doc written |
-| 4 | Akira/SANYI composition | refinement | needs DoR check |
+| Repo | # | Title | State | Note |
+|------|---|-------|-------|------|
+| guacamayo | 3 | Design skill trio | ready | plan doc written |
+| job-system | 15 | Ingest notes/ materials | backlog | |
+| learn-ai-engineering | 34 | Learning skill | backlog | |
 
-Report explicitly (never silent on empty categories):
+Repos with zero open issues: list on one line ("**Clean**: librarian, atlas, playground, ...").
+
+Report explicitly across the full board (never silent on empty categories):
 - **Blocked**: what's stuck and why — or "Nothing blocked"
 - **In progress**: what's active (check WIP limit — max 3) — or "Nothing in progress"
 - **Ready**: what can be picked up — with plan doc pointer if one exists
 - **Refinement**: items needing DoR pass → suggest `/workflow-refine`
-- **Backlog**: items not yet scoped → count only
+- **Backlog**: items not yet scoped → count per repo
 
 Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
 
