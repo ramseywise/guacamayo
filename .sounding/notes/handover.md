@@ -1,45 +1,46 @@
-# Handover — 2026-07-26 Cross-Repo Pipeline Dispatch
+# Handover — 2026-07-27 Review System Evolution Initiative
 
-**Context**: Meta-session dispatching agents across job-system and learn-ai-engineering to move 15+ backlog issues through plan→refine→execute. Also fixed /wake and /grow to check all repos.
+**Context**: Meta-session that ran retro R2, akira wander cross-repo, and designed the review system evolution initiative (GUA-34). Heavy grooming session — 10 issues created, 1 initiative designed, enforcement fixes implemented.
 
 ## Current State
 
-**job-system**: #10-14 closed. #15-18 DONE (committed on `JOB-15-pipeline-work` branch). #19 PARTIAL — browser-capture URLs need chrome MCP session + Ramsey input. Plan: `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md` (Status: IN PROGRESS).
+**Retro R2 complete**: 6 ledger rows graduated (2 verified, 2 failed, 1 dup, 1 inconclusive), 6 untestable rows annotated with R3 deadline, 2 new hypotheses added. Active ledger: 18 rows.
 
-**learn-ai-engineering**: #30 executed (committed on `LAE-30-rl-depth-content`). #35, #37 executed (committed on `LAE-35-staleness-migrations`). #36 Phase 2 (tf.contrib→tf.keras rewrite) NOT YET DONE — needs separate session. #34 agent was spawned (learning skill + librarian arxiv fetch + cron) — check completion. Plan: `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md` (Status: PLANNED — not updated by agents).
+**Move 1 (enforcement) done**: `check-review` and `review-verdict-gate.sh` now compare review timestamp against last commit (not `.git/HEAD`). On committed `CLA-34-review-enforcement` branch in `~/.claude`. Smoke-tested — correctly blocks when no review is newer than last commit.
 
-**guacamayo**: Uncommitted changes on main — wake/grow skill fixes (cross-repo gh loop), growth.md updates, handover. Need `bug/` branch + commit.
+**Move 3 (akira simplification) designed**: 3 primitives (scan, wander, dao) + sanyi as reporter. Bare `/akira` = full flow. Scope (diff vs whole-repo) is automatic, not a mode. `auto` and `all` modes die. All 5 open questions answered in plan doc.
 
-**Branches needing PRs**: `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`.
+**Guacamayo branch**: `GUA-34-review-system-evolution` — uncommitted changes: tooling-ledger (R2), growth.md (4 entries), plan doc, insights-log edits.
 
 ## Decisions Made
 
-- **/workflow-refine must use fable, not sonnet** — sonnet defers verification questions instead of resolving them. Process learning for /retro.
-- **Serialize worktree agents per-repo** — two agents in same repo caused branch collision (LAE #30 commits on #35 branch). Fixed by branch rename + fresh branch from main.
-- **Agent rebase convention** updated: `git fetch origin main && git rebase origin/main` (not `git pull --rebase`).
+- **Akira simplification**: 6 modes → 3 primitives + scope. "Audit" is not a mode — just akira without a diff. Sanyi folds in as reporter.
+- **Dep scanning**: let dependabot handle it, not akira's job.
+- **Loop scheduling**: experiment with `/loop` for periodic akira sweeps.
+- **Repo inclusion list**: guacamayo, job-system, learn-ai-engineering, librarian, atlas, ai-project-template, listen-wiseer. Excluded: dssg, parallax, nrr, lebanese-blonde, cryptozombies, first-flask-app, playground.
+- **Design vs workflow**: design scopes (what + why), workflow executes (how + when). Sequential, not competing. Description problem, not conceptual.
+- **Enforcement**: gates must block, not advise. Timestamp validation is the fix for stale reviews.
 
 ## Open Threads
 
-- **LAE #34 agent** may still be running — check task status. Covers librarian arxiv fetch + LAE learning skill.
-- **LAE #36 Phase 2** (tf.contrib→tf.keras for Ng DL notebooks) — separate execute session needed.
-- **LAE-35-staleness-migrations push rejection** — remote had old #30 commits. Needs `--force-with-lease` or delete+re-push.
-- **22 hypothesis rows** in tooling ledger — 13 from July 18-20 approaching 2-week stale threshold.
-- **pulse.sh broken** — regex targets old dashboard structure (carried from prior session, still unfixed).
-- **companion-summarizer plan** still IN PROGRESS with uncommitted work (paused July 20).
-- **GUA-28** (CLA: Claude Code plugins) — new backlog issue on guacamayo board.
+- **4 growth entries** — synthesis not yet due (threshold: 5). Close to it.
+- **Design skill descriptions** (#32) — confirmed relevant but triggering broken. Investigate before retiring.
+- **Parallax gap analysis** — full comparison done. Key gaps: evidence enforcement, self-verification, dimension coverage, agent-system detection. Ported as Move 2 tasks.
+- **Hook telemetry wiring** (#33, `ready`) — mechanical fix, good worktree agent candidate.
+- **Branch protection** (#35, `ready`) — `gh api` across repos, mechanical.
 
 ## Immediate Next Steps
 
-1. Check LAE #34 agent completion — verify librarian + LAE learning skill work
-2. Ramsey: push branches + create PRs for `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`
-3. Create `bug/` branch on guacamayo, commit wake/grow skill fixes
-4. Spawn LAE #36 Phase 2 execute session (tf.contrib→tf.keras)
-5. Close issues after PR merge: job #15-19, LAE #30, #35, #37 (hold #36 for Phase 2)
+1. Commit guacamayo changes on `GUA-34-review-system-evolution` branch
+2. `/workflow-plan` for Move 3 (akira simplification) — break 3.1-3.5 into executable steps
+3. Spawn agents for #33 (hook wiring) and #35 (branch protection) — both `ready`, mechanical
+4. JOB branch still needs push + PR (#15-18)
 
 ## Key Files
 
-- `.claude/skills/wake/SKILL.md:83` (cross-repo gh loop)
-- `.claude/skills/grow/SKILL.md:62` (cross-repo gh loop)
-- `.sounding/growth.md` (5 entries — synthesis due at /dream)
-- `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md`
-- `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md`
+- `.claude/docs/plans/2026-07-27-GUA-34-review-system-evolution.md`
+- `.sounding/tooling-ledger.md` (18 active rows post-R2)
+- `.sounding/tooling-ledger-log.md` (R2 section appended)
+- `.sounding/growth.md` (4 entries)
+- `~/.claude/Makefile.common` (timestamp check-review)
+- `~/.claude/hooks/review-verdict-gate.sh` (timestamp gate)

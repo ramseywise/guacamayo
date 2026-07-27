@@ -66,4 +66,13 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-24 | discovered | Worktree agent cleanup is manual friction — leftover worktrees cause pr... | discarded | process/tooling → /retro (friction signal) |
 | 2026-07-24 | discovered | Dependabot-heavy branches (30+ dep bumps) must use git merge main not ... | discarded | process/tooling → /retro (git strategy) |
 
+| 2026-07-26 | discovered | Always git fetch and check remote state before planning work. LAE #36 a... | merged | sounding.md § "Read the actual state first" (remote verification) |
+| 2026-07-24 | discovered | Sessions that grow beyond their branch scope need a mid-session branch-... | discarded | process/tooling → /retro (branch convention) |
+| 2026-07-24 | corrected | Observability loop had a gap: /grow only read signals but never refresh... | discarded | process/tooling → already actioned in skills |
+| 2026-07-25 | corrected | /wake only checks guacamayo issue board but the meta-session's job is t... | discarded | process/tooling → already actioned in /wake skill |
+| 2026-07-26 | discovered | Two worktree agents targeting the same repo cause branch collisions (LA... | discarded | process/tooling → already in CLAUDE.md worktree convention |
+| 2026-07-26 | corrected | /workflow-refine needs fable model, not sonnet. Sonnet agents defer ver... | discarded | process/tooling → model pairing in refs/models.md |
+| 2026-07-26 | corrected | Worktree agents pushed code and created PRs, violating "Claude never pu... | discarded | process/tooling → already actioned in CLAUDE.md |
+| 2026-07-26 | discovered | git push origin branch:main pushes TO main (protected branch rejection)... | discarded | operational git knowledge → shell.md or rules |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)

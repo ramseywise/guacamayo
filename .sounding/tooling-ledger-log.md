@@ -30,3 +30,24 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F4: /dream Phase 8 independent tooling-change detection added
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
+
+## R2 — 2026-07-26
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-18 | memory_route_guard.sh | safety | duplicate | Already graduated in R1; row left in active ledger by mistake |
+| 2026-07-22 | Default model → fable; opus = escalation only | cost | verified | 88%+ fable+opus share (target ≥60%) — insights-log 2026-07-27 |
+| 2026-07-20 | Design skill descriptions rewritten | workflow | failed | 0 invocations across 219 sessions; insights-log R4 flags zero-invoked design skills |
+| 2026-07-20 | Hook telemetry (log_event, .hook-log.jsonl) | observability | failed | 89 log entries, only test_hook fires; hooks don't call log_event consistently |
+| 2026-07-20 | Skill name mismatches fixed; typo aliases | workflow | verified | 0 mismatches across 2 retros (threshold: 2) |
+| 2026-07-20 | Parallax integration plan (5 phases) | quality | inconclusive | Plan executed but review-shared never invoked — no L2+ reviews occurred to test |
+
+### R2 findings applied
+- F1: Duplicate memory_route_guard.sh row removed from active ledger
+- F2: Fable model default graduated as verified
+- F3: Design skill descriptions graduated as failed → backlog issue for skill-creator optimization
+- F4: Hook telemetry graduated as failed → new hypothesis for wiring audit
+- F5: Skill name mismatches graduated as verified
+- F6: Parallax review-shared graduated as inconclusive
+- F7: 6 untestable rows annotated with R3 graduation deadline
+- 2 new hypothesis rows added (design skill optimization, hook telemetry wiring)
