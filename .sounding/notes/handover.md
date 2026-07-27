@@ -1,46 +1,50 @@
-# Handover — 2026-07-27 Review System Evolution Initiative
+# Handover — 2026-07-27 Review Architecture Refinement, Research, and Dream
 
-**Context**: Meta-session that ran retro R2, akira wander cross-repo, and designed the review system evolution initiative (GUA-34). Heavy grooming session — 10 issues created, 1 initiative designed, enforcement fixes implemented.
+**Context**: Meta-session continuing the review system evolution. Refined issues #38-40, researched #40 (cross-repo intelligence), ran /grow and /dream with synthesis. Retro spawned in background.
 
 ## Current State
 
-**Retro R2 complete**: 6 ledger rows graduated (2 verified, 2 failed, 1 dup, 1 inconclusive), 6 untestable rows annotated with R3 deadline, 2 new hypotheses added. Active ledger: 18 rows.
+**#38 (Phase 1 — dao foundation)**: `ready`. DoR passes. Existing `review/` package has 79 passing tests. Remaining: `render-report` CLI, restructure to three-role dirs, move refs + symlinks, `setup.sh`.
 
-**Move 1 (enforcement) done**: `check-review` and `review-verdict-gate.sh` now compare review timestamp against last commit (not `.git/HEAD`). On committed `CLA-34-review-enforcement` branch in `~/.claude`. Smoke-tested — correctly blocks when no review is newer than last commit.
+**#39 (Phase 2 — scan dimension agents)**: `ready`. DoR passes. Depends on #38. 2-session sizing.
 
-**Move 3 (akira simplification) designed**: 3 primitives (scan, wander, dao) + sanyi as reporter. Bare `/akira` = full flow. Scope (diff vs whole-repo) is automatic, not a mode. `auto` and `all` modes die. All 5 open questions answered in plan doc.
+**#40 (Phase 3 — cross-repo intelligence)**: `backlog`, deferred. Research complete (7 findings). Needs 3+ real sweep files. Proposed 3a/3b sub-split in issue body.
 
-**Guacamayo branch**: `GUA-34-review-system-evolution` — uncommitted changes: tooling-ledger (R2), growth.md (4 entries), plan doc, insights-log edits.
+**Synthesis ran**: 1 entry merged to sounding.md (Ramsey's primitive-over-mode design instinct), 5 discarded (2 duplicates, 3 process/tooling). Growth buffer cleared to 0.
+
+**Retro spawned**: R1 running in background (triggered: overdue 5 days + retro-worthy session). Results will be in tooling-ledger.md and tooling-ledger-log.md.
+
+**Uncommitted changes**: All on main — review log README, akira SKILL.md (review log section), plan doc, 2 research artifacts, growth entries, reflection, handover, dashboard updates, sounding.md synthesis edit.
 
 ## Decisions Made
 
-- **Akira simplification**: 6 modes → 3 primitives + scope. "Audit" is not a mode — just akira without a diff. Sanyi folds in as reporter.
-- **Dep scanning**: let dependabot handle it, not akira's job.
-- **Loop scheduling**: experiment with `/loop` for periodic akira sweeps.
-- **Repo inclusion list**: guacamayo, job-system, learn-ai-engineering, librarian, atlas, ai-project-template, listen-wiseer. Excluded: dssg, parallax, nrr, lebanese-blonde, cryptozombies, first-flask-app, playground.
-- **Design vs workflow**: design scopes (what + why), workflow executes (how + when). Sequential, not competing. Description problem, not conceptual.
-- **Enforcement**: gates must block, not advise. Timestamp validation is the fix for stale reviews.
+- **Three-role architecture**: scan/wander/dao confirmed by research
+- **Fingerprint-based finding identity**: `hash(file + symbol + category + title)[:12]` for cross-sweep matching
+- **Phase 3 gate**: need 3+ real sweeps before intelligence layer
+- **Dual format for review log**: JSON (machine) + Markdown (human)
+- **Primitive-over-mode**: Ramsey's design instinct → sounding.md (identity-level)
 
 ## Open Threads
 
-- **4 growth entries** — synthesis not yet due (threshold: 5). Close to it.
-- **Design skill descriptions** (#32) — confirmed relevant but triggering broken. Investigate before retiring.
-- **Parallax gap analysis** — full comparison done. Key gaps: evidence enforcement, self-verification, dimension coverage, agent-system detection. Ported as Move 2 tasks.
-- **Hook telemetry wiring** (#33, `ready`) — mechanical fix, good worktree agent candidate.
-- **Branch protection** (#35, `ready`) — `gh api` across repos, mechanical.
+- **sdk-adoption-strategy plan** appeared (PLANNED) — unknown origin, not discussed this session
+- **Signal detection research** at `.claude/docs/research/2026-07-27-signal-detection.md` — feeds into #39
+- **Retro R1 running in background** — check results next session
+- **Bash antipatterns at 28.77/session** — insights flagged as workflow-endemic, not hook-fixable
+- **Fable underutilized** (16.2% vs 25% target) — insights flagged for retro
 
 ## Immediate Next Steps
 
-1. Commit guacamayo changes on `GUA-34-review-system-evolution` branch
-2. `/workflow-plan` for Move 3 (akira simplification) — break 3.1-3.5 into executable steps
-3. Spawn agents for #33 (hook wiring) and #35 (branch protection) — both `ready`, mechanical
-4. JOB branch still needs push + PR (#15-18)
+1. Commit all guacamayo changes on a branch (not main)
+2. Check retro R1 results (background agent)
+3. `/workflow-execute` #38 — complete the dao foundation
+4. Spawn agents for #33 (hook telemetry) and #35 (branch protection) — both `ready`, mechanical
 
 ## Key Files
 
-- `.claude/docs/plans/2026-07-27-GUA-34-review-system-evolution.md`
-- `.sounding/tooling-ledger.md` (18 active rows post-R2)
-- `.sounding/tooling-ledger-log.md` (R2 section appended)
-- `.sounding/growth.md` (4 entries)
-- `~/.claude/Makefile.common` (timestamp check-review)
-- `~/.claude/hooks/review-verdict-gate.sh` (timestamp gate)
+- `.claude/docs/plans/2026-07-27-review-agent-architecture.md`
+- `.claude/docs/research/2026-07-27-cross-repo-intelligence.md`
+- `.claude/docs/research/2026-07-27-signal-detection.md`
+- `.sounding/sounding.md` (transformed — primitive-over-mode)
+- `.sounding/growth-log.md` (6 new disposition rows)
+- `.sounding/reflections/2026-07-27_18-36.md`
+- `~/.claude/skills/akira/SKILL.md` (review log section added)

@@ -5,6 +5,109 @@ Full analysis is generated fresh each run; this log captures the trajectory.
 
 ---
 
+## 2026-07-27 (222 sessions, 2026-07-15 to 2026-07-27) — dry-run
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 24% | stable (25%→24%) |
+| Opus-4-6 share | 49.6% | elevated from 43.5% |
+| Opus total (4-6 + 4-8) | 73.9% | stable-high |
+| Fable share | 16.2% | declining (18.2%→16.2%) |
+| Cache hit rate | 96% | stable, 84% savings |
+| Bash antipatterns | 28.77/session | flat (28.8 prior) |
+| Read:edit ratio | 1.16 | stable |
+| Compacts | 141 invocations | stable (50 sessions, 22.5%) |
+| Median response time | 163.1s | improved from 172.8s |
+| Subagent share | 33% of usage (388 transcripts) | growing (31%→33%) |
+| P90 output tokens/msg | 956.2 | flat |
+
+### Model distribution
+Opus-4-6: 49.6% (cost-weighted ~56%), Opus-4-8: 24.3% (~31%), Fable-5: 16.2% (~10%), Sonnet-5: 7.2% (~2.5%)
+
+**Analysis**: Model escalation protocol holding. Fable baseline shifting downward (18.2%→16.2%) while opus-4-6 concentrating (43.5%→49.6%) — suggests routine work still routing to expensive models despite fable default. Cost-weighted distribution: opus 87% total, fable only 10% of spend. Fable underutilized relative to settings.json intent (2026-07-22 default).
+
+### Skill economics
+Compact: 3.4%, grow: 1.6%, wake: 1.5%, execute: 0.8%, dream: 0.8%, workflow-review: 0.8%, workflow-retro: 0.4%, ingest: 0.4%
+
+**Analysis**: Identity-layer skills (dream/wake/grow) remain lean at 3.9% combined. Compact sustains at 3.4% despite stable session count — suggests compacting is now routine, not emergency. No skill is a cost outlier.
+
+### Tool breakdown
+Bash: 8,959 (48.1%), Edit: 4,167 (22.3%), Read: 3,615 (19.4%), Write: 875 (4.7%), Agent: 404 (2.2%), ToolSearch: 279 (1.5%), TodoWrite: 180 (1.0%)
+
+**Read:edit parity** — 1.16 ratio (stable); 104 sessions still below 1.0 (editing without full read). Bash remains dominant at 48% of all tool calls.
+
+### Context distribution
+<50k: 23%, 50-100k: 35%, 100-150k: 19%, >150k: 24%
+
+**Analysis**: 24% over 150k stable (down 1 point from 25%). Compacting at 22.5% adoption (141 compacts / 222 sessions) holding gains. Context profile unchanged; further reduction requires structural changes (fewer always-loaded includes, lazy-load identity skills).
+
+### Observations — friction patterns
+- **Bash antipattern volume**: 6,385 total (28.77/session); flat compared to prior (28.8). No improvement from prior hook work — pattern endemic to workflow, not local config.
+- **Model underutilization of fable**: Despite default shift (2026-07-22), opus handling routine work. Suggests workflow routing heuristic or escalation triggers are too aggressive.
+- **Long sessions without planning**: 67 sessions (30% of total) still run high tool counts without TodoWrite structure. Context drift likely in 1–2% of usage.
+- **Response time improving**: Median 163.1s (down from 172.8s, 5.6% improvement). P90 output tokens/msg flat at 956.2 — verbose responses persist as cost driver.
+- **Subagent growth**: 388 transcripts (+47 from 7-26 to 7-27, 1 day), 33% share — indicating deliberate spawning for design/research work, not redundant agents.
+
+### Failure attribution
+| Category | Count | % | Example |
+|----------|-------|---|---------|
+| code | 339 | 53.9% | command_failed (265), file_not_found (72) |
+| unknown | 222 | 35.3% | unclassified errors (taxonomy gap) |
+| tool | 37 | 5.9% | user_rejected (hook blocks) |
+| env | 31 | 4.9% | permission_denied |
+
+**Remediation**: Code errors dominate (54%). command_failed at 265 instances is top signal — likely roots are bash antipatterns (48% tool share), argument validation, or plan step mismatch. Unknown category still high at 35% — parser taxonomy needs stratification (tool type × error signal). **Recommendation**: Parser enhancement to emit (tool, error_name) tuples and retry sequences before/after hook changes.
+
+### Experiment verdicts (from ledger check — pending full retro)
+| Experiment | Metric | Verdict | Evidence |
+|-----------|--------|---------|----------|
+| Default model → fable; opus = escalation only | ratio:fable-or-opus above 60% | failed | 73.9% opus vs target escalation; fable not filling routine role |
+| Context health / compacting | context >150k declining / stable | confirmed-stable | 24% holding (was 25%); compacting at 22.5% adoption |
+| Hook telemetry bash antipattern | bash_antipattern_warn declining | failed | 28.77/session flat; 6,385 total unchanged |
+| Bash antipattern hook (removed 2026-07-24) | absence:bash-antipattern-warns declining | inconclusive | 5-day delta insufficient; check 2026-08-02 |
+| Session intent classifier + compliance | execution-sessions-with-skills above 80% | pending | classifier deployed; compliance signals unclear |
+| Worktree timing guidance | absence:worktree-stale-state error for 5 sessions | inconclusive | no error signals |
+| Parallax integration review-shared | presence:review-shared-invoked within 3 L2+ reviews | inconclusive | never invoked; baseline GUA-20 |
+| Growth log audit trail | presence:growth-log rows >= cleared entries | pending | dream not finalized for window; check 2026-08-02 |
+
+### Recommendations
+
+**R1: Investigate fable underutilization — model escalation heuristic too aggressive**
+- **Impact**: Shift 20–30% routine usage from opus to fable (cost reduction: ~4–6% total spend)
+- **Mechanism**: Log model-selection reason at session start (heuristic triggered, user escalation, fallback); audit 10 sessions defaulting to opus despite fable-capable work
+- **Metric**: `fable-share above 25% within 5 sessions or document escalation criteria`
+- **Owner**: settings audit + session logging
+
+**R2: Stratify bash antipattern taxonomy — distinguish workflow patterns from true antipatterns**
+- **Impact**: Reduce "unknown" errors from 35% to <15%; clarify if 28.77/session is endemic or fixable
+- **Mechanism**: Parser emits (tool, error_type) tuples; categorize command_failed by bash vs other; identify polling loops vs legitimate command sequencing
+- **Metric**: `bash-stratified-taxonomy in cartographer by 2026-08-09`
+- **Owner**: cartographer parser enhancement
+
+**R3: Enforce TodoWrite for sessions with >100 bash calls — introduce structure for long sessions**
+- **Impact**: Reduce context drift in 67 long sessions (30% of total); improve reliability for multi-step work
+- **Mechanism**: Hook: if bash_calls > 100 and no TodoWrite in session, suggest early (msg 5+)
+- **Metric**: `TodoWrite adoption in heavy-tool sessions: ≥50% by 2026-08-09`
+- **Owner**: hook audit + session intent classifier
+
+**R4: Reduce output verbosity (P90: 956.2 tokens/msg) — tighten response style**
+- **Impact**: Lower output cost multiplier from 5× to 3×; improve signal-to-noise
+- **Mechanism**: Add ≤400-token budget to skill prompts (esp. dream, wake, grow); audit top 10 verbose skills
+- **Metric**: `p90:output-tokens-per-msg below 750 by 2026-08-16`
+- **Owner**: skill prompt audit
+
+**R5: Query design skill usage in other repos — unblock adoption or retire gracefully**
+- **Impact**: Clarify if design-* skills (initiative, milestones, prototype) are workflow-fit or stale descriptions
+- **Mechanism**: Query librarian wiki for atlas/listen-wiseer usage; test design-initiative in next design-heavy sprint
+- **Metric**: `presence:design-skill-invoked within 3 sessions OR documented retirement`
+- **Owner**: skill-creator + wiki audit
+
+### Trends
+**vs 2026-07-27 (baseline, 0 days)**: Dry-run re-analysis of same window (221→222 sessions, +2 messages). Context >150k stable (25%→24%, within noise). Compacts flat (141 both runs). **Signal**: ~22.5% adoption holding steady. Model escalation hypothesis now shows fable underutilization (16.2% vs 28% target when fable was new default 2026-07-22) — suggests workflow routing heuristic or escalation guards are too aggressive. Subagent share growing (31%→33% in 1 day) indicates deliberate spawning. **Next action**: Either adjust settings.json model heuristics OR document why opus is justified for routine work. Productivity markers (response time, subagent adoption) positive; cost efficiency plateau likely requires structural changes (always-loaded reduction, session design patterns).
+
+---
+
 ## 2026-07-27 (219 sessions, 2026-07-15 to 2026-07-27)
 
 ### Key metrics

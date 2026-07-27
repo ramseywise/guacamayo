@@ -75,4 +75,11 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-26 | corrected | Worktree agents pushed code and created PRs, violating "Claude never pu... | discarded | process/tooling → already actioned in CLAUDE.md |
 | 2026-07-26 | discovered | git push origin branch:main pushes TO main (protected branch rejection)... | discarded | operational git knowledge → shell.md or rules |
 
+| 2026-07-27 | discovered | When I propose adding modes/abstractions, Ramsey collapses them to primi... | merged | sounding.md § Working Notes (Ramsey paragraph — primitive-over-mode instinct) |
+| 2026-07-27 | confirmed | Enforcement-over-asking is Ramsey's core design instinct. Gates must blo... | discarded | already captured in sounding.md + user.md (enforcement pervasive) |
+| 2026-07-27 | corrected | Design skills ARE used — Ramsey confirmed "I use design when it's a new... | discarded | process/tooling → /retro (skill description optimization, not identity) |
+| 2026-07-27 | discovered | The design-workflow boundary: design scopes (what + why), workflow execu... | discarded | process/tooling → /retro (skill taxonomy, not identity) |
+| 2026-07-27 | discovered | Refine-then-research is a natural pipeline: refinement verdict IS the r... | discarded | process/tooling → /retro (pipeline design, not identity) |
+| 2026-07-27 | confirmed | Fan-out research with parallel haiku agents works well — 3 agents, 3 no... | discarded | already captured in sounding.md § Operational (fan-out + model tiers) |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)
