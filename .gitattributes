@@ -1,0 +1,5 @@
+# Append-only files: use union merge to keep both sides automatically.
+# Prevents stash-pop and rebase conflicts from concurrent session writes.
+.sounding/*.md merge=union
+.sounding/notes/*.md merge=union
+.sounding/reflections/*.md merge=union
