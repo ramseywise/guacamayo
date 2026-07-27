@@ -1,50 +1,59 @@
-# Handover — 2026-07-27 Review Architecture Refinement, Research, and Dream
+# Handover — 2026-07-27 Fleet Dispatch: JOB + GUA Issues + SDK Adoption
 
-**Context**: Meta-session continuing the review system evolution. Refined issues #38-40, researched #40 (cross-repo intelligence), ran /grow and /dream with synthesis. Retro spawned in background.
+**Context**: Meta-session dispatching 14 agents across 7 repos to clear JOB and GUA open issues, execute SDK adoption strategy, and retire unused design skills.
 
 ## Current State
 
-**#38 (Phase 1 — dao foundation)**: `ready`. DoR passes. Existing `review/` package has 79 passing tests. Remaining: `render-report` CLI, restructure to three-role dirs, move refs + symlinks, `setup.sh`.
+**Completed (staged/committed, awaiting Ramsey's review + push):**
 
-**#39 (Phase 2 — scan dimension agents)**: `ready`. DoR passes. Depends on #38. 2-session sizing.
+| Work | Repo | State | Notes |
+|------|------|-------|-------|
+| #38 dao foundation | guacamayo | Committed (179ae17) | 101 tests, three-role dirs |
+| #39 scan dimensions | guacamayo | Staged | 167 tests, 5 dimension agents + wander |
+| #33 hook telemetry | ~/.claude | Unstaged | 2 bugs fixed in review-verdict-gate.sh |
+| #35 branch protection | API only | Applied | 4 repos protected (librarian, atlas, listen-wiseer, AIT) |
+| #37 akira simplification | ~/.claude | Committed (CLA-34 branch) | Already done prior session |
+| #31 dependabot fleet | 4 repos | Staged | guacamayo, LAE, JOB, lebanese-blonde |
+| #32 design retirement | ~/.claude | Staged | 4 skills → archive/ |
+| #41 parser taxonomy | librarian | Committed by agent | Unknown 24%→0.5% |
+| #24 gitignore | job-system | Committed (JOB-24 branch) | |
+| SDK listen-wiseer | listen-wiseer | Staged | anthropic >=0.25→~=0.120 |
+| SDK atlas | atlas/web | Staged | Vercel AI SDK installed |
+| #28 plugins | guacamayo | Closed wontfix | |
 
-**#40 (Phase 3 — cross-repo intelligence)**: `backlog`, deferred. Research complete (7 findings). Needs 3+ real sweep files. Proposed 3a/3b sub-split in issue body.
-
-**Synthesis ran**: 1 entry merged to sounding.md (Ramsey's primitive-over-mode design instinct), 5 discarded (2 duplicates, 3 process/tooling). Growth buffer cleared to 0.
-
-**Retro spawned**: R1 running in background (triggered: overdue 5 days + retro-worthy session). Results will be in tooling-ledger.md and tooling-ledger-log.md.
-
-**Uncommitted changes**: All on main — review log README, akira SKILL.md (review log section), plan doc, 2 research artifacts, growth entries, reflection, handover, dashboard updates, sounding.md synthesis edit.
+**Lint fixed**: 3 rounds on #39 output (import sorting, unused imports, subprocess check=False). All clean now.
 
 ## Decisions Made
 
-- **Three-role architecture**: scan/wander/dao confirmed by research
-- **Fingerprint-based finding identity**: `hash(file + symbol + category + title)[:12]` for cross-sweep matching
-- **Phase 3 gate**: need 3+ real sweeps before intelligence layer
-- **Dual format for review log**: JSON (machine) + Markdown (human)
-- **Primitive-over-mode**: Ramsey's design instinct → sounding.md (identity-level)
+- **Design skills retired**: 4 skills (design-initiative, design-milestones, design-prototype, design-sprint) archived after 222 sessions / 0 invocations. Workflow structurally absorbs their function into /workflow-plan. Skill count: 24→20.
+- **#28 closed wontfix**: Claude Code plugins — speculative, no mature offerings.
+- **Backlog triage**: #34 umbrella (close when children ship), #36 (after #39), #40 (gated on 3+ sweeps), #30 (separate initiative). All correctly parked.
+- **Retro findings approved (F1-F3, F6)**: Remove bash_antipattern hook, investigate fable vs opus default, lib.sh log_pass(), plan-doc Status enforcement. All due 08-10.
+- **Branch protection**: enforce_admins=false, strict=true (requires rebase before merge). Ramsey to confirm or adjust.
 
 ## Open Threads
 
-- **sdk-adoption-strategy plan** appeared (PLANNED) — unknown origin, not discussed this session
-- **Signal detection research** at `.claude/docs/research/2026-07-27-signal-detection.md` — feeds into #39
-- **Retro R1 running in background** — check results next session
-- **Bash antipatterns at 28.77/session** — insights flagged as workflow-endemic, not hook-fixable
-- **Fable underutilized** (16.2% vs 25% target) — insights flagged for retro
+- **#39 orchestrator integration gap**: akira SKILL.md needs to dispatch 5 dimension agents through dao pipe. Spawn prompt in #39 agent output.
+- **Worktree + denied commit = lost work**: First #38 worktree agent's work was lost because settings deny `git commit` but worktree cleanup destroys staged changes. Need either a worktree exception in settings or stop using worktree isolation. Growth entry captured.
+- **Agents don't pre-lint**: Every Python agent needed post-hoc lint fixes. Consider adding "run ruff check --fix && ruff format before staging" to agent prompts or a post-agent hook.
+- **JOB #31 staging conflict**: dependabot changes staged on JOB-24-gitignore-applications branch — needs separate branch or fold-in.
+- **Atlas Tremor/React 19 peer dep conflict**: pre-existing, requires --legacy-peer-deps. Not introduced by SDK work.
+- **Librarian #41 needs cartographer re-parse**: `cartographer --facts` to backfill corrected classifications.
+- **sdk-adoption-strategy plan**: Executed (LIS + ATL done), LAE examples not yet updated. No issue needed per Ramsey.
 
 ## Immediate Next Steps
 
-1. Commit all guacamayo changes on a branch (not main)
-2. Check retro R1 results (background agent)
-3. `/workflow-execute` #38 — complete the dao foundation
-4. Spawn agents for #33 (hook telemetry) and #35 (branch protection) — both `ready`, mechanical
+1. Review staged diffs across repos — biggest: guacamayo (review system), ~/.claude (retirement + hook fix)
+2. Commit + push per repo, close issues: #24, #31, #32, #33, #35, #37, #38, #41
+3. Merge JOB PR #23 → close #15, #16, #17, #18
+4. Spawn #39 orchestrator integration (akira dispatch through dao pipe)
+5. Update CLAUDE.md skill counts (24→20) when committing design retirement
 
 ## Key Files
 
 - `.claude/docs/plans/2026-07-27-review-agent-architecture.md`
-- `.claude/docs/research/2026-07-27-cross-repo-intelligence.md`
-- `.claude/docs/research/2026-07-27-signal-detection.md`
-- `.sounding/sounding.md` (transformed — primitive-over-mode)
-- `.sounding/growth-log.md` (6 new disposition rows)
-- `.sounding/reflections/2026-07-27_18-36.md`
-- `~/.claude/skills/akira/SKILL.md` (review log section added)
+- `.claude/docs/plans/2026-07-27-sdk-adoption-strategy.md`
+- `review/dao/signals.py`, `review/scan/agents/*.md`, `review/wander/agents/wander.md`
+- `~/.claude/archive/design-skills-retired/README.md`
+- `~/.claude/hooks/review-verdict-gate.sh`
+- `.sounding/growth.md` (4 entries)
