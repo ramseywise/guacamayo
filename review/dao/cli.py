@@ -8,6 +8,7 @@ import click
 from review.dao import commit_verification, validation
 from review.dao.deduplication import find_duplicate_clusters
 from review.dao.render import render_report
+from review.dao.signals import active_dimensions, detect_signals
 from review.schemas.models import ReviewFinding
 
 
@@ -69,3 +70,27 @@ def render_report_cmd(input):
     data = json.load(input)
     md = render_report(data)
     click.echo(md)
+
+
+@main.command("detect-signals")
+@click.option("--repo", default=".", help="Git repo root path")
+@click.argument("files", nargs=-1)
+def detect_signals_cmd(repo, files):
+    """Detect which scan dimensions should activate for the given files.
+
+    Reads a JSON list of file paths from stdin (if no FILES args given),
+    or uses the FILES arguments directly. Outputs JSON with signal booleans
+    and the list of active dimensions.
+
+    Example:
+        echo '["agents/foo.py", "src/bar.py"]' | uv run review-cli detect-signals
+        uv run review-cli detect-signals agents/foo.py src/bar.py
+    """
+    if files:
+        file_list = list(files)
+    else:
+        file_list = json.load(click.get_text_stream("stdin"))
+
+    signals = detect_signals(file_list, repo_root=repo)
+    dims = active_dimensions(signals)
+    click.echo(json.dumps({"signals": signals, "active_dimensions": dims}, indent=2))

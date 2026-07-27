@@ -56,11 +56,30 @@ class Category(str, Enum):
 
 
 class Reporter(str, Enum):
+    # Legacy reporters (pre-Phase 2)
     AKIRA_SCAN = "akira_scan"
     AKIRA_WANDER = "akira_wander"
     SANYI = "sanyi"
     LINT = "lint"
     PLAN_FIDELITY = "plan_fidelity"
+    # Phase 2 dimension reporters
+    CORRECTNESS = "correctness"
+    SAFETY = "safety"
+    STRUCTURE = "structure"
+    AGENT_QUALITY = "agent_quality"
+    CONTRACTS = "contracts"
+    WANDER = "wander"
+
+
+# Maps dimension reporter → expected ID prefix (e.g. correctness → "CR")
+REPORTER_ID_PREFIX: dict[str, str] = {
+    Reporter.CORRECTNESS: "CR",
+    Reporter.SAFETY: "SF",
+    Reporter.STRUCTURE: "ST",
+    Reporter.AGENT_QUALITY: "AQ",
+    Reporter.CONTRACTS: "CT",
+    Reporter.WANDER: "WD",
+}
 
 
 class FileLocation(BaseModel):
@@ -120,6 +139,18 @@ class ReviewFinding(BaseModel):
         if not _FINDING_ID_PATTERN.match(v):
             raise ValueError(f"id {v!r} must match {{SRC}}-{{NNN}} (e.g. AK-001)")
         return v
+
+    @model_validator(mode="after")
+    def dimension_id_prefix_matches_reporter(self) -> ReviewFinding:
+        expected = REPORTER_ID_PREFIX.get(self.reporter)
+        if expected is not None:
+            actual_prefix = self.id.split("-")[0]
+            if actual_prefix != expected:
+                raise ValueError(
+                    f"reporter={self.reporter.value!r} requires id prefix {expected!r}, "
+                    f"got {actual_prefix!r} in id={self.id!r}"
+                )
+        return self
 
     @model_validator(mode="after")
     def question_state_constrains_impact(self) -> ReviewFinding:
