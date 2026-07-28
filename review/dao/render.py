@@ -132,7 +132,7 @@ def render_report(data: dict) -> str:
     for raw in raw_findings:
         try:
             findings.append(ReviewFinding.model_validate(raw))
-        except Exception as exc:
+        except (ValueError, TypeError, KeyError) as exc:
             parse_errors.append(str(exc))
 
     sorted_findings = _sort_findings(findings)
