@@ -17,6 +17,7 @@ from review.schemas.models import (
     TrendDirection,
     TrendReport,
 )
+from tests.review.conftest import REPO_ROOT
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -344,7 +345,7 @@ class TestTrendsCLI:
             ],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0, result.stderr
         assert "testrepo" in result.stdout
@@ -376,7 +377,7 @@ class TestTrendsCLI:
             ],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0, result.stderr
         data = json.loads(result.stdout)
@@ -409,7 +410,7 @@ class TestTrendsCLI:
             ],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0, result.stderr
         data = json.loads(result.stdout)
@@ -434,7 +435,7 @@ class TestTrendsCLI:
             ],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode != 0
         assert "at least 2" in result.stderr

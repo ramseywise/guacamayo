@@ -2,7 +2,7 @@ import subprocess
 
 from review.deduplication import find_duplicate_clusters
 from review.validation import validate_finding
-from tests.review.conftest import make_finding
+from tests.review.conftest import REPO_ROOT, make_finding
 
 
 class TestFullPipeline:
@@ -41,7 +41,7 @@ class TestCLIInstalled:
             ["uv", "run", "review-cli", "--version"],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         assert "0.1.0" in result.stdout
@@ -51,7 +51,7 @@ class TestCLIInstalled:
             ["uv", "run", "review-cli", "--help"],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         for cmd in ["validate-finding", "validate-report", "dedup", "verify-commits"]:

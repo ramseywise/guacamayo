@@ -5,6 +5,7 @@ import textwrap
 import pytest
 
 from review.commit_verification import parse_plan_steps, verify_commits
+from tests.review.conftest import REPO_ROOT
 
 SAMPLE_PLAN = textwrap.dedent("""\
     # Test Plan
@@ -128,7 +129,7 @@ class TestVerifyCommits:
             ["uv", "run", "review-cli", "verify-commits", str(plan_file), "--repo", str(git_repo)],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         output = json.loads(result.stdout)
         assert any(s["step"] == 1 and s["status"] == "verified" for s in output)
