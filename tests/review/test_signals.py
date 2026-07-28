@@ -4,6 +4,7 @@ import json
 import subprocess
 
 from review.dao.signals import active_dimensions, detect_signals
+from tests.review.conftest import REPO_ROOT
 
 
 class TestDetectSignalsAgentCode:
@@ -127,7 +128,7 @@ class TestDetectSignalsCLI:
             ["uv", "run", "review-cli", "detect-signals", "--repo", str(tmp_path), str(f)],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)
@@ -143,7 +144,7 @@ class TestDetectSignalsCLI:
             input=payload,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         data = json.loads(result.stdout)

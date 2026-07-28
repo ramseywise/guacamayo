@@ -3,7 +3,7 @@ import subprocess
 
 from review.schemas.models import MergeDecision, Reporter, ReporterDispatchEntry
 from review.validation import validate_finding, validate_report
-from tests.review.conftest import make_finding
+from tests.review.conftest import REPO_ROOT, make_finding
 
 
 class TestValidateFinding:
@@ -49,7 +49,7 @@ class TestValidateCLI:
             input=data,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         assert "valid" in result.stdout
@@ -60,6 +60,6 @@ class TestValidateCLI:
             input='{"id": "bad"}',
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 1

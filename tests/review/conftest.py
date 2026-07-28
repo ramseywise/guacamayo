@@ -1,3 +1,7 @@
+from pathlib import Path
+
+REPO_ROOT = str(Path(__file__).resolve().parent.parent.parent)
+
 from review.schemas.models import (
     Category,
     Claim,
