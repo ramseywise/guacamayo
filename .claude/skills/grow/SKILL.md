@@ -143,6 +143,25 @@ The dashboard is a self-contained HTML file. Edit the data values in-place — d
 
 Keep the dashboard under 200 lines if possible — it's meant to be glanceable. Full data lives in insights-log.md and the tooling ledger.
 
+## 5b. Outcome Tag (pilot — first 20 sessions)
+
+Before writing the handover, ask: "Session outcome?" Options:
+- `success` — shipped or merged what was planned
+- `partial` — progress but not complete
+- `failed` — blocked, reverted, or wrong direction
+- `skip` — exploratory/meta session, no outcome applicable
+
+If the user answers, record as one line in `growth.md`:
+```
+- [outcome:<tag>] <one-line summary of what was attempted> — <date>
+```
+
+Example: `- [outcome:success] GUA-30 context engineering v2 shipped and committed — 2026-07-28`
+
+If the user declines or doesn't answer, skip — this is opt-in during the pilot.
+Stop after 20 tagged entries; at that point the signal is ready to evaluate for
+Tier-0 measurement infrastructure.
+
 ## 6. Write the Handover
 
 The handover is a forward-facing document for the next session. It answers: "If a fresh instance picks this up cold, what do they need?"
