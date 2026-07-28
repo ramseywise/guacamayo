@@ -26,6 +26,7 @@ from review.schemas.models import (
     SweepFinding,
     SweepRecord,
 )
+from tests.review.conftest import REPO_ROOT
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -324,7 +325,7 @@ class TestFingerprintCLI:
             input=payload,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0, result.stderr
         data = json.loads(result.stdout)
@@ -354,7 +355,7 @@ class TestFingerprintCLI:
             input=payload,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0, result.stderr
         saved = list(tmp_path.glob("testrepo-*.json"))
@@ -383,7 +384,7 @@ class TestFingerprintCLI:
                 input=payload,
                 capture_output=True,
                 text=True,
-                cwd="/Users/wiseer/workspace/guacamayo",
+                cwd=REPO_ROOT,
             )
         saved = list(tmp_path.glob("testrepo-*.json"))
         assert len(saved) == 3

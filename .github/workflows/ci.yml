@@ -1,0 +1,13 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    uses: ramseywise/ai-project-template/.github/workflows/python-ci.yml@main
+    with:
+      lint-paths: "review tests"
+      test-command: "uv run pytest tests/ -q"

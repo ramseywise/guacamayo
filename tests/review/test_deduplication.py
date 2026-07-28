@@ -3,7 +3,7 @@ import subprocess
 
 from review.deduplication import find_duplicate_clusters
 from review.schemas.models import Category
-from tests.review.conftest import make_finding
+from tests.review.conftest import REPO_ROOT, make_finding
 
 
 class TestDeduplication:
@@ -89,7 +89,7 @@ class TestDeduplication:
             input=data,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         clusters = json.loads(result.stdout)
