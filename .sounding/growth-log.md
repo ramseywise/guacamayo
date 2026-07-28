@@ -82,4 +82,14 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-27 | discovered | Refine-then-research is a natural pipeline: refinement verdict IS the r... | discarded | process/tooling → /retro (pipeline design, not identity) |
 | 2026-07-27 | confirmed | Fan-out research with parallel haiku agents works well — 3 agents, 3 no... | discarded | already captured in sounding.md § Operational (fan-out + model tiers) |
 
+| 2026-07-27 | discovered | Worktree isolation + denied git commit = lost work. Settings deny commi... | discarded | process/tooling → /retro (worktree exception rule) |
+| 2026-07-27 | confirmed | Fleet dispatch at scale works: 14 agents across 7 repos, 4-5 parallel,... | discarded | already in sounding.md § Operational (prompt completeness, fan-out) |
+| 2026-07-27 | discovered | Agents don't pre-lint. Every agent that wrote Python needed post-hoc li... | discarded | process/tooling → /retro (agent lint hook) |
+| 2026-07-27 | confirmed | Retire-or-keep triage framework decisive: 222 sessions zero invocations... | discarded | confirms existing decision approach, already captured |
+| 2026-07-28 | corrected | Issue labels must track workflow state transitions. Labels went stale a... | discarded | instance of existing enforcement principle in sounding.md § Working Notes |
+| 2026-07-28 | confirmed | Refine-before-execute gate catches real problems. 2/6 DoR checks failed... | discarded | confirms existing two-wave pattern in sounding.md § Operational |
+| 2026-07-28 | discovered | Design skill problem is structural bypass, not description quality. /wo... | discarded | process/tooling → /retro (skill wiring, not identity) |
+| 2026-07-28 | discovered | Hardcoded local paths in tests = environment-coupling antipattern. Pass... | discarded | process/tooling → /retro (CI portability pattern) |
+| 2026-07-28 | confirmed | Pre-commit ↔ CI ruff version skew is systemic fleet risk. Gap grows sil... | discarded | process/tooling → /retro (version pinning strategy) |
+
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)

@@ -37,3 +37,4 @@
 2026-07-24 (evening) - Observability loop fix. Ramsey caught stale insights data; wired /grow to spawn insights and /dream to spawn retro as background agents. Passive reads became active refresh.
 2026-07-26 - Verification session. Local state diverged from remote — 3/5 push queue items already merged by Ramsey. LAE #36 already on origin/main. Dispatcher must `git fetch` before planning.
 2026-07-27 - Refinement + research. Promoted #38 and #39 to ready, researched #40 (cross-repo intelligence) with parallel agents. Fingerprint-based finding identity unifies within-sweep dedup and cross-sweep persistence.
+2026-07-28 - CI infrastructure hygiene. Cross-repo review surfaced ruff version skew (pre-commit vs pyproject) and hardcoded test paths. Fleet-wide fix: ruff v0.16.0, dynamic REPO_ROOT, guacamayo CI created.

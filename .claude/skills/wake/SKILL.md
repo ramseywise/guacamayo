@@ -70,6 +70,8 @@ Plan docs are git-ignored, so a cloud sandbox (phone sessions) clones the repos 
 
 The cross-repo work queue does NOT live in `.sounding/` handovers or reflections — those only record what this session's lineage saw and drift silently. The source of truth is per-repo plan docs.
 
+> **Fresh state**: run `make pull` before orienting — local clones drift between sessions, and orientation against stale state produces stale triage.
+
 ### Dashboard (first — fast visual state)
 
 Read `.sounding/context-dashboard.html` — scan for the signal summary section (last grow timestamp, retro status, hypothesis count, growth entry count). This gives a fast snapshot of where things stand before the detailed reads below. If the dashboard is stale (last grow timestamp >24h ago), note it.
@@ -111,6 +113,29 @@ Report explicitly across the full board (never silent on empty categories):
 Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
+
+### PRs updated since last wake
+
+Use the last-wake timestamp from Phase 1 as the `--updated` cutoff:
+
+```bash
+gh search prs --author=ramseywise --sort=updated --updated=">YYYY-MM-DD" \
+  --json repository,number,title,state,updatedAt --limit 20
+```
+
+Surface PRs awaiting review or merge alongside the issues table — a PR that moved since last wake is live context (review feedback landed, CI finished, merge happened).
+
+### Worktree inventory (active repos)
+
+Orphaned worktrees mean spawned agents that finished (or died) without cleanup — stale branches with possibly uncommitted work:
+
+```bash
+for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+  [ -d ~/workspace/$repo/.git ] && { echo "--- $repo ---"; git -C ~/workspace/$repo worktree list; }
+done
+```
+
+Flag any worktree beyond the main checkout: check its branch against open PRs/issues, and note it under **Needs your input** if it holds uncommitted or unpushed work.
 
 ### Workflow guidance
 

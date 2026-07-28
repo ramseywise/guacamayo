@@ -1,67 +1,63 @@
-# Handover — 2026-07-28 Full Board Clearance: Refine + Execute Wave
+# Handover — 2026-07-28 CI/Lint Fleet Fix + Cross-Repo Review
 
-**Context**: Meta-session clearing the entire GUA backlog through the workflow pipeline (refine → execute). Also consolidated branches across 4 repos and created the auto-label hook (#42).
+**Context**: Cross-repo /workflow-review on all diffs to main, then fixing all blocking findings. Escalated into CI infrastructure work — ruff version skew, hardcoded test paths, template lint gaps.
 
 ## Current State
 
-**Executed + in-review (11 GUA issues):**
+**Completed this session:**
+- /workflow-review across 4 repos (guacamayo, ~/.claude, job-system, librarian) — all blocking findings fixed
+- Ruff version bump v0.11.2 → v0.16.0 across fleet (guacamayo, atlas, AIT, librarian, listen-wiseer)
+- Guacamayo CI workflow created (`.github/workflows/ci.yml` using reusable python-ci.yml)
+- 48 hardcoded-path test failures fixed (dynamic `REPO_ROOT` from conftest.py)
+- AIT template `AB_BRIDGE.md.jinja` format fix (alignment spacing in Python code block)
+- Job-system merge conflict resolved (cv-master.html/pdf — rebased + force-push-with-lease)
+- Atlas 10 I001 lint fixes, AIT 5 I001 template lint fixes
+- Hook fixes: log_pass in risky_git_guard.sh + branch_guard.sh, jq guard in issue_label_sync.sh
+- Refs symlinks converted to relative paths (4 files)
+- Akira review log path → `.reviews/` (ungitignored)
+- Fleet list trimmed (lebanese-blonde + playground removed from deps-triage.sh)
+- Issue #53 created (lint coverage gaps: TS/JS, shell, markdown, template rendering)
 
-| # | Title | Repo | State |
-|---|-------|------|-------|
-| 30 | Context Eng v2 — findings pipeline + eval | guacamayo + librarian | Worktree commit; librarian dashboard.py modified |
-| 31 | Dependabot — deps-triage.sh + make deps | ~/.claude | Committed on CLA-34-review-evolution (ae8331c) |
-| 32 | Design skills A+B+fix — consolidation + pipeline footers | ~/.claude | Staged on CLA-34-review-evolution |
-| 33 | Hook telemetry | ~/.claude | Staged on CLA-34-review-evolution |
-| 35 | Branch protection | API-only | Applied, no code |
-| 36 | Reliability + ops checklist items | guacamayo | Staged on GUA-34 |
-| 37 | Akira simplification | ~/.claude | Staged on CLA-34-review-evolution |
-| 38 | Dao foundation | guacamayo | Committed (179ae17) on GUA-34 |
-| 39 | Scan dimension agents | guacamayo | Staged on GUA-34 |
-| 40 | Cross-repo intelligence Phase 3a | guacamayo | Staged on GUA-34 (fingerprint + trends + 57 tests) |
-| 42 | Auto-label hook | ~/.claude | Worktree commit on CLA-34 |
+**Branches needing push (user commits done, needs `make ship`):**
 
-**Other repos:**
+| Repo | Branch | What |
+|------|--------|------|
+| guacamayo | GUA-53-lint-ci-coverage | ci.yml + .pre-commit-config.yaml + test path fixes |
+| librarian | GUA-53-lint-ruff-bump | .pre-commit-config.yaml bump |
+| listen-wiseer | GUA-53-lint-ruff-bump | .pre-commit-config.yaml bump |
 
-| Repo | Branch | What | State |
-|------|--------|------|-------|
-| job-system | JOB-24-gitignore-applications | #24 gitignore + #31 dependabot | Staged |
-| librarian | LIB-41-parser-taxonomy | #41 parser taxonomy | Staged |
-| learn-ai-engineering | LAE-bug-dependabot-config | Dependabot config fix | Committed, needs push |
+**AIT** — `AB_BRIDGE.md.jinja` fix unstaged on `AIT-bug-dependabot-config`. Needs commit + push.
 
-**Ready (1):** #34 (umbrella — closes when children ship)
-**Backlog (4 new):** #43-46 created by #30 agent (context eng v2 follow-ups)
+**Atlas** — 10 lint fixes + .pre-commit-config.yaml staged on open PR branch. Already pushed.
 
 ## Decisions Made
 
-- **Design skills: A+B+name-fix** — consolidate milestones→initiative, wire pipeline footers, fix name bug. 24→23 skills.
-- **#36 re-scoped** — overlap audit showed safety.md already covers security. Real gap: reliability + operations checklist items only.
-- **#42 auto-label hook created** — workflow skills drive issue state transitions via PostToolUse on Skill tool.
-- **dashboard.html deleted** — stale duplicate. Only context-dashboard.html is canonical.
-- **Design skill retirement reverted** — placement question, not removal.
-- **Issue workflow enforcement** — labels must track state transitions. #42 automates this.
+- **Dynamic REPO_ROOT over hardcoded paths** — `Path(__file__).resolve().parent.parent.parent` in conftest.py, imported by all test files. Portable across local + CI.
+- **Ruff version pinned at v0.16.0** — matches what `uv sync` resolves in CI. Pre-commit and CI now agree.
+- **Template lint is structurally ungatable locally** — AIT's `exclude: ^template/` in pre-commit means `make lint` never checks template code. Only CI (render → lint) catches issues. Accepted as known limitation.
+- **CI for guacamayo** — uses reusable python-ci.yml with `lint-paths: "review tests"` and `test-command: "uv run pytest tests/ -q"`.
 
 ## Open Threads
 
-- **Agents still don't pre-lint** — 3rd session with post-hoc lint fixes. No hook/prompt fix yet.
-- **~/.claude branch consolidation** — multiple agents landed on CLA-34-review-evolution. May need cherry-picking or accept as one mega-PR.
-- **#30 agent created 4 new issues (#43-46)** — review: legitimate follow-ups or scope creep?
-- **$CLAUDE_TOOL_INPUT shape unverified** — #42 hook tries `.name // .skill_name // .skill`. First live invocation will confirm.
-- **dashboard.py over threshold** — librarian at 1441 lines (1400 limit). Needs extraction.
-- **#40 Phase 3b gated** — needs 3+ real sweeps.
+- **LAE branch** — has pre-commit but no ruff hook (only generic hooks at rev v5.0.0). No ruff bump needed. Has 1 unpushed commit on `LAE-bug-dependabot-config`.
+- **Issue #53** (lint coverage gaps) — backlog item for future: TS/JS (eslint/prettier), shell (shellcheck), markdown (markdownlint), template render lint step.
+- **9 growth entries** — synthesis threshold met (5+). Due at next /dream.
+- **Retro-worthy session** — touched CI config, pre-commit, hooks across fleet.
 
 ## Immediate Next Steps
 
-1. Commit across repos — GUA-34, CLA-34, JOB-24, LIB-41
-2. Push LAE branch: `git push -u origin LAE-bug-dependabot-config`
-3. Run `/workflow-review` on GUA-34 diff to main
-4. Review #43-46 (new backlog) — keep or close
-5. Close #34 umbrella when children (#35-40) all merge
+1. Commit AIT `AB_BRIDGE.md.jinja` fix on `AIT-bug-dependabot-config` and push
+2. `make ship` for GUA-53 branches (guacamayo, librarian, listen-wiseer)
+3. Verify CI passes on all pushed branches
+4. `/dream` — 9 growth entries, synthesis due, retro-worthy flag set
 
 ## Key Files
 
-- `review/dao/fingerprint.py`, `review/dao/trends.py` (#40)
-- `review/scan/dimensions/safety/SKILL.md`, `review/scan/dimensions/structure/SKILL.md` (#36)
-- `~/.claude/hooks/issue_label_sync.sh` (#42)
-- `~/.claude/skills/design-initiative/SKILL.md` (#32)
-- `~/.claude/scripts/deps-triage.sh` (#31)
-- `.claude/docs/plans/2026-07-28-GUA-42-auto-label-hook.md`
+- `tests/review/conftest.py:3` — REPO_ROOT definition
+- `.github/workflows/ci.yml` — new guacamayo CI
+- `.pre-commit-config.yaml` — ruff rev bump (all 5 repos)
+- `~/.claude/hooks/risky_git_guard.sh`, `branch_guard.sh` — log_pass fix
+- `~/.claude/hooks/issue_label_sync.sh` — jq guard
+- `~/.claude/scripts/deps-triage.sh` — fleet list trim
+- `~/.claude/skills/akira/SKILL.md:137` — review log path
+- `~/.claude/refs/` — 4 relative symlinks
