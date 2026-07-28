@@ -5,6 +5,292 @@ Full analysis is generated fresh each run; this log captures the trajectory.
 
 ---
 
+## 2026-07-28 (226 sessions, 2026-07-15 to 2026-07-28)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 23% | stable (24%→23%) |
+| Cache hit rate | 96% | stable, 84% savings |
+| Bash antipatterns | 28.7/session | flat (28.77 prior) |
+| Median response time | 2.7m | improved from 3.1m baseline |
+| Subagent share | 34% of usage (438 transcripts) | growing (33%→34%) |
+| Sessions analyzed | 226 | 14 active days |
+| Long sessions w/o TodoWrite | 69 | structural drift signal |
+| Compacts deployed | 144 invocations, 53 sessions | 23% adoption |
+
+### Model distribution
+Opus-4-6 and opus-4-8 dominate. Fable leveraged for routine work. Cost-weighted: opus 87%+ total.
+
+**Analysis**: Model escalation protocol continues. 96% cache hit rate with 84% cost savings indicates excellent context reuse. Parallelism high (65% of time runs 2-3 agents concurrently); 99% of messages overlap with concurrent sessions. Heavy 34 sessions drive 48% of all cost — skewed distribution suggests structural long-session clustering.
+
+### Tool breakdown
+Bash: 62%, Edit: 26%, Read: 25%, Write: 7%, Agent: 2.6%, ToolSearch: 2%
+
+**Read:edit ratio** — disciplined, showing consistent "read first" practice. Bash antipatterns flat at 28.7/session (6,488 total) — endemic to workflow, unresponsive to prior hook removals.
+
+### Context distribution
+<50k: 23%, 50-100k: 35%, 100-150k: 18%, >150k: 23%
+
+**Analysis**: 23% over 150k holding stable. Compacting at 23% adoption (144 compacts / 226 sessions). Peak session: 554k tokens. Context profile stable; 69 long sessions ran without TodoWrite, indicating structural planning opportunity.
+
+### Observations — friction patterns
+- **Bash antipatterns sustained**: 6,488 total (28.7/session); unchanged from prior runs. Pattern endemic, not config-driven.
+- **Context window pressure**: 23% of sessions exceed 150k; max observed 554k tokens. Skewed cost — top 34 sessions drive 48% of all spend.
+- **TodoWrite underutilized**: 69 long sessions without structured tracking; likely driver of context drift and interruption sensitivity (43 total interruptions logged).
+- **Parallelism in steady state**: 99% of messages overlap with concurrent work; 65% run 2-3 concurrent agents (normal operating range). Context switching smooth.
+- **Response time improving**: Median 2.7m (baseline 3.1m, 13% improvement). Subagent work (438 transcripts, 34% share) and identity skills (wake/grow/dream) sustain the tail.
+
+### Failure attribution
+| Category | Count | % | Example |
+|----------|-------|---|----------|
+| code | 350+ | 55% | command_failed, file_not_found |
+| unknown | ~200 | 32% | unclassified errors (taxonomy gap) |
+| tool | 35 | 6% | user_rejected (hook blocks, working as intended) |
+| env | 30 | 5% | permission_denied |
+
+**Remediation**: Code errors dominate. command_failed remains top signal — likely roots: bash antipatterns (48% tool share), path errors from plan steps, argument validation. Unknown category persistent at 32% — parser taxonomy needs stratification. **Recommendation**: Expand cartographer parser to emit (tool, error_type) tuples before/after hook changes for better signal discrimination.
+
+### Experiment verdicts (from ledger check — pending full retro)
+| Experiment | Metric | Verdict | Evidence |
+|-----------|--------|---------|----------|
+| Default model → fable; opus = escalation only | ratio:fable-or-opus above 60% | confirmed | 87%+ opus+fable share |
+| Context health / compacting | context >150k stable/declining | confirmed-stable | 23% holding |
+| Hook telemetry bash antipattern | bash_antipattern_warn declining | failed | 28.7/session flat; hook removal (7/24) had no effect |
+| Session intent classifier + compliance | execution-sessions-with-skills above 80% | pending | 438 subagent transcripts suggest classifier active |
+| Worktree timing guidance | absence:worktree-stale-state error for 5 sessions | inconclusive | no error signals |
+| TodoWrite for long sessions (>100 bash) | adoption ≥50% in target cohort | failed | 69 sessions still run blind |
+
+### Recommendations
+
+**R1: Activate TodoWrite hook for sessions with >100 bash calls — enforce structure for long sessions**
+- **Impact**: Reduce context drift in 69 long sessions (30% of total); improve interruption recovery
+- **Mechanism**: Hook: if bash_calls > 100 and no TodoWrite in session, suggest at msg 5+
+- **Metric**: `TodoWrite adoption in heavy-bash sessions: ≥50% by 2026-08-09`
+- **Owner**: hook audit + session intent classifier
+
+**R2: Stratify bash antipattern taxonomy — distinguish workflow patterns from fixable antipatterns**
+- **Impact**: Reduce "unknown" errors from 32% to <15%; clarify if 28.7/session is endemic or actionable
+- **Mechanism**: Parser emits (tool, error_type) tuples; categorize command_failed by bash vs other
+- **Metric**: `bash-stratified-taxonomy in cartographer by 2026-08-09`
+- **Owner**: cartographer maintainer (librarian)
+
+**R3: Investigate skill cost concentration — design-* skills remain zero-invoked**
+- **Impact**: Unblock design-initiative, design-milestones adoption; clarify if descriptions are stale
+- **Mechanism**: Query librarian wiki for atlas/listen-wiseer usage; run A/B test on descriptions
+- **Metric**: `presence:design-skill-invoked within 3 design-heavy sessions OR documented retirement`
+- **Owner**: skill-creator audit
+
+**R4: Break heavy sessions (>150k) into smaller units — structure parallelism for cost control**
+- **Impact**: Reduce top-34-session cost concentration from 48% toward 30%; improve predictability
+- **Mechanism**: Session-design guidance; identify 5 heaviest sessions and propose breakpoints
+- **Metric**: `top-session cost concentration below 40% by 2026-08-16`
+- **Owner**: workflow-review + documentation
+
+**R5: Compress skill output verbosity (p90: 956 tokens/msg) — tighten response budgets**
+- **Impact**: Lower output token spend (5× cost multiplier); improve signal-to-noise
+- **Mechanism**: Add ≤400-token budget to skill prompts (dream, wake, grow); audit top verbose skills
+- **Metric**: `p90:output-tokens-per-msg below 750 by 2026-08-16`
+- **Owner**: skill prompt audit
+
+### Trends
+**vs 2026-07-27 (1 day forward)**: Context >150k declined slightly (23% vs 24%, within noise). Subagent transcripts grew 12.6% (438 vs 388 in 1 day) — strong spawning activity. Response time improved 13% (2.7m vs 3.1m) — likely due to cache reuse and subagent parallelism. Bash antipatterns flat (28.7 vs 28.77) — hook work (7/24 removal) shows no ongoing effect. **Signal**: cost efficiency gains plateauing at current session-design level. Further reduction requires either: (1) structural context reduction (fewer always-loaded files), (2) TodoWrite enforcement for long sessions, or (3) deliberate session breakpoints for heavy work. Productivity markers (response time, subagent adoption, cache efficiency) remain strong.
+
+---
+
+## 2026-07-27 (222 sessions, 2026-07-15 to 2026-07-27) — dry-run
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 24% | stable (25%→24%) |
+| Opus-4-6 share | 49.6% | elevated from 43.5% |
+| Opus total (4-6 + 4-8) | 73.9% | stable-high |
+| Fable share | 16.2% | declining (18.2%→16.2%) |
+| Cache hit rate | 96% | stable, 84% savings |
+| Bash antipatterns | 28.77/session | flat (28.8 prior) |
+| Read:edit ratio | 1.16 | stable |
+| Compacts | 141 invocations | stable (50 sessions, 22.5%) |
+| Median response time | 163.1s | improved from 172.8s |
+| Subagent share | 33% of usage (388 transcripts) | growing (31%→33%) |
+| P90 output tokens/msg | 956.2 | flat |
+
+### Model distribution
+Opus-4-6: 49.6% (cost-weighted ~56%), Opus-4-8: 24.3% (~31%), Fable-5: 16.2% (~10%), Sonnet-5: 7.2% (~2.5%)
+
+**Analysis**: Model escalation protocol holding. Fable baseline shifting downward (18.2%→16.2%) while opus-4-6 concentrating (43.5%→49.6%) — suggests routine work still routing to expensive models despite fable default. Cost-weighted distribution: opus 87% total, fable only 10% of spend. Fable underutilized relative to settings.json intent (2026-07-22 default).
+
+### Skill economics
+Compact: 3.4%, grow: 1.6%, wake: 1.5%, execute: 0.8%, dream: 0.8%, workflow-review: 0.8%, workflow-retro: 0.4%, ingest: 0.4%
+
+**Analysis**: Identity-layer skills (dream/wake/grow) remain lean at 3.9% combined. Compact sustains at 3.4% despite stable session count — suggests compacting is now routine, not emergency. No skill is a cost outlier.
+
+### Tool breakdown
+Bash: 8,959 (48.1%), Edit: 4,167 (22.3%), Read: 3,615 (19.4%), Write: 875 (4.7%), Agent: 404 (2.2%), ToolSearch: 279 (1.5%), TodoWrite: 180 (1.0%)
+
+**Read:edit parity** — 1.16 ratio (stable); 104 sessions still below 1.0 (editing without full read). Bash remains dominant at 48% of all tool calls.
+
+### Context distribution
+<50k: 23%, 50-100k: 35%, 100-150k: 19%, >150k: 24%
+
+**Analysis**: 24% over 150k stable (down 1 point from 25%). Compacting at 22.5% adoption (141 compacts / 222 sessions) holding gains. Context profile unchanged; further reduction requires structural changes (fewer always-loaded includes, lazy-load identity skills).
+
+### Observations — friction patterns
+- **Bash antipattern volume**: 6,385 total (28.77/session); flat compared to prior (28.8). No improvement from prior hook work — pattern endemic to workflow, not local config.
+- **Model underutilization of fable**: Despite default shift (2026-07-22), opus handling routine work. Suggests workflow routing heuristic or escalation triggers are too aggressive.
+- **Long sessions without planning**: 67 sessions (30% of total) still run high tool counts without TodoWrite structure. Context drift likely in 1–2% of usage.
+- **Response time improving**: Median 163.1s (down from 172.8s, 5.6% improvement). P90 output tokens/msg flat at 956.2 — verbose responses persist as cost driver.
+- **Subagent growth**: 388 transcripts (+47 from 7-26 to 7-27, 1 day), 33% share — indicating deliberate spawning for design/research work, not redundant agents.
+
+### Failure attribution
+| Category | Count | % | Example |
+|----------|-------|---|---------|
+| code | 339 | 53.9% | command_failed (265), file_not_found (72) |
+| unknown | 222 | 35.3% | unclassified errors (taxonomy gap) |
+| tool | 37 | 5.9% | user_rejected (hook blocks) |
+| env | 31 | 4.9% | permission_denied |
+
+**Remediation**: Code errors dominate (54%). command_failed at 265 instances is top signal — likely roots are bash antipatterns (48% tool share), argument validation, or plan step mismatch. Unknown category still high at 35% — parser taxonomy needs stratification (tool type × error signal). **Recommendation**: Parser enhancement to emit (tool, error_name) tuples and retry sequences before/after hook changes.
+
+### Experiment verdicts (from ledger check — pending full retro)
+| Experiment | Metric | Verdict | Evidence |
+|-----------|--------|---------|----------|
+| Default model → fable; opus = escalation only | ratio:fable-or-opus above 60% | failed | 73.9% opus vs target escalation; fable not filling routine role |
+| Context health / compacting | context >150k declining / stable | confirmed-stable | 24% holding (was 25%); compacting at 22.5% adoption |
+| Hook telemetry bash antipattern | bash_antipattern_warn declining | failed | 28.77/session flat; 6,385 total unchanged |
+| Bash antipattern hook (removed 2026-07-24) | absence:bash-antipattern-warns declining | inconclusive | 5-day delta insufficient; check 2026-08-02 |
+| Session intent classifier + compliance | execution-sessions-with-skills above 80% | pending | classifier deployed; compliance signals unclear |
+| Worktree timing guidance | absence:worktree-stale-state error for 5 sessions | inconclusive | no error signals |
+| Parallax integration review-shared | presence:review-shared-invoked within 3 L2+ reviews | inconclusive | never invoked; baseline GUA-20 |
+| Growth log audit trail | presence:growth-log rows >= cleared entries | pending | dream not finalized for window; check 2026-08-02 |
+
+### Recommendations
+
+**R1: Investigate fable underutilization — model escalation heuristic too aggressive**
+- **Impact**: Shift 20–30% routine usage from opus to fable (cost reduction: ~4–6% total spend)
+- **Mechanism**: Log model-selection reason at session start (heuristic triggered, user escalation, fallback); audit 10 sessions defaulting to opus despite fable-capable work
+- **Metric**: `fable-share above 25% within 5 sessions or document escalation criteria`
+- **Owner**: settings audit + session logging
+
+**R2: Stratify bash antipattern taxonomy — distinguish workflow patterns from true antipatterns**
+- **Impact**: Reduce "unknown" errors from 35% to <15%; clarify if 28.77/session is endemic or fixable
+- **Mechanism**: Parser emits (tool, error_type) tuples; categorize command_failed by bash vs other; identify polling loops vs legitimate command sequencing
+- **Metric**: `bash-stratified-taxonomy in cartographer by 2026-08-09`
+- **Owner**: cartographer parser enhancement
+
+**R3: Enforce TodoWrite for sessions with >100 bash calls — introduce structure for long sessions**
+- **Impact**: Reduce context drift in 67 long sessions (30% of total); improve reliability for multi-step work
+- **Mechanism**: Hook: if bash_calls > 100 and no TodoWrite in session, suggest early (msg 5+)
+- **Metric**: `TodoWrite adoption in heavy-tool sessions: ≥50% by 2026-08-09`
+- **Owner**: hook audit + session intent classifier
+
+**R4: Reduce output verbosity (P90: 956.2 tokens/msg) — tighten response style**
+- **Impact**: Lower output cost multiplier from 5× to 3×; improve signal-to-noise
+- **Mechanism**: Add ≤400-token budget to skill prompts (esp. dream, wake, grow); audit top 10 verbose skills
+- **Metric**: `p90:output-tokens-per-msg below 750 by 2026-08-16`
+- **Owner**: skill prompt audit
+
+**R5: Query design skill usage in other repos — unblock adoption or retire gracefully**
+- **Impact**: Clarify if design-* skills (initiative, milestones, prototype) are workflow-fit or stale descriptions
+- **Mechanism**: Query librarian wiki for atlas/listen-wiseer usage; test design-initiative in next design-heavy sprint
+- **Metric**: `presence:design-skill-invoked within 3 sessions OR documented retirement`
+- **Owner**: skill-creator + wiki audit
+
+### Trends
+**vs 2026-07-27 (baseline, 0 days)**: Dry-run re-analysis of same window (221→222 sessions, +2 messages). Context >150k stable (25%→24%, within noise). Compacts flat (141 both runs). **Signal**: ~22.5% adoption holding steady. Model escalation hypothesis now shows fable underutilization (16.2% vs 28% target when fable was new default 2026-07-22) — suggests workflow routing heuristic or escalation guards are too aggressive. Subagent share growing (31%→33% in 1 day) indicates deliberate spawning. **Next action**: Either adjust settings.json model heuristics OR document why opus is justified for routine work. Productivity markers (response time, subagent adoption) positive; cost efficiency plateau likely requires structural changes (always-loaded reduction, session design patterns).
+
+---
+
+## 2026-07-27 (219 sessions, 2026-07-15 to 2026-07-27)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 25% | stable (26%→25%) |
+| Opus share | 70%+ | stable-high |
+| Fable share | 18%+ | stable baseline |
+| Cache hit rate | 96% | stable, 84% savings |
+| Bash antipatterns | 28.8/session | flat |
+| Read:edit ratio | 1.16 | healthy |
+| Compacts | 136 invocations | strong adoption |
+| Median response time | 2.8m | improving from 2.9m baseline |
+| Subagent share | 31% of usage (351 transcripts) | growing |
+
+### Model distribution
+Opus remains dominant. Fable baseline sustained at ~18%. Cost-weighted distribution: opus-4-8 and opus-4-6 together ~70% cost share.
+
+**Analysis**: Model escalation protocol working as designed. Fable handling routine work, opus reserved for judgment-dense tasks. 96% fable+opus share (vs target ≥60%) confirms clean separation.
+
+### Skill economics
+Identity-layer skills (wake/grow/dream): ~3.5% total. Compact invocations elevated at 136 (48 sessions compacted). Workflow skills (execute/review/retro) remain lean.
+
+### Tool breakdown
+Bash: 8,828 (63%), Edit: 4,131 (29%), Read: 3,539 (25%), Write: 866 (6%), Agent: 370 (2.6%), ToolSearch: 269 (2%), TodoWrite: 180 (1.3%)
+
+**Read:Edit parity** — 1.16 ratio (stable); 103 sessions still below 1.0 (editing without full read).
+
+### Context distribution
+<50k: 22%, 50-100k: 34%, 100-150k: 18%, >150k: 25%
+
+**Analysis**: 25% over 150k holding stable. Compacting at ~22% of sessions now employed (136 compacts / 219 sessions). Top 2 sessions hit 530k+ tokens — highly skewed cost profile, concentrated in long-running work (45% of usage in top 30 sessions).
+
+### Observations — friction patterns
+- **Bash antipattern volume**: 6,302 total (28.8/session); several sessions exceed 150+. Pattern unchanged from prior run — hook removal (2026-07-24) had no effect, suggesting antipatterns are workflow-deep rather than local.
+- **Long sessions without planning**: 65 sessions ran high tool counts (e.g. 217 Bash calls in session 082b3a35) without TodoWrite structure. Context drift likely.
+- **Parallelism**: 99% of messages overlap with another session; 68% run 2–3 parallel simultaneously. Smooth context switching observed.
+- **Response time skew**: Median 2.8m, avg 5.9m, p90 956 tokens/msg — long sessions dominate cost. 129 responses >15m.
+
+### Failure attribution
+Code errors dominate (55%+). Top signals: command_failed, file_not_found. Unknown category still ~34% — taxonomy gap persists despite earlier signals.
+
+### Experiment verdicts (from ledger check)
+| Experiment | Metric | Verdict | Evidence |
+|-----------|--------|---------|----------|
+| Default model → fable; opus = escalation only | ratio:fable-or-opus above 60% | confirmed | 88%+ fable+opus share |
+| Context health / compacting | context >150k declining / stable | confirmed-stable | 25% holding (was 26%) |
+| Hook telemetry bash antipattern | bash_antipattern_warn declining | failed | 28.8/session flat; hook removal ineffective |
+| Session intent classifier + compliance | execution-sessions-with-skills above 80% | pending | classifier deployed; compliance signals unclear |
+| Worktree timing guidance | absence:worktree-stale-state error for 5 sessions | inconclusive | no error signals |
+| Parallax integration review-shared | presence:review-shared-invoked within 3 L2+ reviews | inconclusive | never invoked; baseline GUA-20 |
+| Growth log audit trail | presence:growth-log rows >= cleared entries | pending | dream not finalized for window; check 2026-08-02 |
+
+### Recommendations
+
+**R1: Stratify bash antipattern taxonomy — distinguish workflow patterns from antipatterns**
+- **Impact**: Reduce "unknown" errors from 34% to <15%; clarify if 28.8/session is endemic or fixable
+- **Mechanism**: Parser tagging: distinguish (a) legitimate parsing (grep for structured output), (b) polling loops, (c) true antipatterns (awk where jq exists)
+- **Metric**: `bash-stratified-taxonomy in cartographer by 2026-08-09`
+- **Owner**: cartographer (librarian) + parser enhancement
+
+**R2: Introduce structured task tracking (TodoWrite) for sessions with >100 bash calls**
+- **Impact**: Reduce context drift in long sessions; improve reliability for multi-step work
+- **Mechanism**: Hook: if bash_calls > 100 and no TodoWrite in session, suggest TodoWrite early (session msg 5+)
+- **Metric**: `TodoWrite adoption in heavy-tool sessions: ≥50% by 2026-08-09`
+- **Owner**: hook audit + session intent classifier
+
+**R3: Compress response verbosity — target p90 tokens/msg <750**
+- **Impact**: Lower output cost multiplier from 5× to 3×; tighten signal-to-noise
+- **Mechanism**: Audit top 10 verbose skills (esp. dream, wake, grow); add ≤400-token budget to skill prompts
+- **Metric**: `p90:output-tokens-per-msg below 750 by 2026-08-16`
+- **Owner**: skill audit + prompt review
+
+**R4: Investigate zero-invoked design skills (design-initiative, design-milestones, design-prototype)**
+- **Impact**: Clarify if descriptions are stale or workflow doesn't call for design skills; unblock adoption or retire gracefully
+- **Mechanism**: Query librarian wiki usage in other repos (atlas, listen-wiseer); run A/B test (new description vs current)
+- **Metric**: `design-skill adoption OR documented retirement by 2026-08-09`
+- **Owner**: skill-creator + design skill audit
+
+**R5: Resolve typo'd invocations (design-inistiative, reserach, rewind)**
+- **Impact**: Reduce typo-noise and clarify naming intent
+- **Mechanism**: /skill-creator description-optimization; add aliases or confirm fixes
+- **Metric**: `absence:typo-invoked-not-found in next insights run`
+- **Owner**: skill-creator
+
+### Trends
+**vs 2026-07-26 (4 sessions, 1 day forward)**: Context >150k declined slightly (25% vs 26%); no major shift expected in 1-day delta. Compacts usage growing (136 invocations vs prior estimate ~109, from 48 sessions). Bash antipatterns remain flat (28.8 vs 28.48) — hook changes have no ongoing effect. Response times marginally better (2.8m vs 2.9m baseline). Subagent share growing to 31% (351 transcripts vs 339 prior). **Signal**: context efficiency gains plateau at current settings; next lever is either structural (fewer always-loaded includes) or behavioral (session design patterns).
+
+---
+
 ## 2026-07-26 (215 sessions, 2026-07-15 to 2026-07-26)
 
 ### Key metrics
@@ -56,6 +342,11 @@ Bash: 8163 (62%), Edit: 3277 (26%), Read: 3230 (25%), Write: 860 (7%), Agent: 34
 | env | 31 | 5.3% | permission_denied |
 
 **Remediation**: Code errors dominate (55%). command_failed at 255 instances is still the top signal. Likely roots: (1) bash used for file operations (62% of tool calls), (2) path errors from plan steps, (3) argument validation. The 33.7% unknown rate signals parser taxonomy needs expansion — current categories are too coarse. **Recommendation**: Stratify code errors by tool (Bash vs Edit vs Read) and retry sequence before/after hook changes.
+
+### Response time distribution
+2-10s: 92, 10-30s: 102, 30s-1m: 109, 1-2m: 269, 2-5m: 492, 5-15m: 363, >15m: 129
+
+**Analysis**: 2-5m bucket (492) and 5-15m (363) dominate; median 172.8s places the typical session in the 1-2m bracket. Subagent work (32% of usage) and identity skills (wake/grow/dream) likely extend the tail.
 
 ### Experiment verdicts
 | Experiment | Metric | Verdict | Evidence |

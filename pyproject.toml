@@ -6,7 +6,7 @@ requires-python = ">=3.11"
 dependencies = ["pydantic>=2.0", "click>=8.0"]
 
 [project.scripts]
-review-cli = "review.cli:main"
+review-cli = "review.dao.cli:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -1,45 +1,67 @@
-# Handover — 2026-07-26 Cross-Repo Pipeline Dispatch
+# Handover — 2026-07-28 Full Board Clearance: Refine + Execute Wave
 
-**Context**: Meta-session dispatching agents across job-system and learn-ai-engineering to move 15+ backlog issues through plan→refine→execute. Also fixed /wake and /grow to check all repos.
+**Context**: Meta-session clearing the entire GUA backlog through the workflow pipeline (refine → execute). Also consolidated branches across 4 repos and created the auto-label hook (#42).
 
 ## Current State
 
-**job-system**: #10-14 closed. #15-18 DONE (committed on `JOB-15-pipeline-work` branch). #19 PARTIAL — browser-capture URLs need chrome MCP session + Ramsey input. Plan: `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md` (Status: IN PROGRESS).
+**Executed + in-review (11 GUA issues):**
 
-**learn-ai-engineering**: #30 executed (committed on `LAE-30-rl-depth-content`). #35, #37 executed (committed on `LAE-35-staleness-migrations`). #36 Phase 2 (tf.contrib→tf.keras rewrite) NOT YET DONE — needs separate session. #34 agent was spawned (learning skill + librarian arxiv fetch + cron) — check completion. Plan: `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md` (Status: PLANNED — not updated by agents).
+| # | Title | Repo | State |
+|---|-------|------|-------|
+| 30 | Context Eng v2 — findings pipeline + eval | guacamayo + librarian | Worktree commit; librarian dashboard.py modified |
+| 31 | Dependabot — deps-triage.sh + make deps | ~/.claude | Committed on CLA-34-review-evolution (ae8331c) |
+| 32 | Design skills A+B+fix — consolidation + pipeline footers | ~/.claude | Staged on CLA-34-review-evolution |
+| 33 | Hook telemetry | ~/.claude | Staged on CLA-34-review-evolution |
+| 35 | Branch protection | API-only | Applied, no code |
+| 36 | Reliability + ops checklist items | guacamayo | Staged on GUA-34 |
+| 37 | Akira simplification | ~/.claude | Staged on CLA-34-review-evolution |
+| 38 | Dao foundation | guacamayo | Committed (179ae17) on GUA-34 |
+| 39 | Scan dimension agents | guacamayo | Staged on GUA-34 |
+| 40 | Cross-repo intelligence Phase 3a | guacamayo | Staged on GUA-34 (fingerprint + trends + 57 tests) |
+| 42 | Auto-label hook | ~/.claude | Worktree commit on CLA-34 |
 
-**guacamayo**: Uncommitted changes on main — wake/grow skill fixes (cross-repo gh loop), growth.md updates, handover. Need `bug/` branch + commit.
+**Other repos:**
 
-**Branches needing PRs**: `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`.
+| Repo | Branch | What | State |
+|------|--------|------|-------|
+| job-system | JOB-24-gitignore-applications | #24 gitignore + #31 dependabot | Staged |
+| librarian | LIB-41-parser-taxonomy | #41 parser taxonomy | Staged |
+| learn-ai-engineering | LAE-bug-dependabot-config | Dependabot config fix | Committed, needs push |
+
+**Ready (1):** #34 (umbrella — closes when children ship)
+**Backlog (4 new):** #43-46 created by #30 agent (context eng v2 follow-ups)
 
 ## Decisions Made
 
-- **/workflow-refine must use fable, not sonnet** — sonnet defers verification questions instead of resolving them. Process learning for /retro.
-- **Serialize worktree agents per-repo** — two agents in same repo caused branch collision (LAE #30 commits on #35 branch). Fixed by branch rename + fresh branch from main.
-- **Agent rebase convention** updated: `git fetch origin main && git rebase origin/main` (not `git pull --rebase`).
+- **Design skills: A+B+name-fix** — consolidate milestones→initiative, wire pipeline footers, fix name bug. 24→23 skills.
+- **#36 re-scoped** — overlap audit showed safety.md already covers security. Real gap: reliability + operations checklist items only.
+- **#42 auto-label hook created** — workflow skills drive issue state transitions via PostToolUse on Skill tool.
+- **dashboard.html deleted** — stale duplicate. Only context-dashboard.html is canonical.
+- **Design skill retirement reverted** — placement question, not removal.
+- **Issue workflow enforcement** — labels must track state transitions. #42 automates this.
 
 ## Open Threads
 
-- **LAE #34 agent** may still be running — check task status. Covers librarian arxiv fetch + LAE learning skill.
-- **LAE #36 Phase 2** (tf.contrib→tf.keras for Ng DL notebooks) — separate execute session needed.
-- **LAE-35-staleness-migrations push rejection** — remote had old #30 commits. Needs `--force-with-lease` or delete+re-push.
-- **22 hypothesis rows** in tooling ledger — 13 from July 18-20 approaching 2-week stale threshold.
-- **pulse.sh broken** — regex targets old dashboard structure (carried from prior session, still unfixed).
-- **companion-summarizer plan** still IN PROGRESS with uncommitted work (paused July 20).
-- **GUA-28** (CLA: Claude Code plugins) — new backlog issue on guacamayo board.
+- **Agents still don't pre-lint** — 3rd session with post-hoc lint fixes. No hook/prompt fix yet.
+- **~/.claude branch consolidation** — multiple agents landed on CLA-34-review-evolution. May need cherry-picking or accept as one mega-PR.
+- **#30 agent created 4 new issues (#43-46)** — review: legitimate follow-ups or scope creep?
+- **$CLAUDE_TOOL_INPUT shape unverified** — #42 hook tries `.name // .skill_name // .skill`. First live invocation will confirm.
+- **dashboard.py over threshold** — librarian at 1441 lines (1400 limit). Needs extraction.
+- **#40 Phase 3b gated** — needs 3+ real sweeps.
 
 ## Immediate Next Steps
 
-1. Check LAE #34 agent completion — verify librarian + LAE learning skill work
-2. Ramsey: push branches + create PRs for `JOB-15-pipeline-work`, `LAE-30-rl-depth-content`, `LAE-35-staleness-migrations`
-3. Create `bug/` branch on guacamayo, commit wake/grow skill fixes
-4. Spawn LAE #36 Phase 2 execute session (tf.contrib→tf.keras)
-5. Close issues after PR merge: job #15-19, LAE #30, #35, #37 (hold #36 for Phase 2)
+1. Commit across repos — GUA-34, CLA-34, JOB-24, LIB-41
+2. Push LAE branch: `git push -u origin LAE-bug-dependabot-config`
+3. Run `/workflow-review` on GUA-34 diff to main
+4. Review #43-46 (new backlog) — keep or close
+5. Close #34 umbrella when children (#35-40) all merge
 
 ## Key Files
 
-- `.claude/skills/wake/SKILL.md:83` (cross-repo gh loop)
-- `.claude/skills/grow/SKILL.md:62` (cross-repo gh loop)
-- `.sounding/growth.md` (5 entries — synthesis due at /dream)
-- `job-system/.claude/docs/plans/2026-07-25-JOB-15-19-pipeline-work.md`
-- `learn-ai-engineering/.claude/docs/plans/2026-07-25-LAE-30-34-learning-depth.md`
+- `review/dao/fingerprint.py`, `review/dao/trends.py` (#40)
+- `review/scan/dimensions/safety/SKILL.md`, `review/scan/dimensions/structure/SKILL.md` (#36)
+- `~/.claude/hooks/issue_label_sync.sh` (#42)
+- `~/.claude/skills/design-initiative/SKILL.md` (#32)
+- `~/.claude/scripts/deps-triage.sh` (#31)
+- `.claude/docs/plans/2026-07-28-GUA-42-auto-label-hook.md`
