@@ -56,11 +56,30 @@ class Category(str, Enum):
 
 
 class Reporter(str, Enum):
+    # Legacy reporters (pre-Phase 2)
     AKIRA_SCAN = "akira_scan"
     AKIRA_WANDER = "akira_wander"
     SANYI = "sanyi"
     LINT = "lint"
     PLAN_FIDELITY = "plan_fidelity"
+    # Phase 2 dimension reporters
+    CORRECTNESS = "correctness"
+    SAFETY = "safety"
+    STRUCTURE = "structure"
+    AGENT_QUALITY = "agent_quality"
+    CONTRACTS = "contracts"
+    WANDER = "wander"
+
+
+# Maps dimension reporter → expected ID prefix (e.g. correctness → "CR")
+REPORTER_ID_PREFIX: dict[str, str] = {
+    Reporter.CORRECTNESS: "CR",
+    Reporter.SAFETY: "SF",
+    Reporter.STRUCTURE: "ST",
+    Reporter.AGENT_QUALITY: "AQ",
+    Reporter.CONTRACTS: "CT",
+    Reporter.WANDER: "WD",
+}
 
 
 class FileLocation(BaseModel):
@@ -122,6 +141,18 @@ class ReviewFinding(BaseModel):
         return v
 
     @model_validator(mode="after")
+    def dimension_id_prefix_matches_reporter(self) -> ReviewFinding:
+        expected = REPORTER_ID_PREFIX.get(self.reporter)
+        if expected is not None:
+            actual_prefix = self.id.split("-")[0]
+            if actual_prefix != expected:
+                raise ValueError(
+                    f"reporter={self.reporter.value!r} requires id prefix {expected!r}, "
+                    f"got {actual_prefix!r} in id={self.id!r}"
+                )
+        return self
+
+    @model_validator(mode="after")
     def question_state_constrains_impact(self) -> ReviewFinding:
         if self.evidence_state == EvidenceState.QUESTION and self.severity.merge_impact not in (
             MergeImpact.QUESTION,
@@ -153,3 +184,80 @@ class ReviewReport(BaseModel):
     reporter_dispatch: list[ReporterDispatchEntry]
     overall_understanding: str
     dod_assessment: str
+
+
+# ---------------------------------------------------------------------------
+# Phase 3a — temporal / fingerprint models
+# ---------------------------------------------------------------------------
+
+
+class FindingFingerprint(BaseModel):
+    """Stable identity key for a finding across sweeps.
+
+    The fingerprint is derived deterministically from finding content so the same
+    real-world issue maps to the same key regardless of which sweep produced it.
+    The ``digest`` field holds the hex SHA-256 of
+    ``<file_path>|<start_line>|<category>|<reporter>|<title>``.
+    """
+
+    digest: str  # hex SHA-256
+    file_path: str
+    start_line: int | None
+    category: str
+    reporter: str
+    title: str
+
+
+class TrendDirection(str, Enum):
+    IMPROVING = "improving"
+    DEGRADING = "degrading"
+    STABLE = "stable"
+    UNKNOWN = "unknown"  # fewer than 2 data points
+
+
+class DimensionTrend(BaseModel):
+    """Trend for a single dimension across sweeps."""
+
+    dimension: str
+    repo: str
+    counts: list[int] = Field(default_factory=list)  # oldest → newest
+    direction: TrendDirection = TrendDirection.UNKNOWN
+
+
+class SweepFinding(BaseModel):
+    """A finding captured as part of a sweep record (serialisable snapshot)."""
+
+    fingerprint: str  # digest from FindingFingerprint
+    finding_id: str
+    file_path: str
+    start_line: int | None = None
+    category: str
+    reporter: str
+    title: str
+    merge_impact: str
+    evidence_state: str
+
+
+class SweepRecord(BaseModel):
+    """One sweep run for a single repo.
+
+    Written to ``.claude/docs/reviews/`` as
+    ``{repo}-{YYYY-MM-DD}.json`` (or with a counter suffix when multiple
+    sweeps run on the same day).
+    """
+
+    repo: str
+    sweep_date: str  # ISO date YYYY-MM-DD
+    findings: list[SweepFinding] = Field(default_factory=list)
+
+
+class TrendReport(BaseModel):
+    """Diff between two consecutive sweeps for a repo."""
+
+    repo: str
+    from_date: str
+    to_date: str
+    new_findings: list[SweepFinding] = Field(default_factory=list)
+    resolved_findings: list[SweepFinding] = Field(default_factory=list)
+    recurring_findings: list[SweepFinding] = Field(default_factory=list)
+    dimension_trends: list[DimensionTrend] = Field(default_factory=list)
