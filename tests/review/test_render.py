@@ -3,7 +3,7 @@ import subprocess
 
 from review.dao.render import render_report
 from review.schemas.models import MergeImpact
-from tests.review.conftest import make_finding
+from tests.review.conftest import REPO_ROOT, make_finding
 
 
 def _report_dict(**kwargs) -> dict:
@@ -132,7 +132,7 @@ class TestRenderReportCLI:
             input=data,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         assert "# Review Report" in result.stdout
@@ -145,7 +145,7 @@ class TestRenderReportCLI:
             input=data,
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         assert "AK-001" in result.stdout
@@ -156,7 +156,7 @@ class TestRenderReportCLI:
             ["uv", "run", "review-cli", "--help"],
             capture_output=True,
             text=True,
-            cwd="/Users/wiseer/workspace/guacamayo",
+            cwd=REPO_ROOT,
         )
         assert result.returncode == 0
         assert "render-report" in result.stdout

@@ -20,9 +20,10 @@ from review.schemas.models import (
     Category,
     Reporter,
 )
+from tests.review.conftest import REPO_ROOT as _REPO_ROOT_STR
 from tests.review.conftest import make_finding
 
-REPO_ROOT = Path("/Users/wiseer/workspace/guacamayo")
+REPO_ROOT = Path(_REPO_ROOT_STR)
 SCAN_AGENTS_DIR = REPO_ROOT / "review" / "scan" / "agents"
 SCAN_DIMS_DIR = REPO_ROOT / "review" / "scan" / "dimensions"
 WANDER_AGENTS_DIR = REPO_ROOT / "review" / "wander" / "agents"
