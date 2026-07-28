@@ -130,3 +130,18 @@ severity: { source_native: blocker, merge_impact: blocker }
 recommendation: { action: fix, description: "Revert | redesign | amend contract via architecture review" }
 communication: { comment_type: request_change }
 ```
+
+## Persistence format (JSONL)
+
+After producing findings, orchestrators (`/code-review`, `/workflow-review`) append
+one JSON line per finding to the review-findings file. Cartographer reads this file
+for dashboard aggregation.
+
+```json
+{"id":"AK-001","source":"akira-scan","date":"2026-07-23","repo":"guacamayo","file":"src/foo.py","lines":"42-48","title":"Unchecked None return","merge_impact":"blocker","evidence_state":"verified","category":"bugs","review_type":"code-review","session_id":"optional"}
+```
+
+Required fields: id, source, date, repo, file, title, merge_impact, evidence_state.
+Optional: lines, category, review_type, session_id.
+
+File path: `~/workspace/guacamayo/.claude/docs/review-findings.jsonl` (create if missing).
