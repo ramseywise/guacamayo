@@ -31,6 +31,36 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R4 — 2026-07-28
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-24 | PULL_STRATEGY variable in Makefile.common | friction | verified | 0 rebase-conflict-abort events across 227 sessions (5-session threshold met) |
+| 2026-07-27 | Remove bash_antipattern_warn.sh from settings+disk (F1) | friction | verified | Hook absent from disk and settings.json at R4 check; R3 approved action confirmed applied |
+| 2026-07-27 | Investigate/change model default fable vs opus (F2) | cost | verified | settings.json model = `claude-fable-5[1m]`; fable is default, opus = escalation only; 87%+ opus cost-weighted is justified escalation pattern not default mismatch |
+| 2026-07-24 | FRICTION: label extraction + dashboard panel | observability | failed | Not present in insights-log 2026-07-27 or 2026-07-29 (2 consecutive runs). Cartographer parser gap, not a config lever |
+| 2026-07-24 | Agent spawn extraction + type attribution table | observability | failed | No signal in insights-log 2026-07-27 or 2026-07-29 (2 consecutive runs). Subagent cost attribution requires parser work (cartographer) |
+| 2026-07-26 | Design skill description optimization (via skill-creator) | workflow | failed | 0 invocations across 227 sessions; 2 retro windows. Descriptions not the blocker — skills are workflow-fit gap. Retire or redesign |
+
+### R4 findings applied
+- F1: PULL_STRATEGY graduated verified
+- F2: bash_antipattern_warn.sh removal graduated verified
+- F3: Model default fable graduated verified
+- F4: FRICTION label + agent attribution graduated failed → cartographer parser backlog
+- F5: Design skill optimization graduated failed → skill-creator retirement audit backlog
+- F6: 4 new hypotheses added (TodoWrite hook, bash stratification, verbosity cap, session breakpoints)
+- F7: Plan-doc Status enforcement remains active (failing — 2 docs missing Status)
+
+### R4 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1: Add TodoWrite enforcement hook** — PostToolUse/Bash: if cumulative bash_calls > 100 and no TodoWrite logged, emit structured warning. Target: reduce context drift in 30% of heavy sessions.
+
+**P2: Retire design-* skills or rewrite as invoke-on-demand** — `/design-sprint`, `/design-initiative`, `/design-milestones`, `/design-prototype` show zero invocations across 2 retro windows (227 sessions). Options: (a) add to `make help` output + CLAUDE.md examples, (b) consolidate into `/design` dispatch, (c) close backlog issues and remove.
+
+**P3: Add ≤400-token output budget line to identity skills** — wake/grow/dream prompts. p90 output tokens 956/msg; 5× cost multiplier at that range. Mechanism: add `Keep output under 400 tokens` to each skill's instruction block.
+
+**P4: Add Status: line to 2 stale plan docs** — `/Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` and `2026-07-24-GUA-23-review-verdict.md` missing `Status:` header. Quick fix: prepend `Status: ABANDONED` or `Status: COMPLETE` to each.
+
 ## R3 — 2026-07-27
 
 | Date | Change | Area | Verdict | Evidence |

@@ -162,7 +162,8 @@ prompt: |
   and .sounding/tooling-ledger-log.md (graduated experiments). Increment retro number
   from the latest R# header in tooling-ledger-log.md.
   Constraint: Read files before editing. Propose changes — do not auto-apply to
-  ~/.claude/ config. Commit results on the current branch.
+  ~/.claude/ config. Stage results only — never commit or push; Ramsey reviews
+  and commits.
 ```
 
 Note: `/grow` already spawns `/workflow-insights` in the background, so insights-log.md should be fresh by the time /dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
