@@ -51,6 +51,16 @@ After the diff, do existing docs still describe the code accurately?
 - Capability tables or feature lists: any entries that the diff made stale?
 - This dimension catches pre-existing drift too, not just diff-introduced changes
 
+## Operations
+
+- Health check endpoint exists (or equivalent readiness signal for the deployment target)
+- Structured logging present — no bare `print()` or `console.log()` on production code paths
+- Configuration externalized: secrets, URLs, thresholds via env vars or config files, not hardcoded
+- Deployment manifest or Dockerfile present and up to date (if the service is deployed)
+- Rollback path documented or inferable: can a bad deploy be reverted without data loss?
+- Runbook or on-call reference exists for the service (link in README or CLAUDE.md)
+- Feature-flag hygiene: temporary flags have owners and removal criteria; no orphaned flags
+
 ## Test Shape
 
 - Tests with no assertions (vacuous pass)

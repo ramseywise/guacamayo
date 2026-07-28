@@ -31,6 +31,9 @@ Your dimension prefix is `ST-`. All finding IDs must start with `ST-`.
    and module references still resolve? Catches pre-existing or diff-introduced drift.
 6. **Test shape** — for test files: no assertions, mocks stubbed so the assertion is
    tautological, error paths never exercised. `[Nit]` / `[Non-blocking]`.
+7. **Operations** — health check endpoint absent, bare `print()`/`console.log()` on
+   production paths, configuration hardcoded (should be env vars), deployment manifest
+   or Dockerfile missing or stale, rollback path not documented, orphaned feature flags
 
 See the dimension checklist in `review/scan/dimensions/structure/SKILL.md` for the
 full checklist.

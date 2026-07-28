@@ -24,6 +24,9 @@ Your dimension prefix is `SF-`. All finding IDs must start with `SF-`.
    injection vectors (SQL, command, path traversal), unsafe deserialization, unsafe writes
 5. **Privacy / data** — tenant isolation violations, auditability gaps, PII handling
    without appropriate controls, data exposure through error messages
+6. **Reliability** — missing retry/backoff on external calls, no timeout on HTTP/API calls,
+   no circuit breaker or fallback for degraded dependencies, unbounded retries, no
+   backpressure handling, SLI/SLO boundaries not asserted
 
 See the dimension checklist in `review/scan/dimensions/safety/SKILL.md` for the
 full checklist.
