@@ -44,6 +44,16 @@ Used by: `review/scan/agents/safety.md`
 - Tenant isolation violated (shared cache, shared DB rows)
 - Sensitive data in URLs, query params, or logs
 
+## Reliability
+
+- Retry/backoff logic present for external calls (network, DB, third-party APIs)
+- Timeout configuration on HTTP/API calls — every outbound call has an explicit timeout
+- Circuit breaker or fallback for degraded dependencies (graceful degradation, not cascading failure)
+- Graceful degradation path documented: what does the system do when a dependency is down?
+- Retry budgets bounded: max retries + jitter + exponential backoff (unbounded retries are `[Blocking]`)
+- Backpressure handling: does the system shed load or queue under high throughput, or does it fail silently?
+- SLI/SLO boundary assertions: are error rate and latency thresholds enforced, or is the caller expected to handle degradation?
+
 ## Evidence Standard
 
 - Trace the data flow from input to sink before claiming injection risk

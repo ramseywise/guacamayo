@@ -1,7 +1,6 @@
 import json
 import subprocess
 
-
 from review.dao.render import render_report
 from review.schemas.models import MergeImpact
 from tests.review.conftest import make_finding
