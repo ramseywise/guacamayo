@@ -511,19 +511,28 @@ section.tab-content { scroll-margin-top: 60px; }
 }
 
 .overflow-x { overflow-x: auto; }
+
+code {
+  font-family: 'DM Mono', ui-monospace, monospace;
+  font-size: 11px;
+  background: var(--s1-bg, rgba(128,128,128,0.12));
+  padding: 1px 4px;
+  border-radius: 3px;
+}
 </style>
 
 <div class="dash">
   <header class="dash-header">
     <h1>Context Engineering Dashboard</h1>
     <p class="subtitle">Operational view of Claude Code session economics, context health, and tooling experiments. Work sessions only (meta-sessions excluded).</p>
-    <p class="date-range">Apr 10 – Jul 26, 2026 &middot; 49 data points &middot; 4 instrumentation regimes</p>
+    <p class="date-range">Apr 10 – Jul 28, 2026 &middot; 54 data points &middot; 4 instrumentation regimes</p>
   </header>
 
   <nav class="dash-nav" id="nav">
     <a href="#cost" class="active" data-tab="cost">Cost &amp; Efficiency</a>
     <a href="#context" data-tab="context">Context Health</a>
     <a href="#friction" data-tab="friction">Friction</a>
+    <a href="#review" data-tab="review">Code Review</a>
     <a href="#experiments" data-tab="experiments">Experiments</a>
   </nav>
 
@@ -544,17 +553,17 @@ section.tab-content { scroll-margin-top: 60px; }
       <p class="card-note"><span class="direction good">&darr; Lower is better.</span> Shows both median (p50) and tail (p90) cost. Spikes in p90 = runaway context or long opus runs.</p>
       <div class="stat-row">
         <div class="stat">
-          <span class="value" style="color:var(--s1)">2.5M</span>
+          <span class="value" style="color:var(--s1)">1.3M</span>
           <span class="label">p50 today</span>
         </div>
         <div class="stat">
-          <span class="value" style="color:var(--s2)">4.3M</span>
+          <span class="value" style="color:var(--s2)">5.2M</span>
           <span class="label">p90 today</span>
         </div>
         <div class="stat">
-          <span class="value">1.7&times;</span>
+          <span class="value">3.9&times;</span>
           <span class="label">p90/p50 ratio</span>
-          <span class="change improving">tightening (was 3&times; in May)</span>
+          <span class="change neutral">volatile at ~5 sessions/day</span>
         </div>
       </div>
       <div class="chart-wrap" id="chart-cost"></div>
@@ -571,7 +580,7 @@ section.tab-content { scroll-margin-top: 60px; }
         <p class="card-note"><span class="direction good">&darr; Lower saves money.</span> Output is 5&times; the price of input — it's the primary cost driver, not reading.</p>
         <div class="stat-row">
           <div class="stat">
-            <span class="value">67k</span>
+            <span class="value">92k</span>
             <span class="label">p50 today</span>
             <span class="change improving">&darr; from 200k Jul 15</span>
           </div>
@@ -584,7 +593,7 @@ section.tab-content { scroll-margin-top: 60px; }
         <p class="card-note"><span class="direction good">&uarr; Higher is better.</span> Below 90% means context churn is breaking the prompt cache. Stable 95-98% since May.</p>
         <div class="stat-row">
           <div class="stat">
-            <span class="value">97%</span>
+            <span class="value">95%</span>
             <span class="label">today</span>
             <span class="change neutral">stable</span>
           </div>
@@ -599,7 +608,7 @@ section.tab-content { scroll-margin-top: 60px; }
       <p class="card-note">Subagent transcripts charged to their parent session. Shows whether background agent work or direct writing drives spend.</p>
       <div class="callout warn">
         <span class="callout-icon">!</span>
-        <span>90% of subagent cost predates CLI 2.1.201 and has no agent name. Named shares understate true share.</span>
+        <span>84% of subagent cost predates CLI 2.1.201 and has no agent name. Named shares understate true share.</span>
       </div>
       <div class="card-row">
         <div>
@@ -608,11 +617,11 @@ section.tab-content { scroll-margin-top: 60px; }
           <table class="repo-table">
             <thead><tr><th>Model</th><th>Cost</th><th>Share</th><th>Output tokens</th></tr></thead>
             <tbody>
-              <tr><td>opus 4.6</td><td>84.1M</td><td>55%</td><td>1.6M</td></tr>
-              <tr><td>sonnet 4.6</td><td>36.2M</td><td>23%</td><td>759k</td></tr>
-              <tr><td>haiku 4.5</td><td>21.0M</td><td>14%</td><td>496k</td></tr>
-              <tr><td>opus 4.8</td><td>9.6M</td><td>6%</td><td>195k</td></tr>
-              <tr><td>sonnet 5</td><td>3.4M</td><td>2%</td><td>57k</td></tr>
+              <tr><td>opus 4.6</td><td>142.3M</td><td>55%</td><td>2.7M</td></tr>
+              <tr><td>sonnet 4.6</td><td>62.0M</td><td>24%</td><td>1.3M</td></tr>
+              <tr><td>haiku 4.5</td><td>38.2M</td><td>15%</td><td>784k</td></tr>
+              <tr><td>opus 4.8</td><td>9.6M</td><td>4%</td><td>195k</td></tr>
+              <tr><td>sonnet 5</td><td>7.1M</td><td>3%</td><td>115k</td></tr>
             </tbody>
           </table>
           </div>
@@ -623,12 +632,13 @@ section.tab-content { scroll-margin-top: 60px; }
           <table class="repo-table">
             <thead><tr><th>Agent</th><th>Cost</th><th>Transcripts</th></tr></thead>
             <tbody>
-              <tr><td style="color:var(--text-3)">unattributed</td><td>139.1M</td><td>190</td></tr>
-              <tr><td>general-purpose</td><td>6.6M</td><td>8</td></tr>
-              <tr><td>Explore</td><td>6.5M</td><td>20</td></tr>
+              <tr><td style="color:var(--text-3)">unattributed</td><td>218.2M</td><td>291</td></tr>
+              <tr><td>general-purpose</td><td>18.7M</td><td>35</td></tr>
+              <tr><td>Explore</td><td>8.9M</td><td>24</td></tr>
+              <tr><td>akira-scan</td><td>6.1M</td><td>21</td></tr>
+              <tr><td>akira-wander</td><td>5.8M</td><td>18</td></tr>
               <tr><td>Plan</td><td>1.0M</td><td>2</td></tr>
-              <tr><td>akira-wander</td><td>615k</td><td>8</td></tr>
-              <tr><td>akira-scan</td><td>358k</td><td>1</td></tr>
+              <tr><td>claude-code-guide</td><td>391k</td><td>2</td></tr>
             </tbody>
           </table>
           </div>
@@ -645,12 +655,7 @@ section.tab-content { scroll-margin-top: 60px; }
     </div>
 
     <div class="explainer">
-      <strong>The 150k cliff:</strong> Sessions that grow past 150k context tokens cost 5&times; more per turn because the overflow can't be cached. In early July, 66-75% of sessions were hitting this cliff. The goal is &lt;30%. <strong>Compaction</strong> is the mechanism — it compresses prior conversation to reclaim context space. Autocompact was active briefly (~Jul 17-18) but currently requires manual invocation from terminal.
-    </div>
-
-    <div class="callout warn">
-      <span class="callout-icon">!</span>
-      <span><strong>Autocompact is not running.</strong> It was active around Jul 17-18 (visible in the compaction rate spike) but now requires daily manual invocation from terminal. This is a known friction point — see Experiments tab.</span>
+      <strong>The 150k cliff:</strong> Sessions that grow past 150k context tokens cost 5&times; more per turn because the overflow can't be cached. In early July, 66-75% of sessions were hitting this cliff. The goal is &lt;30%. <strong>Compaction</strong> is the mechanism — it compresses prior conversation to reclaim context space. Autocompact was broken Jul 15-18 (zero auto-triggered compactions despite sessions reaching 300k–557k tokens) and has fired reliably every day since Jul 19.
     </div>
 
     <!-- Max context p50/p90 -->
@@ -659,12 +664,12 @@ section.tab-content { scroll-margin-top: 60px; }
       <p class="card-note"><span class="direction good">&darr; Lower is better.</span> Staying below 150k avoids the 5&times; cost cliff. The red line marks that threshold.</p>
       <div class="stat-row">
         <div class="stat">
-          <span class="value" style="color:var(--s1)">117k</span>
+          <span class="value" style="color:var(--s1)">100k</span>
           <span class="label">p50 today</span>
           <span class="change improving">&darr; from 360k Jul 15</span>
         </div>
         <div class="stat">
-          <span class="value" style="color:var(--s2)">141k</span>
+          <span class="value" style="color:var(--s2)">117k</span>
           <span class="label">p90 today</span>
           <span class="change improving">&darr; from 385k Jul 15</span>
         </div>
@@ -698,11 +703,11 @@ section.tab-content { scroll-margin-top: 60px; }
         <p class="card-note">Turns per session (how deep) and single-turn rate (how often a session is just one prompt-response). More single-turn sessions = more cold starts paying full context load.</p>
         <div class="stat-row">
           <div class="stat">
-            <span class="value">8</span>
+            <span class="value">4</span>
             <span class="label">turns p50</span>
           </div>
           <div class="stat">
-            <span class="value">0%</span>
+            <span class="value">20%</span>
             <span class="label">single-turn today</span>
             <span class="change improving">was 56% Jul 18</span>
           </div>
@@ -721,8 +726,8 @@ section.tab-content { scroll-margin-top: 60px; }
       <p class="card-note">How often sessions compact their context. This metric is <strong>not comparable across regimes</strong> — before July, the logger only wrote notes when a session compacted, so the rate was always 100% (a sampling artifact, not a real property). Only the Jul 17+ data (session-hygiene-v1) reflects actual compaction behavior.</p>
       <div class="stat-row">
         <div class="stat">
-          <span class="value">100%</span>
-          <span class="label">Jul 23 (today)</span>
+          <span class="value">20%</span>
+          <span class="label">Jul 28 (today)</span>
         </div>
         <div class="stat">
           <span class="value">9.5%</span>
@@ -758,12 +763,12 @@ section.tab-content { scroll-margin-top: 60px; }
     <div class="card-row">
       <div class="card">
         <div class="card-title">Tool error rate</div>
-        <p class="card-note">Errors per 100 tool calls. <span class="direction good">&darr; Lower is better.</span> Steady 2-4% range, slight uptick today.</p>
+        <p class="card-note">Errors per 100 tool calls. <span class="direction good">&darr; Lower is better.</span> Steady 2-5% range, noisy day-to-day at low n.</p>
         <div class="stat-row">
           <div class="stat">
-            <span class="value">5.3%</span>
+            <span class="value">4.6%</span>
             <span class="label">today</span>
-            <span class="change worsening">&uarr; from 3.1% avg</span>
+            <span class="change worsening">&uarr; from 3.4% avg</span>
           </div>
         </div>
         <div class="chart-wrap" id="chart-errors"></div>
@@ -771,15 +776,43 @@ section.tab-content { scroll-margin-top: 60px; }
 
       <div class="card">
         <div class="card-title">User interruptions</div>
-        <p class="card-note">Median fast follow-up corrections per session. <span class="direction good">&darr; Lower is better.</span> Consistently 0 — the agent rarely goes off-track.</p>
+        <p class="card-note">Median fast follow-up corrections per session. <span class="direction good">&darr; Lower is better.</span> 0 every day except Jul 26 (1) — the agent rarely goes off-track.</p>
         <div class="stat-row">
           <div class="stat">
             <span class="value">0</span>
-            <span class="label">p50 (all days)</span>
-            <span class="change neutral">no change</span>
+            <span class="label">p50 today</span>
+            <span class="change neutral">one blip Jul 26</span>
           </div>
         </div>
         <div class="chart-wrap" id="chart-interruptions" style="height:80px"></div>
+      </div>
+    </div>
+
+    <div class="card-row">
+      <div class="card">
+        <div class="card-title">Skill usage in execution sessions</div>
+        <p class="card-note">Share of multi-turn sessions that invoked at least one skill. <span class="direction good">&uarr; Higher is better.</span> Climbing since Jul 15; today's 25% is one low-n day.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">25%</span>
+            <span class="label">today</span>
+            <span class="change neutral">peaked 75% Jul 26-27</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-skills" style="height:120px"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Explicit friction labels</div>
+        <p class="card-note">Sessions where the user explicitly labeled friction. <span class="direction good">&darr; Lower is better.</span> Mostly 0; one spike of 6 on Jul 24.</p>
+        <div class="stat-row">
+          <div class="stat">
+            <span class="value">0</span>
+            <span class="label">today</span>
+            <span class="change neutral">6 on Jul 24</span>
+          </div>
+        </div>
+        <div class="chart-wrap" id="chart-friction-labels" style="height:80px"></div>
       </div>
     </div>
 
@@ -791,16 +824,19 @@ section.tab-content { scroll-margin-top: 60px; }
       <table class="repo-table">
         <thead><tr><th>Repo</th><th>Cost (Jul+)</th><th class="bar-cell"></th><th>Commits</th></tr></thead>
         <tbody>
-          <tr><td>ai-project-template</td><td>109.9M</td><td class="bar-cell"><div class="repo-bar" style="width:100%"></div></td><td>21</td></tr>
-          <tr><td>guacamayo</td><td>73.5M</td><td class="bar-cell"><div class="repo-bar" style="width:67%"></div></td><td>23</td></tr>
-          <tr><td>librarian</td><td>58.2M</td><td class="bar-cell"><div class="repo-bar" style="width:53%"></div></td><td>23</td></tr>
-          <tr><td>dssg</td><td>41.9M</td><td class="bar-cell"><div class="repo-bar" style="width:38%"></div></td><td style="color:var(--warn)">0</td></tr>
-          <tr><td>playground</td><td>31.4M</td><td class="bar-cell"><div class="repo-bar" style="width:29%"></div></td><td>12</td></tr>
-          <tr><td>puffin</td><td>14.4M</td><td class="bar-cell"><div class="repo-bar" style="width:13%"></div></td><td style="color:var(--warn)">0</td></tr>
-          <tr><td>learn-ai-engineering</td><td>14.1M</td><td class="bar-cell"><div class="repo-bar" style="width:13%"></div></td><td>37</td></tr>
-          <tr><td>listen-wiseer</td><td>10.7M</td><td class="bar-cell"><div class="repo-bar" style="width:10%"></div></td><td>17</td></tr>
-          <tr><td>atlas</td><td>6.9M</td><td class="bar-cell"><div class="repo-bar" style="width:6%"></div></td><td>15</td></tr>
+          <tr><td>guacamayo</td><td>121.0M</td><td class="bar-cell"><div class="repo-bar" style="width:100%"></div></td><td>51</td></tr>
+          <tr><td>ai-project-template</td><td>114.4M</td><td class="bar-cell"><div class="repo-bar" style="width:95%"></div></td><td>37</td></tr>
+          <tr><td>librarian</td><td>79.2M</td><td class="bar-cell"><div class="repo-bar" style="width:65%"></div></td><td>47</td></tr>
+          <tr><td>dssg</td><td>43.5M</td><td class="bar-cell"><div class="repo-bar" style="width:36%"></div></td><td style="color:var(--warn)">0</td></tr>
+          <tr><td>playground</td><td>33.6M</td><td class="bar-cell"><div class="repo-bar" style="width:28%"></div></td><td>13</td></tr>
+          <tr><td>learn-ai-engineering</td><td>19.7M</td><td class="bar-cell"><div class="repo-bar" style="width:16%"></div></td><td>60</td></tr>
+          <tr><td>listen-wiseer</td><td>17.8M</td><td class="bar-cell"><div class="repo-bar" style="width:15%"></div></td><td>23</td></tr>
+          <tr><td>puffin</td><td>14.4M</td><td class="bar-cell"><div class="repo-bar" style="width:12%"></div></td><td style="color:var(--warn)">0</td></tr>
+          <tr><td>job-system</td><td>12.8M</td><td class="bar-cell"><div class="repo-bar" style="width:11%"></div></td><td>35</td></tr>
+          <tr><td>atlas</td><td>12.6M</td><td class="bar-cell"><div class="repo-bar" style="width:10%"></div></td><td>25</td></tr>
+          <tr><td>lebanese-blonde</td><td>1.9M</td><td class="bar-cell"><div class="repo-bar" style="width:2%"></div></td><td>2</td></tr>
           <tr><td>NRR</td><td>1.5M</td><td class="bar-cell"><div class="repo-bar" style="width:1%"></div></td><td>3</td></tr>
+          <tr><td>CryptoZombies</td><td>1.1M</td><td class="bar-cell"><div class="repo-bar" style="width:1%"></div></td><td>1</td></tr>
         </tbody>
       </table>
       </div>
@@ -811,14 +847,32 @@ section.tab-content { scroll-margin-top: 60px; }
     <div class="card">
       <div class="card-title">Totals since Apr 2026</div>
       <div class="stat-row">
-        <div class="stat"><span class="value">324</span><span class="label">human commits</span></div>
-        <div class="stat"><span class="value">203</span><span class="label">bot commits</span></div>
-        <div class="stat"><span class="value">+978k</span><span class="label">lines added</span></div>
-        <div class="stat"><span class="value">-402k</span><span class="label">lines removed</span></div>
-        <div class="stat"><span class="value">26</span><span class="label">PRs opened</span></div>
+        <div class="stat"><span class="value">483</span><span class="label">human commits</span></div>
+        <div class="stat"><span class="value">282</span><span class="label">bot commits</span></div>
+        <div class="stat"><span class="value">+1,043k</span><span class="label">lines added</span></div>
+        <div class="stat"><span class="value">-522k</span><span class="label">lines removed</span></div>
+        <div class="stat"><span class="value">80</span><span class="label">PRs opened</span></div>
+        <div class="stat"><span class="value">74</span><span class="label">PRs merged</span></div>
         <div class="stat"><span class="value">14</span><span class="label">active repos</span></div>
       </div>
       <p style="font-size:11px;color:var(--text-3);font-style:italic">Source files only — PDFs, notebooks, lockfiles, vendored JS excluded. Unfiltered, those were 50% of insertions.</p>
+    </div>
+  </section>
+
+  <!-- ═══════════════════ CODE REVIEW ═══════════════════ -->
+  <section class="tab-content" id="review">
+    <div class="section-header">
+      <h2>Code Review Findings</h2>
+      <p class="section-question">What did structured review find? Is it recurring?</p>
+    </div>
+
+    <div class="explainer">
+      <strong>How this works:</strong> Each /code-review or /workflow-review run appends structured findings (akira-scan + SANYI) to <code>guacamayo/.claude/docs/review-findings.jsonl</code>. Cartographer reads this file on every <code>--facts</code> run.
+    </div>
+
+    <div class="card">
+      <div class="card-title">Review findings</div>
+      <p class="card-note">No review findings yet. Run <code>/code-review</code> or <code>/workflow-review</code> to populate.</p>
     </div>
   </section>
 
@@ -943,13 +997,17 @@ section.tab-content { scroll-margin-top: 60px; }
       <table class="repo-table">
         <thead><tr><th>Signal</th><th>Source</th><th>Since</th><th>Status</th></tr></thead>
         <tbody>
-          <tr><td>Cost, tokens, cache</td><td>JSONL + migrated notes</td><td>Apr 10</td><td style="color:var(--good)">complete</td></tr>
+          <tr><td>Cost, tokens, cache</td><td>JSONL usage + migrated notes</td><td>Apr 10</td><td style="color:var(--good)">complete</td></tr>
           <tr><td>Compaction flag</td><td>note hook, then JSONL</td><td>Apr 10</td><td style="color:var(--warn)">regime-bound</td></tr>
           <tr><td>Max context</td><td>JSONL per-request</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
-          <tr><td>Session turns</td><td>JSONL session boundary</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
-          <tr><td>Tool errors</td><td>JSONL tool-call events</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
-          <tr><td>Interruptions</td><td>JSONL &lt;5s human turns</td><td>Jul 15</td><td style="color:var(--good)">complete</td></tr>
-          <tr><td>Subagent attribution</td><td>CLI 2.1.201+ transcript</td><td>Jul 15</td><td style="color:var(--warn)">90% unattributed</td></tr>
+          <tr><td>Skill + model attribution</td><td>JSONL tool_use blocks</td><td>Jul 15</td><td style="color:var(--warn)">no pre-July data</td></tr>
+          <tr><td>Tool errors, interruptions</td><td>JSONL tool_result is_error</td><td>Jul 15</td><td style="color:var(--good)">backfilled</td></tr>
+          <tr><td>Human turns</td><td>JSONL user records, tool_results excluded</td><td>Jul 15</td><td style="color:var(--good)">backfilled</td></tr>
+          <tr><td>Plan-doc outcome</td><td>not collected</td><td>&mdash;</td><td style="color:var(--warn)">blocked, no ABANDONED label</td></tr>
+          <tr><td>Commits + churn</td><td>git log across ~/workspace</td><td>Apr 3</td><td style="color:var(--warn)">repo activity, not per-session</td></tr>
+          <tr><td>PRs opened/merged</td><td>gh pr list</td><td>Apr 3</td><td style="color:var(--warn)">94% dependabot</td></tr>
+          <tr><td>Issues resolved</td><td>not collected</td><td>&mdash;</td><td style="color:var(--warn)">no data</td></tr>
+          <tr><td>Subagent attribution</td><td>JSONL subagent transcripts</td><td>Jul 15</td><td style="color:var(--warn)">agent names only from CLI 2.1.201</td></tr>
         </tbody>
       </table>
       </div>
@@ -971,58 +1029,64 @@ const DATA = {
     {d:'2026-04-26',v:10.53,n:4,r:'note-hook'},{d:'2026-04-27',v:2.66,n:3,r:'note-hook'},{d:'2026-04-29',v:4.37,n:13,r:'note-hook'},{d:'2026-04-30',v:7.02,n:3,r:'note-hook'},{d:'2026-05-04',v:6.83,n:8,r:'note-hook'},{d:'2026-05-05',v:3.10,n:23,r:'note-hook'},{d:'2026-05-06',v:3.25,n:15,r:'note-hook'},{d:'2026-05-07',v:2.74,n:16,r:'note-hook'},{d:'2026-05-08',v:4.45,n:12,r:'note-hook'},{d:'2026-05-09',v:4.92,n:15,r:'note-hook'},{d:'2026-05-10',v:20.74,n:5,r:'note-hook'},{d:'2026-05-11',v:1.62,n:6,r:'note-hook'},{d:'2026-05-12',v:2.53,n:6,r:'note-hook'},{d:'2026-05-13',v:3.17,n:14,r:'note-hook'},{d:'2026-05-14',v:4.48,n:7,r:'note-hook'},{d:'2026-05-15',v:5.73,n:8,r:'note-hook'},{d:'2026-05-16',v:13.90,n:3,r:'note-hook'},
     {d:'2026-05-18',v:0,n:6,r:'note-hook'},{d:'2026-05-19',v:0,n:4,r:'note-hook'},{d:'2026-05-20',v:0,n:12,r:'note-hook'},{d:'2026-05-21',v:0,n:1,r:'note-hook'},
     {d:'2026-05-24',v:5.82,n:16,r:'note-hook'},{d:'2026-05-25',v:15.02,n:4,r:'note-hook'},{d:'2026-05-26',v:2.25,n:1,r:'note-hook'},{d:'2026-05-30',v:2.65,n:4,r:'note-hook'},{d:'2026-06-01',v:1.84,n:2,r:'note-hook'},{d:'2026-06-02',v:6.57,n:10,r:'note-hook'},{d:'2026-06-03',v:3.38,n:9,r:'note-hook'},{d:'2026-06-04',v:2.26,n:5,r:'note-hook'},
-    {d:'2026-07-15',v:11.02,n:8,r:'telemetry-v1'},{d:'2026-07-16',v:3.28,n:13,r:'telemetry-v1'},{d:'2026-07-17',v:1.09,n:21,r:'session-hygiene-v1'},{d:'2026-07-18',v:1.23,n:9,r:'session-hygiene-v1'},{d:'2026-07-19',v:1.51,n:36,r:'session-hygiene-v1'},{d:'2026-07-20',v:0.83,n:5,r:'session-hygiene-v1'},{d:'2026-07-21',v:1.97,n:2,r:'session-hygiene-v1'},{d:'2026-07-22',v:1.12,n:7,r:'session-hygiene-v1'},{d:'2026-07-23',v:2.48,n:4,r:'session-hygiene-v1'}
+    {d:'2026-07-15',v:11.02,n:8,r:'telemetry-v1'},{d:'2026-07-16',v:3.28,n:13,r:'telemetry-v1'},{d:'2026-07-17',v:1.09,n:21,r:'session-hygiene-v1'},{d:'2026-07-18',v:1.23,n:9,r:'session-hygiene-v1'},{d:'2026-07-19',v:1.51,n:36,r:'session-hygiene-v1'},{d:'2026-07-20',v:0.83,n:5,r:'session-hygiene-v1'},{d:'2026-07-21',v:1.97,n:2,r:'session-hygiene-v1'},{d:'2026-07-22',v:1.12,n:7,r:'session-hygiene-v1'},{d:'2026-07-23',v:2.48,n:4,r:'session-hygiene-v1'},{d:'2026-07-24',v:1.31,n:8,r:'session-hygiene-v1'},{d:'2026-07-25',v:5.18,n:5,r:'session-hygiene-v1'},{d:'2026-07-26',v:7.79,n:4,r:'session-hygiene-v1'},{d:'2026-07-27',v:1.17,n:4,r:'session-hygiene-v1'},{d:'2026-07-28',v:1.33,n:5,r:'session-hygiene-v1'}
   ],
   cost_p90: [
     {d:'2026-04-10',v:1.73,n:1},{d:'2026-04-11',v:3.95,n:5},{d:'2026-04-12',v:0.98,n:2},{d:'2026-04-14',v:1.55,n:9},{d:'2026-04-15',v:1.51,n:8},{d:'2026-04-16',v:2.91,n:4},{d:'2026-04-17',v:1.99,n:3},{d:'2026-04-18',v:1.65,n:3},{d:'2026-04-19',v:3.66,n:3},{d:'2026-04-20',v:2.62,n:2},{d:'2026-04-21',v:20.15,n:5},
     {d:'2026-04-26',v:14.38,n:4},{d:'2026-04-27',v:3.85,n:3},{d:'2026-04-29',v:7.95,n:13},{d:'2026-04-30',v:8.97,n:3},{d:'2026-05-04',v:8.23,n:8},{d:'2026-05-05',v:11.03,n:23},{d:'2026-05-06',v:11.69,n:15},{d:'2026-05-07',v:5.58,n:16},{d:'2026-05-08',v:8.78,n:12},{d:'2026-05-09',v:15.78,n:15},{d:'2026-05-10',v:32.82,n:5},{d:'2026-05-11',v:8.99,n:6},{d:'2026-05-12',v:5.40,n:6},{d:'2026-05-13',v:12.99,n:14},{d:'2026-05-14',v:7.54,n:7},{d:'2026-05-15',v:8.23,n:8},{d:'2026-05-16',v:15.49,n:3},
     {d:'2026-05-18',v:1.65,n:6},{d:'2026-05-19',v:0,n:4},{d:'2026-05-20',v:0,n:12},{d:'2026-05-21',v:0,n:1},
     {d:'2026-05-24',v:22.79,n:16},{d:'2026-05-25',v:16.64,n:4},{d:'2026-05-26',v:2.25,n:1},{d:'2026-05-30',v:3.87,n:4},{d:'2026-06-01',v:2.94,n:2},{d:'2026-06-02',v:21.40,n:10},{d:'2026-06-03',v:9.25,n:9},{d:'2026-06-04',v:2.72,n:5},
-    {d:'2026-07-15',v:12.76,n:8},{d:'2026-07-16',v:11.66,n:13},{d:'2026-07-17',v:8.78,n:21},{d:'2026-07-18',v:1.51,n:9},{d:'2026-07-19',v:8.05,n:36},{d:'2026-07-20',v:5.30,n:5},{d:'2026-07-21',v:13.09,n:2},{d:'2026-07-22',v:1.87,n:7},{d:'2026-07-23',v:4.29,n:4}
+    {d:'2026-07-15',v:12.76,n:8},{d:'2026-07-16',v:11.66,n:13},{d:'2026-07-17',v:8.78,n:21},{d:'2026-07-18',v:1.51,n:9},{d:'2026-07-19',v:8.05,n:36},{d:'2026-07-20',v:5.30,n:5},{d:'2026-07-21',v:13.09,n:2},{d:'2026-07-22',v:1.87,n:7},{d:'2026-07-23',v:4.29,n:4},{d:'2026-07-24',v:7.14,n:8},{d:'2026-07-25',v:6.36,n:5},{d:'2026-07-26',v:18.88,n:4},{d:'2026-07-27',v:8.89,n:4},{d:'2026-07-28',v:5.19,n:5}
   ],
   output_p50: [
     {d:'2026-04-10',v:139},{d:'2026-04-11',v:103},{d:'2026-04-12',v:51},{d:'2026-04-14',v:58},{d:'2026-04-15',v:79},{d:'2026-04-16',v:91},{d:'2026-04-17',v:42},{d:'2026-04-18',v:28},{d:'2026-04-19',v:21},{d:'2026-04-20',v:12},{d:'2026-04-21',v:45},
     {d:'2026-04-26',v:537},{d:'2026-04-27',v:155},{d:'2026-04-29',v:204},{d:'2026-04-30',v:159},{d:'2026-05-04',v:182},{d:'2026-05-05',v:113},{d:'2026-05-06',v:311},{d:'2026-05-07',v:152},{d:'2026-05-08',v:260},{d:'2026-05-09',v:302},{d:'2026-05-10',v:1028},{d:'2026-05-11',v:117},{d:'2026-05-12',v:137},{d:'2026-05-13',v:188},{d:'2026-05-14',v:245},{d:'2026-05-15',v:373},{d:'2026-05-16',v:988},
     {d:'2026-05-18',v:0},{d:'2026-05-19',v:0},{d:'2026-05-20',v:0},{d:'2026-05-21',v:0},
     {d:'2026-05-24',v:253},{d:'2026-05-25',v:786},{d:'2026-05-26',v:173},{d:'2026-05-30',v:135},{d:'2026-06-01',v:138},{d:'2026-06-02',v:369},{d:'2026-06-03',v:156},{d:'2026-06-04',v:92},
-    {d:'2026-07-15',v:200},{d:'2026-07-16',v:174},{d:'2026-07-17',v:66},{d:'2026-07-18',v:45},{d:'2026-07-19',v:50},{d:'2026-07-20',v:23},{d:'2026-07-21',v:105},{d:'2026-07-22',v:31},{d:'2026-07-23',v:67}
+    {d:'2026-07-15',v:200},{d:'2026-07-16',v:174},{d:'2026-07-17',v:66},{d:'2026-07-18',v:45},{d:'2026-07-19',v:50},{d:'2026-07-20',v:23},{d:'2026-07-21',v:105},{d:'2026-07-22',v:31},{d:'2026-07-23',v:67},{d:'2026-07-24',v:35},{d:'2026-07-25',v:68},{d:'2026-07-26',v:126},{d:'2026-07-27',v:39},{d:'2026-07-28',v:92}
   ],
   cache: [
     {d:'2026-04-10',v:100},{d:'2026-04-11',v:100},{d:'2026-04-12',v:100},{d:'2026-04-14',v:99.83},{d:'2026-04-15',v:99.98},{d:'2026-04-16',v:99.99},{d:'2026-04-17',v:99.99},{d:'2026-04-18',v:100},{d:'2026-04-19',v:100},{d:'2026-04-20',v:99.99},{d:'2026-04-21',v:100},
     {d:'2026-04-26',v:95.16},{d:'2026-04-27',v:95.04},{d:'2026-04-29',v:94.08},{d:'2026-04-30',v:99.07},{d:'2026-05-04',v:94.76},{d:'2026-05-05',v:94.63},{d:'2026-05-06',v:94.60},{d:'2026-05-07',v:95.53},{d:'2026-05-08',v:95.26},{d:'2026-05-09',v:97.26},{d:'2026-05-10',v:96.97},{d:'2026-05-11',v:96.13},{d:'2026-05-12',v:95.96},{d:'2026-05-13',v:95.89},{d:'2026-05-14',v:97.30},{d:'2026-05-15',v:96.93},{d:'2026-05-16',v:97.30},
     {d:'2026-05-18',v:96.26},{d:'2026-05-19',v:0},{d:'2026-05-20',v:0},{d:'2026-05-21',v:0},
     {d:'2026-05-24',v:98.01},{d:'2026-05-25',v:96.77},{d:'2026-05-26',v:96.77},{d:'2026-05-30',v:95.29},{d:'2026-06-01',v:93.11},{d:'2026-06-02',v:94.84},{d:'2026-06-03',v:95.52},{d:'2026-06-04',v:96.63},
-    {d:'2026-07-15',v:98.40},{d:'2026-07-16',v:97.69},{d:'2026-07-17',v:97.76},{d:'2026-07-18',v:96.08},{d:'2026-07-19',v:97.90},{d:'2026-07-20',v:95.31},{d:'2026-07-21',v:96.30},{d:'2026-07-22',v:94.52},{d:'2026-07-23',v:97.03}
+    {d:'2026-07-15',v:98.40},{d:'2026-07-16',v:97.69},{d:'2026-07-17',v:97.76},{d:'2026-07-18',v:96.08},{d:'2026-07-19',v:97.90},{d:'2026-07-20',v:95.31},{d:'2026-07-21',v:96.30},{d:'2026-07-22',v:94.52},{d:'2026-07-23',v:97.03},{d:'2026-07-24',v:96.91},{d:'2026-07-25',v:96.54},{d:'2026-07-26',v:97.37},{d:'2026-07-27',v:97.20},{d:'2026-07-28',v:95.48}
   ],
   context_p50: [
-    {d:'2026-07-15',v:360},{d:'2026-07-16',v:175},{d:'2026-07-17',v:98},{d:'2026-07-18',v:95},{d:'2026-07-19',v:109},{d:'2026-07-20',v:67},{d:'2026-07-21',v:67},{d:'2026-07-22',v:84},{d:'2026-07-23',v:117}
+    {d:'2026-07-15',v:360},{d:'2026-07-16',v:175},{d:'2026-07-17',v:98},{d:'2026-07-18',v:95},{d:'2026-07-19',v:109},{d:'2026-07-20',v:67},{d:'2026-07-21',v:67},{d:'2026-07-22',v:84},{d:'2026-07-23',v:117},{d:'2026-07-24',v:99},{d:'2026-07-25',v:95},{d:'2026-07-26',v:87},{d:'2026-07-27',v:82},{d:'2026-07-28',v:100}
   ],
   context_p90: [
-    {d:'2026-07-15',v:385},{d:'2026-07-16',v:319},{d:'2026-07-17',v:281},{d:'2026-07-18',v:103},{d:'2026-07-19',v:199},{d:'2026-07-20',v:157},{d:'2026-07-21',v:163},{d:'2026-07-22',v:95},{d:'2026-07-23',v:141}
+    {d:'2026-07-15',v:385},{d:'2026-07-16',v:319},{d:'2026-07-17',v:281},{d:'2026-07-18',v:103},{d:'2026-07-19',v:199},{d:'2026-07-20',v:157},{d:'2026-07-21',v:163},{d:'2026-07-22',v:95},{d:'2026-07-23',v:141},{d:'2026-07-24',v:118},{d:'2026-07-25',v:166},{d:'2026-07-26',v:142},{d:'2026-07-27',v:147},{d:'2026-07-28',v:117}
   ],
   over150k: [
-    {d:'2026-07-15',v:75},{d:'2026-07-16',v:53.85},{d:'2026-07-17',v:33.33},{d:'2026-07-18',v:0},{d:'2026-07-19',v:27.78},{d:'2026-07-20',v:20},{d:'2026-07-21',v:50},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0}
+    {d:'2026-07-15',v:75},{d:'2026-07-16',v:53.85},{d:'2026-07-17',v:33.33},{d:'2026-07-18',v:0},{d:'2026-07-19',v:27.78},{d:'2026-07-20',v:20},{d:'2026-07-21',v:50},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0},{d:'2026-07-24',v:12.5},{d:'2026-07-25',v:20},{d:'2026-07-26',v:0},{d:'2026-07-27',v:0},{d:'2026-07-28',v:0}
   ],
   turns_p50: [
-    {d:'2026-07-15',v:12},{d:'2026-07-16',v:7},{d:'2026-07-17',v:3},{d:'2026-07-18',v:1},{d:'2026-07-19',v:4},{d:'2026-07-20',v:3},{d:'2026-07-21',v:13},{d:'2026-07-22',v:7},{d:'2026-07-23',v:8}
+    {d:'2026-07-15',v:12},{d:'2026-07-16',v:7},{d:'2026-07-17',v:3},{d:'2026-07-18',v:1},{d:'2026-07-19',v:4},{d:'2026-07-20',v:3},{d:'2026-07-21',v:13},{d:'2026-07-22',v:7},{d:'2026-07-23',v:8},{d:'2026-07-24',v:13},{d:'2026-07-25',v:45},{d:'2026-07-26',v:74},{d:'2026-07-27',v:13},{d:'2026-07-28',v:4}
   ],
   single_turn: [
-    {d:'2026-07-15',v:0},{d:'2026-07-16',v:7.69},{d:'2026-07-17',v:19.05},{d:'2026-07-18',v:55.56},{d:'2026-07-19',v:11.11},{d:'2026-07-20',v:20},{d:'2026-07-21',v:0},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0}
+    {d:'2026-07-15',v:0},{d:'2026-07-16',v:7.69},{d:'2026-07-17',v:19.05},{d:'2026-07-18',v:55.56},{d:'2026-07-19',v:11.11},{d:'2026-07-20',v:20},{d:'2026-07-21',v:0},{d:'2026-07-22',v:14.29},{d:'2026-07-23',v:0},{d:'2026-07-24',v:12.5},{d:'2026-07-25',v:0},{d:'2026-07-26',v:0},{d:'2026-07-27',v:0},{d:'2026-07-28',v:20}
   ],
   errors: [
-    {d:'2026-07-15',v:3.13},{d:'2026-07-16',v:3.95},{d:'2026-07-17',v:2.93},{d:'2026-07-18',v:2.15},{d:'2026-07-19',v:3.13},{d:'2026-07-20',v:2.56},{d:'2026-07-21',v:3.23},{d:'2026-07-22',v:3.64},{d:'2026-07-23',v:5.28}
+    {d:'2026-07-15',v:3.13},{d:'2026-07-16',v:3.95},{d:'2026-07-17',v:2.93},{d:'2026-07-18',v:2.15},{d:'2026-07-19',v:3.13},{d:'2026-07-20',v:2.56},{d:'2026-07-21',v:3.23},{d:'2026-07-22',v:3.64},{d:'2026-07-23',v:5.28},{d:'2026-07-24',v:4.48},{d:'2026-07-25',v:3.65},{d:'2026-07-26',v:1.28},{d:'2026-07-27',v:5.47},{d:'2026-07-28',v:4.58}
   ],
   interruptions: [
-    {d:'2026-07-15',v:0},{d:'2026-07-16',v:0},{d:'2026-07-17',v:0},{d:'2026-07-18',v:0},{d:'2026-07-19',v:0},{d:'2026-07-20',v:0},{d:'2026-07-21',v:0},{d:'2026-07-22',v:0},{d:'2026-07-23',v:0}
+    {d:'2026-07-15',v:0},{d:'2026-07-16',v:0},{d:'2026-07-17',v:0},{d:'2026-07-18',v:0},{d:'2026-07-19',v:0},{d:'2026-07-20',v:0},{d:'2026-07-21',v:0},{d:'2026-07-22',v:0},{d:'2026-07-23',v:0},{d:'2026-07-24',v:0},{d:'2026-07-25',v:0},{d:'2026-07-26',v:1},{d:'2026-07-27',v:0},{d:'2026-07-28',v:0}
   ],
   compaction: [
-    {d:'2026-07-17',v:9.52,r:'session-hygiene-v1'},{d:'2026-07-18',v:11.11,r:'session-hygiene-v1'},{d:'2026-07-19',v:13.89,r:'session-hygiene-v1'},{d:'2026-07-20',v:40,r:'session-hygiene-v1'},{d:'2026-07-21',v:100,r:'session-hygiene-v1'},{d:'2026-07-22',v:57.14,r:'session-hygiene-v1'},{d:'2026-07-23',v:100,r:'session-hygiene-v1'}
+    {d:'2026-07-17',v:9.52,r:'session-hygiene-v1'},{d:'2026-07-18',v:11.11,r:'session-hygiene-v1'},{d:'2026-07-19',v:13.89,r:'session-hygiene-v1'},{d:'2026-07-20',v:40,r:'session-hygiene-v1'},{d:'2026-07-21',v:100,r:'session-hygiene-v1'},{d:'2026-07-22',v:57.14,r:'session-hygiene-v1'},{d:'2026-07-23',v:73.33,r:'session-hygiene-v1'},{d:'2026-07-24',v:62.5,r:'session-hygiene-v1'},{d:'2026-07-25',v:60.0,r:'session-hygiene-v1'},{d:'2026-07-26',v:75.0,r:'session-hygiene-v1'},{d:'2026-07-27',v:75.0,r:'session-hygiene-v1'},{d:'2026-07-28',v:20.0,r:'session-hygiene-v1'}
   ],
   sessions_week: [
     {d:'2026-04-10',v:8,r:'migrated-jsonl'},{d:'2026-04-14',v:30,r:'migrated-jsonl'},{d:'2026-04-20',v:7,r:'migrated-jsonl'},
     {d:'2026-04-26',v:4,r:'note-hook'},{d:'2026-04-27',v:19,r:'note-hook'},{d:'2026-05-04',v:94,r:'note-hook'},{d:'2026-05-11',v:44,r:'note-hook'},{d:'2026-05-18',v:39,r:'note-hook'},{d:'2026-05-25',v:9,r:'note-hook'},{d:'2026-06-01',v:26,r:'note-hook'},
     {d:'2026-07-15',v:21,r:'telemetry-v1'},
-    {d:'2026-07-17',v:66,r:'session-hygiene-v1'},{d:'2026-07-20',v:18,r:'session-hygiene-v1'}
+    {d:'2026-07-17',v:66,r:'session-hygiene-v1'},{d:'2026-07-20',v:46,r:'session-hygiene-v1'},{d:'2026-07-27',v:9,r:'session-hygiene-v1'}
+  ],
+  skills: [
+    {d:'2026-07-15',v:25},{d:'2026-07-16',v:27.27},{d:'2026-07-17',v:36.84},{d:'2026-07-18',v:33.33},{d:'2026-07-19',v:34.48},{d:'2026-07-20',v:66.67},{d:'2026-07-21',v:50},{d:'2026-07-22',v:33.33},{d:'2026-07-23',v:69.23},{d:'2026-07-24',v:66.67},{d:'2026-07-25',v:60},{d:'2026-07-26',v:75},{d:'2026-07-27',v:75},{d:'2026-07-28',v:25}
+  ],
+  friction_labels: [
+    {d:'2026-07-15',v:0},{d:'2026-07-16',v:0},{d:'2026-07-17',v:0},{d:'2026-07-18',v:0},{d:'2026-07-19',v:0},{d:'2026-07-20',v:0},{d:'2026-07-21',v:0},{d:'2026-07-22',v:0},{d:'2026-07-23',v:0},{d:'2026-07-24',v:6},{d:'2026-07-25',v:0},{d:'2026-07-26',v:0},{d:'2026-07-27',v:0},{d:'2026-07-28',v:0}
   ]
 };
 
@@ -1247,6 +1311,14 @@ function renderCharts() {
   drawLine('chart-interruptions', [
     { data: DATA.interruptions, color: cssVar('--text-3') }
   ], { unit: 'count', yMin: 0, yMax: 3, height: 80 });
+
+  drawLine('chart-skills', [
+    { data: DATA.skills, color: s5, area: true }
+  ], { unit: 'pct', yMin: 0, yMax: 100 });
+
+  drawLine('chart-friction-labels', [
+    { data: DATA.friction_labels, color: cssVar('--warn') }
+  ], { unit: 'count', yMin: 0, yMax: 8, height: 80 });
 }
 
 // ─── Tab navigation ───

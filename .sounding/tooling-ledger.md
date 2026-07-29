@@ -19,3 +19,4 @@ Hypotheses under test. Verified/failed rows graduate to `tooling-ledger-log.md`.
 | 2026-07-28 | Skill output verbosity cap (≤400 token budget in prompts) | workflow | `count-drop:p90-output-tokens below 700 by 2026-08-16` | hypothesis — R4 recommendation, due 08-24 |
 | 2026-07-28 | Session breakpoint guidance for heavy sessions (>150k) | context | `ratio:top-session-cost-concentration below 40% by 2026-08-16` | hypothesis — R4 recommendation, due 08-24 |
 | 2026-07-28 | Insights placement settled: engine+data in librarian, rendered artifacts in guacamayo/.sounding (report moved from .claude/docs/state) | observability | `absence:insights-artifacts-outside-sounding for 2 retros` | hypothesis — due 08-24 |
+| 2026-07-29 | Dashboard path pinned to context-dashboard.html (state doc + workflow-insights step 13); dashboard.html deprecated | workflow | `absence:writes-to-sounding-dashboard.html for 2 retros` | hypothesis — due 08-24 |
