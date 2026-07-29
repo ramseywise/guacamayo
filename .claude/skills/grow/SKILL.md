@@ -103,7 +103,7 @@ Don't wait for it — continue with signal reads below using existing data. The 
 ### 4b. Read signals (fast, grep-based)
 
 - `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
-- `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is append-only/oldest-first — use `grep '^## R' | tail -1`, never `-m1`)
+- `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
