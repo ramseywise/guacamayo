@@ -87,13 +87,21 @@ Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open
 Check ALL active repos for open issues — the meta-session's job is the cross-cutting view, not just this repo:
 
 ```bash
+# Open issues — current board state
 for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
   echo "--- $repo ---"
   gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
 done
 ```
 
-Present as a **cross-repo status table** grouped by repo, showing ALL open issues:
+```bash
+# Recently closed issues — shows what shipped since last wake
+# Use the handover timestamp or fall back to 3 days
+gh search issues --author=ramseywise --state=closed --sort=updated \
+  --updated=">YYYY-MM-DD" --json repository,number,title,closedAt --limit 20 2>/dev/null
+```
+
+Present as a **cross-repo status table** grouped by repo, showing ALL open issues plus a **Recently closed** section for issues that moved through the final transition:
 
 | Repo | # | Title | State | Note |
 |------|---|-------|-------|------|

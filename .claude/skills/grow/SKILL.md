@@ -62,16 +62,24 @@ Ask: "Any sessions since we started I should know about?" — one sentence per s
 ### GitHub Issues (always — fast, no librarian needed, cross-repo)
 
 ```bash
+# Open issues — current board state
 for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
   echo "--- $repo ---"
   gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
 done
 ```
 
+```bash
+# Recently closed issues — catches the in-review → closed transition
+# Use the date from /wake or last /grow (whichever is more recent) as the since cutoff
+gh search issues --author=ramseywise --state=closed --sort=updated \
+  --updated=">YYYY-MM-DD" --json repository,number,title,closedAt --limit 20 2>/dev/null
+```
+
 Present as a cross-repo status table (same format as /wake). Compare to what /wake saw and surface:
 - **New issues** created since session start
 - **Label changes** (something moved to ready, blocked, in-review)
-- **Closed issues** (work completed elsewhere)
+- **Closed issues** (work completed elsewhere) — from the `--state closed` query
 - **Repos with changes** get a table row; unchanged repos get a one-line summary
 
 If `gh` fails, skip gracefully.
@@ -95,7 +103,7 @@ Don't wait for it — continue with signal reads below using existing data. The 
 ### 4b. Read signals (fast, grep-based)
 
 - `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
-- `.sounding/tooling-ledger-log.md` latest `## R` header → last retro date
+- `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is append-only/oldest-first — use `grep '^## R' | tail -1`, never `-m1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
@@ -140,6 +148,12 @@ Read the existing dashboard HTML structure. Update these data sections with curr
 ### How to update
 
 The dashboard is a self-contained HTML file. Edit the data values in-place — don't regenerate the entire file. If the dashboard structure doesn't have a section for the signals above, add a lightweight section.
+
+**Exception — the review-findings card is cartographer-owned.** The region between
+`<!-- REVIEW-FINDINGS:START -->` and `<!-- REVIEW-FINDINGS:END -->` in the Review tab
+is regenerated from `review-findings.jsonl` by the daily `cartographer --facts` run.
+Never hand-edit inside those markers (edits get overwritten); never move or delete the
+markers (cartographer skips the file if they're missing).
 
 Keep the dashboard under 200 lines if possible — it's meant to be glanceable. Full data lives in insights-log.md and the tooling ledger.
 
