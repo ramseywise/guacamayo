@@ -142,7 +142,7 @@ Clear processed entries. Update the synthesis date. Keep format template and hea
 
 Check three triggers:
 
-1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` latest `## R` header date. If **>=7 days ago** (or file doesn't exist) → triggered.
+1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` last `## R` header date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`). If **>=7 days ago** (or file doesn't exist) → triggered.
 2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? → triggered.
 3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /grow flag** — /grow may have run before the tooling work happened.
 

@@ -93,3 +93,10 @@ Never rewritten, never cleared. This is the audit trail growth.md's clearing des
 | 2026-07-28 | confirmed | Pre-commit ↔ CI ruff version skew is systemic fleet risk. Gap grows sil... | discarded | process/tooling → /retro (version pinning strategy) |
 
 Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `discarded` (not woven — reason in Notes)
+| 2026-07-28 | confirmed | Insights placement settled: engine+data in librarian, rendered artifacts... | discarded | process/tooling → /retro (artifact placement convention) |
+| 2026-07-29 | discovered | Agent worktree isolation: only clones session repo; cross-repo agents w... | merged | sounding.md → operational/problem-solving (dispatch constraint) |
+| 2026-07-29 | confirmed | risky_git_guard held under 9-agent fleet load: blocked every agent commi... | discarded | already captured — enforcement-over-asking principle exists |
+| 2026-07-29 | discovered | Shared-checkout contamination makes per-issue history splits fiction; ho... | merged | sounding.md → operational/problem-solving (combined with worktree entry) |
+| 2026-07-29 | discovered | 6-pillar assessment framework as reusable measurement instrument; nestin... | merged | portfolio.md → threads section (measurement capability) |
+| 2026-07-29 | corrected | Don't add /workflow-plan ceremony when issue body already has approach/cr... | merged | sounding.md → working notes (ceremony trap principle) |
+| 2026-07-29 | confirmed | disable-model-invocation skills must be executed inline when Skill tool b... | discarded | process/tooling → /retro (skill invocation convention) |

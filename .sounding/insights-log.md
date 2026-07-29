@@ -1,7 +1,45 @@
-# Insights Log
+## 2026-07-29 (257 sessions, 2026-07-15 to 2026-07-29)
 
-Append-only. Each `/workflow-insights` run adds a dated section at the top.
-Full analysis is generated fresh each run; this log captures the trajectory.
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 22% | — |
+| Cache hit rate | 96% | 84% savings |
+| Bash antipatterns | 7263 total | 28.3 per session |
+| Median response time | 2.7m | — |
+| Subagent share | 37% of usage (555 transcripts) | — |
+| Sessions analyzed | 257 | 15 active days |
+| Compacts deployed | 161 invocations, 63 sessions | 25% adoption |
+| Total tool errors | 721 | — |
+| Interruptions | 48 | — |
+
+### Model distribution
+(Cost-weighted distribution data in insights-report.html)
+
+### Tool breakdown
+Bash: 49%, Edit: 22%, Read: 19%, Write: 5%, Agent: 2.8%
+
+### Skill usage (cost-weighted %, top 5)
+- compact: 3.1%
+- grow: 1.7%
+- wake: 1.6%
+- dream: 0.7%
+- execute: 0.7%
+
+### Error breakdown
+| Type | Count | % |
+|------|-------|---|
+| command_failed | 313 | 43% |
+| other | 254 | 35% |
+| file_not_found | 82 | 11% |
+| user_rejected | 39 | 5% |
+| permission_denied | 31 | 4% |
+| edit_failed | 2 | 0% |
+
+### Context distribution
+<50k: 23%, 50-100k: 36%, 100-150k: 19%, >150k: 22%
+
+---
 
 ---
 

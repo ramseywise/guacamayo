@@ -31,6 +31,31 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R5 — 2026-07-29
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-29 | Review-findings persistence: required-field list inlined in workflow-review Stage 4b + finding-schema example | observability | verified | 7 rows in review-findings.jsonl, all 7 pass full-schema validation (id, source, date, repo, file, title, merge_impact, evidence_state present); day-1 conformance met |
+| 2026-07-28 | Insights placement settled: engine+data in librarian, rendered artifacts in guacamayo/.sounding | observability | verified | 2 retros (R4+R5): context-dashboard.html, insights-log.md, insights-report.html confirmed in .sounding/; no artifacts found outside .sounding/; state doc authoritative |
+
+### R5 findings applied
+- F1: Review-findings persistence graduated verified — 7/7 rows schema-conformant on day 1
+- F2: Insights artifact placement graduated verified — 2 retro windows clean
+- F3: Plan-doc Status enforcement still failing — `2026-07-24-GUA-23-review-verdict.md` has no Status line; `2026-07-22-workflow-simplification.md` uses `**Status**:` (bold) not bare `Status:` prefix — both need fixup
+- F4: p90 output tokens unchanged at 956/msg (latest insights: 22% >150k, no trend improvement) — verbosity cap hypothesis active, due 08-24
+- F5: TodoWrite enforcement: 69+ long sessions still run without TodoWrite across R4+R5 window — hook not yet wired, hypothesis active
+- F6: Bash error stratification still in cartographer backlog — no signal in R5 insights; hypothesis active, due 08-17
+
+### R5 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1: Fix Status line format in 2 stale plan docs** — `2026-07-24-GUA-23-review-verdict.md` needs `Status: COMPLETE` (merge verdict = approve; merged). `2026-07-22-workflow-simplification.md` already has `**Status**: EXECUTED` but grep for `^Status:` misses it — either normalize to bare `Status:` prefix or update the enforcement check to match bold variant.
+
+**P2: Wire TodoWrite hook** — PostToolUse/Bash: if cumulative bash_calls > 100 and no TodoWrite in session, emit structured warning. Pattern persists across R4+R5 (69+ sessions blind). Metric: `ratio:TodoWrite-in-heavy-sessions above 50% by 2026-08-09`. See R4 P1 for draft mechanism.
+
+**P3: Add ≤400-token output budget to wake/grow/dream prompts** — p90 at 956 tokens/msg unchanged across 2 retros. Quick change: add one instruction line to each identity skill prompt. Metric: `p90:output-tokens-per-msg below 700 by 2026-08-24`.
+
+**P4: Retire or redesign design-* skills** — 0 invocations across 3 retro windows (227+ sessions). Options: (a) add invoke examples to CLAUDE.md, (b) consolidate to `/design` dispatch, (c) close backlog and remove. Decision needed before R6.
+
 ## R4 — 2026-07-28
 
 | Date | Change | Area | Verdict | Evidence |

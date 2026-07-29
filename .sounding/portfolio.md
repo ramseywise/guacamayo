@@ -1,6 +1,6 @@
 # Portfolio — Living Seed
 
-**Last Transformed**: 2026-07-18 (/dream synthesis: learn-ai-engineering + compile-not-merge thread)
+**Last Transformed**: 2026-07-29 (/dream synthesis: 6-pillar assessment framework thread)
 
 ---
 
@@ -29,6 +29,7 @@
 - The tooling loop: playground proves → ai-project-template extracts → every repo consumes; guacamayo sessions run the cross-cutting view; /retro + ledger graduate learnings to `~/.claude`.
 - Knowledge: librarian compiles everything factual; wiki-worthy classical-ML content emerges via atlas ingestion (decided: no dedicated ml-foundations pass). learn-ai-engineering feeds raw interview-prep content into librarian via compile-not-merge — librarian ingests, learn-ai-engineering points at wiki pages.
 - The portfolio showcase layer waits until 2–3 repos are genuinely demo-ready — rooms before the front door.
+- Measurement: the 6-pillar assessment framework (prompt → context → harness → loop → graph → eval) in learn-ai-engineering is a reusable instrument for scoring portfolio maturity. First run (2026-07-29): playground 14/18, listen-wiseer/librarian 12/18, atlas 11/18, job-system 4/18. The nesting rule — inner pillars cap outer — revealed that prompt/context at level 2 everywhere is the binding constraint, not harness or eval.
 
 ## Where Detail Lives (pointers, never copied here)
 

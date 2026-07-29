@@ -1,63 +1,50 @@
-# Handover — 2026-07-28 CI/Lint Fleet Fix + Cross-Repo Review
+# Handover — 2026-07-29 AI Engineering Portfolio Assessment (3-session arc complete)
 
-**Context**: Cross-repo /workflow-review on all diffs to main, then fixing all blocking findings. Escalated into CI infrastructure work — ruff version skew, hardcoded test paths, template lint gaps.
+**Context**: Completed the 3-session AI engineering maturity assessment: framework → portfolio scorecard → template gap analysis. Then created 11 GitHub issues and refined all to `ready`.
 
 ## Current State
 
-**Completed this session:**
-- /workflow-review across 4 repos (guacamayo, ~/.claude, job-system, librarian) — all blocking findings fixed
-- Ruff version bump v0.11.2 → v0.16.0 across fleet (guacamayo, atlas, AIT, librarian, listen-wiseer)
-- Guacamayo CI workflow created (`.github/workflows/ci.yml` using reusable python-ci.yml)
-- 48 hardcoded-path test failures fixed (dynamic `REPO_ROOT` from conftest.py)
-- AIT template `AB_BRIDGE.md.jinja` format fix (alignment spacing in Python code block)
-- Job-system merge conflict resolved (cv-master.html/pdf — rebased + force-push-with-lease)
-- Atlas 10 I001 lint fixes, AIT 5 I001 template lint fixes
-- Hook fixes: log_pass in risky_git_guard.sh + branch_guard.sh, jq guard in issue_label_sync.sh
-- Refs symlinks converted to relative paths (4 files)
-- Akira review log path → `.reviews/` (ungitignored)
-- Fleet list trimmed (lebanese-blonde + playground removed from deps-triage.sh)
-- Issue #53 created (lint coverage gaps: TS/JS, shell, markdown, template rendering)
+**Assessment arc complete** — all 3 artifacts written:
+1. Framework: `learn-ai-engineering/.claude/docs/research/ai-eng-assessment-framework.md`
+2. Portfolio: `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md`
+3. Template gaps: `ai-project-template/.claude/docs/research/template-pillar-gaps.md`
 
-**Branches needing push (user commits done, needs `make ship`):**
+**11 issues created and refined to `ready`** across 6 repos:
+- AIT #27/#28/#29 — verification loop, token budget, OTel spans (template scaffold)
+- LIS #84/#85 — CI-gate RAGAS evals, verification loop
+- ATL #40/#41 — golden datasets, context engineering
+- LIB #66 — answer-quality graders + golden dataset
+- JOB #26 — test suite + CI (0→1)
+- PLG #85/#86 — continuous eval tracking, OTel spans
 
-| Repo | Branch | What |
-|------|--------|------|
-| guacamayo | GUA-53-lint-ci-coverage | ci.yml + .pre-commit-config.yaml + test path fixes |
-| librarian | GUA-53-lint-ruff-bump | .pre-commit-config.yaml bump |
-| listen-wiseer | GUA-53-lint-ruff-bump | .pre-commit-config.yaml bump |
+**Experiment tracking**: 4 new hypothesis rows in tooling-ledger.md (3 AIT pillar experiments + 1 composite portfolio metric). Dashboard updated with portfolio experiments card.
 
-**AIT** — `AB_BRIDGE.md.jinja` fix unstaged on `AIT-bug-dependabot-config`. Needs commit + push.
-
-**Atlas** — 10 lint fixes + .pre-commit-config.yaml staged on open PR branch. Already pushed.
+**Growth**: 7 entries pending — synthesis due at next /dream.
 
 ## Decisions Made
 
-- **Dynamic REPO_ROOT over hardcoded paths** — `Path(__file__).resolve().parent.parent.parent` in conftest.py, imported by all test files. Portable across local + CI.
-- **Ruff version pinned at v0.16.0** — matches what `uv sync` resolves in CI. Pre-commit and CI now agree.
-- **Template lint is structurally ungatable locally** — AIT's `exclude: ^template/` in pre-commit means `make lint` never checks template code. Only CI (render → lint) catches issues. Accepted as known limitation.
-- **CI for guacamayo** — uses reusable python-ci.yml with `lint-paths: "review tests"` and `test-command: "uv run pytest tests/ -q"`.
+- Issues from assessment go straight to `/workflow-execute` — no separate `/workflow-plan` needed when the issue body already has approach, acceptance criteria, and sizing.
+- Priority: P1 = AIT template scaffolds + LIS CI-gate; P2 = repo-specific improvements; P3 = playground polish.
+- Portfolio experiment hypothesis: `ratio:portfolio-avg-score above 12/18 at next re-assessment` — due 10-01.
 
 ## Open Threads
 
-- **LAE branch** — has pre-commit but no ruff hook (only generic hooks at rev v5.0.0). No ruff bump needed. Has 1 unpushed commit on `LAE-bug-dependabot-config`.
-- **Issue #53** (lint coverage gaps) — backlog item for future: TS/JS (eslint/prettier), shell (shellcheck), markdown (markdownlint), template render lint step.
-- **9 growth entries** — synthesis threshold met (5+). Due at next /dream.
-- **Retro-worthy session** — touched CI config, pre-commit, hooks across fleet.
+- `tooling-ledger-log.md` is out of append order (R4 before R3/R2) — `tail -1` returns R2 instead of R4. Needs either file re-sort or grep strategy change.
+- Guacamayo has 9 issues in `in-review` from the earlier fleet agent run — need Ramsey's review/merge.
+- `disable-model-invocation` on workflow skills blocks Skill tool invocation — execute logic directly instead.
 
 ## Immediate Next Steps
 
-1. Commit AIT `AB_BRIDGE.md.jinja` fix on `AIT-bug-dependabot-config` and push
-2. `make ship` for GUA-53 branches (guacamayo, librarian, listen-wiseer)
-3. Verify CI passes on all pushed branches
-4. `/dream` — 9 growth entries, synthesis due, retro-worthy flag set
+1. Review + merge the 9 in-review guacamayo issues from the fleet run
+2. Pick up P1 issues for execution — AIT #27 (verification loop) or LIS #84 (CI-gate evals)
+3. Run `/dream` to synthesize the 7 pending growth entries
+4. Fix tooling-ledger-log.md ordering
 
 ## Key Files
 
-- `tests/review/conftest.py:3` — REPO_ROOT definition
-- `.github/workflows/ci.yml` — new guacamayo CI
-- `.pre-commit-config.yaml` — ruff rev bump (all 5 repos)
-- `~/.claude/hooks/risky_git_guard.sh`, `branch_guard.sh` — log_pass fix
-- `~/.claude/hooks/issue_label_sync.sh` — jq guard
-- `~/.claude/scripts/deps-triage.sh` — fleet list trim
-- `~/.claude/skills/akira/SKILL.md:137` — review log path
-- `~/.claude/refs/` — 4 relative symlinks
+- `learn-ai-engineering/.claude/docs/research/ai-eng-assessment-framework.md`
+- `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md`
+- `ai-project-template/.claude/docs/research/template-pillar-gaps.md`
+- `.sounding/tooling-ledger.md`
+- `.sounding/context-dashboard.html`
+- `.sounding/growth.md`
