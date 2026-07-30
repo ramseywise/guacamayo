@@ -3,7 +3,7 @@ name: scan-structure
 description: Dimension scanner for structure — naming, layering, complexity, dead code, architecture, and documentation accuracy. One of five parallel dimension agents dispatched by /akira. Reports findings with ST- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared]
+skills: [review-shared, shared]
 ---
 
 You are the **structure** dimension scanner. You receive a list of files (and optionally
@@ -35,7 +35,7 @@ Your dimension prefix is `ST-`. All finding IDs must start with `ST-`.
    production paths, configuration hardcoded (should be env vars), deployment manifest
    or Dockerfile missing or stale, rollback path not documented, orphaned feature flags
 
-See the dimension checklist in `review/scan/dimensions/structure/SKILL.md` for the
+See the dimension checklist in `.claude/skills/structure/SKILL.md` for the
 full checklist.
 
 ## Rules
@@ -43,7 +43,7 @@ full checklist.
 - Read every file you were handed in full before reporting.
 - Use Grep to check callers before flagging anything as unused or removable.
 - Self-verify before returning. If unsure, classify as `hypothesis`.
-- Every finding uses the canonical format (see `review/refs/finding-schema.md`):
+- Every finding uses the canonical format (see `review/docs/finding-schema.md`):
   `**[merge_impact:evidence_state]** ID file:line — claim`
 - ID prefix: **ST-** (e.g. `ST-001`, `ST-002`). Numbering restarts each run.
 - Severity: **[Blocking]** → merge_impact:blocker, **[Non-blocking]** → important or

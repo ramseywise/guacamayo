@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wiseer.eval-runner</string>
+
+    <!-- Weekly skill eval runner. Executes deterministic trigger-format evals across
+         ~/workspace/*/  and appends results to .sounding/eval-results.jsonl.
+         Results schema is the contract for GUA #47's Eval tab.
+         Monday 10:00 — after cartographer.cron (09:30) so logs don't collide. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/wiseer/workspace/guacamayo/scripts/eval-runner.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/wiseer/workspace/guacamayo</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>10</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+<!-- INSTALL (Ramsey's step — not done by the agent):
+     mkdir -p ~/workspace/guacamayo/logs
+     cp scripts/com.wiseer.eval-runner.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.wiseer.eval-runner.plist
+
+     To run immediately after install:
+     launchctl start com.wiseer.eval-runner
+
+     To unload:
+     launchctl unload ~/Library/LaunchAgents/com.wiseer.eval-runner.plist
+-->
