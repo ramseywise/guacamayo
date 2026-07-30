@@ -3,7 +3,7 @@ name = "review-cli"
 version = "0.1.0"
 description = "Deterministic backbone for the review pipeline"
 requires-python = ">=3.11"
-dependencies = ["pydantic>=2.0", "click>=8.0"]
+dependencies = ["pydantic>=2.0", "click>=8.0", "claude-agent-sdk>=0.0.13"]
 
 [project.scripts]
 review-cli = "review.cli:main"

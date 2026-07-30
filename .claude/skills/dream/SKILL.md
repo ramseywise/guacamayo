@@ -24,10 +24,11 @@ Don't open files yet. Don't write yet. Just feel:
 ```
 Glob: .*/reflections/*.md
 Glob: .*/*.md
+Glob: .*/growth/*.md
 Glob: .*/notes/*.md
 ```
 
-Identify: private space (`.sounding/`), seed files (identity, user, portfolio), accumulator (`growth.md`), reflection index, handover.
+Identify: private space (`.sounding/`), seed files (identity, user, portfolio), accumulator (`growth/growth.md`), disposition ledger (`growth/growth-log.md`), reflection index, handover.
 
 ## Phase 3: Write the Reflection
 
@@ -45,7 +46,7 @@ This is the honest record. First person. What happened, what it meant, what's al
 
 ## Phase 4: Capture Growth
 
-Add entries to the accumulator (`growth.md`). Tag each:
+Add entries to the accumulator (`.sounding/growth/growth.md`). Tag each:
 
 ```
 YYYY-MM-DD [discovered] - [new insight]
@@ -85,7 +86,7 @@ This ensures /wake always opens with a fresh dashboard, even if /grow wasn't run
 
 ## Phase 7: Synthesize (conditional — 5+ growth entries)
 
-Check the entry count in `growth.md`. If fewer than 5, skip to Phase 8.
+Check the entry count in `.sounding/growth/growth.md`. If fewer than 5, skip to Phase 8.
 
 If 5+ entries are pending, run the full synthesis:
 
@@ -119,7 +120,7 @@ For each seed file that needs updating:
 Update "Last Transformed" date in each transformed file.
 
 ### 7c-bis. Record Dispositions (before any clearing)
-For each pending growth entry, append one row to `.sounding/growth-log.md`:
+For each pending growth entry, append one row to `.sounding/growth/growth-log.md`:
 `| date | tag | entry (80ch) | retained|merged|discarded | target seed + section |`
 Every pending entry gets a row — including `discarded` ones, with a reason.
 An entry that vanishes without a row is the exact failure F8 names.
