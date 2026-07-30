@@ -1,6 +1,6 @@
 ---
 name: scan-safety
-description: Dimension scanner for safety — missing safeguards, error/resource handling, security, privacy, and secrets. One of five parallel dimension agents dispatched by /akira. Reports findings with SF- prefixed IDs. Read-only, never edits.
+description: Dimension scanner for safety — missing safeguards, error/resource handling, security, privacy, secrets, reliability, and performance/scale. One of five parallel dimension agents dispatched by /akira. Reports findings with SF- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
 skills: [review-shared, shared]
@@ -27,6 +27,11 @@ Your dimension prefix is `SF-`. All finding IDs must start with `SF-`.
 6. **Reliability** — missing retry/backoff on external calls, no timeout on HTTP/API calls,
    no circuit breaker or fallback for degraded dependencies, unbounded retries, no
    backpressure handling, SLI/SLO boundaries not asserted
+7. **Performance / scale** — N+1 queries (a query or external call inside a loop that
+   could be batched), unbounded result sets with no limit or pagination, hot-path
+   algorithmic complexity that degrades at production scale, query patterns with no
+   supporting index. Without production data (query plans, load numbers) these are
+   `hypothesis`, not `verified`.
 
 See the dimension checklist in `.claude/skills/safety/SKILL.md` for the
 full checklist.

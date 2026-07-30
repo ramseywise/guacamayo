@@ -45,10 +45,18 @@ Used by: `.claude/agents/correctness.md`
 
 ## Testing Coverage
 
-- Unit tests for the changed behavior
-- Negative paths exercised (what happens when it fails?)
-- Assertions are meaningful (not tautological; mocks don't stub the thing being tested)
-- Failure-before-fix evidence: does a test prove the bug existed before the fix?
+- **Unit**: Do unit tests cover the new/changed logic in isolation?
+- **Integration**: Do tests cover how this interacts with the components it depends on?
+- **Contract**: If a contract (API, schema, interface) changed, is there a test guarding it?
+- **Regression**: For a bug fix, is there a test for the specific bug?
+- **Negative paths**: Are failure paths exercised, not just the success case?
+- **Useful assertions**: Do assertions verify the behavior that matters, or only that the
+  code ran without throwing? (Not tautological; mocks must not stub the thing under test.)
+- **Conservation**: Where a function transforms a collection, does a test assert nothing is
+  silently lost or duplicated? Count-based assertions can miss this when a downstream stage
+  merges the duplicate — assert on identity or on the merge's own trace.
+- **Failure-before-fix evidence**: Does a test prove the bug existed before the fix — i.e.
+  was it confirmed to fail against the unfixed code?
 
 ## Evidence Standard
 
