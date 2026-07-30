@@ -50,6 +50,7 @@ for repo in $REPOS; do
   staged=$(git diff --cached --stat 2>/dev/null)
   if [ -n "$staged" ]; then
     echo "  STAGED:"
+    # shellcheck disable=SC2001  # sed prepends to each line; ${var//^/prefix} can't do this
     echo "$staged" | sed 's/^/    /'
   fi
 
@@ -57,6 +58,7 @@ for repo in $REPOS; do
   modified=$(git status --short 2>/dev/null)
   if [ -n "$modified" ]; then
     echo "  UNCOMMITTED:"
+    # shellcheck disable=SC2001  # sed prepends to each line; ${var//^/prefix} can't do this
     echo "$modified" | sed 's/^/    /'
   fi
 
