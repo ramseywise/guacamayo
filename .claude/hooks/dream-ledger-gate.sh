@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dream-ledger-gate.sh — PostToolUse hook for Edit/Write on .sounding/growth.md
+# dream-ledger-gate.sh — PostToolUse hook for Edit/Write on .sounding/growth/growth.md
 # Blocks if growth.md entries were cleared without corresponding growth-log.md rows.
 #
 # Logic: after an edit to growth.md, count remaining dated entries (YYYY-MM-DD lines).
@@ -13,18 +13,18 @@ set -euo pipefail
 # Bypass valve
 [ "${GUACAMAYO_SKIP_LEDGER_GATE:-0}" = "1" ] && exit 0
 
-# Only fire on .sounding/growth.md edits
+# Only fire on .sounding/growth/growth.md edits
 file_path=$(echo "$CLAUDE_TOOL_INPUT" | jq -r '.file_path // empty')
 [ -z "$file_path" ] && exit 0
 case "$file_path" in
-  */.sounding/growth.md|*.sounding/growth.md) ;;
+  */.sounding/growth/growth.md|*.sounding/growth/growth.md) ;;
   *) exit 0 ;;
 esac
 
 # Resolve repo root from the file path (strip suffix via parameter expansion)
-repo_root="${file_path%/.sounding/growth.md}"
-growth="$repo_root/.sounding/growth.md"
-ledger="$repo_root/.sounding/growth-log.md"
+repo_root="${file_path%/.sounding/growth/growth.md}"
+growth="$repo_root/.sounding/growth/growth.md"
+ledger="$repo_root/.sounding/growth/growth-log.md"
 
 # Count dated entries remaining in growth.md (lines matching YYYY-MM-DD [tag])
 remaining=$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} \[' "$growth" 2>/dev/null || true)

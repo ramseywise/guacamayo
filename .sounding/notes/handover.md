@@ -1,46 +1,38 @@
-# Handover — 2026-07-30 Execution Day: 3 Waves, 15 Issues, 7 Repos
+# Handover — 2026-07-30 (Evening) AIT-34 Landed + Isolation Leak Corrected
 
-**Context**: Meta-session dispatched the portfolio-assessment backlog. Morning: traced + fixed the dashboard.html cron regression. Then three execution waves of parallel sonnet agents, one per target repo, plus an evidence-based close pass over stale issues.
+**Context**: Meta-session (Sounding) closing the 07-30 execution day. Evening arc: AIT-34 worktree dispatch (completed, with isolation leak), LAE link-check fix, /dream with synthesis. Morning arc (3 waves / 15 issues) + afternoon (AIT-33, GUA-60 smoke) in git history + reflections.
 
 ## Current State
 
-**All agent branches committed + pushed by Ramsey** (issues close on PR merge):
-- Wave 1: `GUA-53-shellcheck-lint`, `AIT-27-verification-loop`, `LIS-84-ci-gate-ragas`, `PLG-85-continuous-eval`, `JOB-26-test-suite-ci`, `ATL-40-golden-datasets`
-- Wave 2: `ATL-41-context-engineering`, `AIT-28-token-budget`, `LIB-54-path-traversal`, `GUA-49-eval-runner`, `LIS-85-verification-loop`, `PLG-86-otel-spans`
-- Wave 3: `AIT-29-otel-spans`, `LIB-66-answer-graders` (check push state)
-
-**Dashboard cron regression fixed**: librarian `bug/cartographer-dashboard-path` → PR #69 (`--no-dashboard` on facts cron; defaults corrected — old `--ledger` default pointed at a nonexistent file). **PR #69 must merge before the next 09:00 launchd run** or dashboard.html regenerates. Real fix (region injection into context-dashboard.html marker regions) = LIB #68.
-
-**Closed today (evidence pass)**: GUA #31/32/33/34/36/37/39/40/42/48, ATL #37 (PR #39), LIS #77 (PR #83), LAE #28/#102/#105. Done in-session: GUA #35 (required status checks `ci / lint`+`ci / test` now on guacamayo main, strict).
-
-**Not done, back to ready**: GUA #41 (parser stratification — no code exists; matches ledger hypothesis due 08-17).
+- **ai-project-template** — checkout on `AIT-34-design-rigor-gaps` = b27bd2a → 5852798 → 4eac907 → 8f8bac3, tree clean. **Both new commits have auto-generated messages needing reword** (agent heredoc swallowed by hook output): `4eac907` = the former staged AIT-33 diff (content byte-correct) → should be `refactor(template): flat layout, terraform + nbks gating (#33)`; `8f8bac3` = AIT-34 (5 files, 102 ins, lint+tests green, Step 8 Scenario C all-PASS) → should be `feat(design): close rigor gaps G3-G6 in scope-poc + DESIGN + gate (#34)`. `AIT-32-decouple-lg-agent-corpus` branch tip is also 4eac907 — after reword, `git branch -f` it to the new SHA. Not soft-reset (would collapse 32/33/34 into one diff).
+- **learn-ai-engineering** — link-check fix staged on `LAE-bug-dependabot-config` (`M scripts/link_check.py` +`"idk"` in SKIP_DIRS, `M .gitignore` +`*idk/`), `make test` green. Branch carries stale dep commit 64d89bf; its PR #95 already merged → needs NEW PR. Suggested commit: `fix(lint): skip vendored idk/ in link-check`.
+- **guacamayo** — GUA-60 driver work uncommitted on `GUA-60-review-driver` (max_turns 15→30 at driver.py:60; 266 tests + ruff clean). Live smoke (2× `review-cli run` + `trends`) still owed after usage reset — DoD items 1+3.
+- **listen-wiseer** — `bug/verification-test-conftest` pushed (89110c8). Needs PR.
+- **librarian** — `GUA-44-context-overhead-audit-v2` pushed. Needs PR. PR #69 (dashboard cron fix) time-sensitive — merge before next 09:00 launchd run.
+- Untracked `.sounding/dashboard.html` in guacamayo — GUA-21 leftover, verify + delete or commit.
 
 ## Decisions Made
 
-- Bulk-close needs evidence per issue — double-check caught 2 of 10 "merged" issues that weren't (GUA #35, #41).
-- GUA #49 eval runner placed in guacamayo `scripts/` (librarian + ~/.claude were mid-flight). Migration to librarian tools/ possible later. Plist NOT installed — Ramsey's step post-merge (instructions in agent report / scripts/com.wiseer.eval-runner.plist).
-- Branch creation for cross-repo agents: always `--no-track` — `checkout -b X origin/main` set upstream to main and broke the push flow (fixed via `branch --unset-upstream` on 6 repos).
-- PLG #85 fabricated baseline seeds stripped — baselines seed from first real run only.
+- **Worktree isolation is repo-scoped**: a worktree created in the dispatcher's repo does NOT protect a different target repo — the AIT-34 agent (guacamayo worktree, `Repo: ~/workspace/ai-project-template` prompt) worked on the live checkout and committed the staged AIT-33 diff. Rule: cross-repo spawns need the worktree created in the target repo. Logged `[corrected]`, retro-worthy.
+- AIT-34 left as stacked commits (no soft-reset) so 32/33/34 stay separable for review.
+- LAE fix stacked on the stale branch by staging main's-content+fix so identical changes merge cleanly.
 
 ## Open Threads
 
-- **Wave 4 candidates**: AIT #22/#23 (behind #29 merge), LIB #65 (collides with in-flight dashboard.py work — reconcile first), LIB #68 (region injection), GUA #41/#43/#44/#45/#46/#47/#50, LAE #106 (needs Ramsey's 3 vendoring decisions: manifest-vs-submodule-vs-LFS; PDFs in git or drive+index; WHAT-TO-READ.md per pruned repo).
-- **GUA #43/#44 reconciliation**: unmerged librarian branch `GUA-43-dashboard-segmentation` + uncommitted `dashboard.py` diff in `/private/tmp/librarian-gua43` worktree (coverage-table row). Salvage or restart before spawning.
-- **Label-lag pattern (retro-worthy)**: 14 issues today were open for already-merged work. Auto-label hook (#42, closed) exists — why didn't it close/transition these? Candidate retro item.
-- **Eval-runner follow-on**: 3 of 53 evals.json need a harness (akira, sanyi behavioral; harness-creator) — future issue when GUA #47 Eval tab starts.
-- **LIB #66 caveat**: committed baseline is oracle-only (1.0/1.0); wiring real pipeline.search/answer scores is separate live-server work.
+- AIT-32/33 PR body needs release note: python-only consumers pin `-d py_project_root=backend` before next `copier update`. Draft on request.
+- 14 wave branches from the morning awaiting PR + merge (issues close on merge); eval-runner plist after GUA-49 merges.
+- Account usage exhaustion masquerades as `error_max_turns` — check quota before diagnosing agents.
 
 ## Immediate Next Steps
 
-1. Merge PR #69 (librarian cron fix) — time-sensitive
-2. Open + merge PRs for the 14 pushed branches; issues close on merge
-3. Install eval-runner plist after GUA #49 merges
-4. Answer LAE #106 vendoring questions → spawn it
-5. Reconcile GUA #43/#44 in-flight artifacts → wave 4
+1. Ramsey: `git rebase -i 5852798` on AIT-34 branch → reword 4eac907 + 8f8bac3 (messages above), `git branch -f AIT-32-decouple-lg-agent-corpus <new-4eac907>`, push both, open PRs (#32/#33 and #34).
+2. Ramsey: review + commit `GUA-60-review-driver`; after usage reset run `uv run review-cli run --repo ~/workspace/guacamayo` ×2 + `review-cli trends`.
+3. Ramsey: commit + push LAE branch, open new PR; PRs for listen-wiseer + librarian branches; merge librarian PR #69.
+4. Issues #32/#33/#34 (AIT), #60 (GUA) close on PR merges.
 
 ## Key Files
 
-- `.sounding/tooling-ledger.md` (dashboard hypothesis row updated: failed day 1 → fixed, clock reset)
-- `librarian/tools/cartographer/__main__.py`, `cartographer-cron.sh` (on bug branch / PR #69)
-- `scripts/eval-runner.sh`, `scripts/com.wiseer.eval-runner.plist` (on GUA-49 branch)
-- `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md` (the source assessment)
+- ~/workspace/ai-project-template (branch AIT-34-design-rigor-gaps)
+- ~/workspace/learn-ai-engineering/scripts/link_check.py
+- ~/workspace/guacamayo/review/driver.py
+- ~/workspace/guacamayo/.sounding/growth/growth.md

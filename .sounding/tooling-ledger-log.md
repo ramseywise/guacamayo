@@ -31,6 +31,53 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R6 — 2026-07-30
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-20 | growth-log.md + dream gate hook | workflow | verified | growth-log persisting across 3+ synthesis runs; /dream 2026-07-30 logged 6 cleared entries with full audit trail |
+| 2026-07-24 | /dream Phase 8 independent tooling-change check | workflow | verified | 3/3 sessions triggered retro correctly (2/3 at R5 + this R6 session = threshold met) |
+| 2026-07-28 | Insights placement settled: engine+data in librarian, rendered artifacts in guacamayo/.sounding | observability | verified | 3 retro windows (R4+R5+R6): artifacts confirmed in .sounding/; no outliers |
+| 2026-07-29 | Review-findings persistence: required-field list inlined in workflow-review Stage 4b | observability | verified | 7/7 rows schema-conformant on day 1; graduated R5 |
+
+### R6 findings applied
+- F1: Cross-repo worktree isolation leak → CLAUDE.md rule proposed (pending approval)
+- F2: `--no-track` branch creation rule → CLAUDE.md Conventions proposed (pending approval)
+- F3: Quota-masquerades-as-agent-failure → shell.md diagnostic note proposed (pending approval)
+- F4: Plan-doc Status line fix (2 stale docs) → doc edits proposed (pending approval)
+- F5: TodoWrite nudge hook → new hook + settings.json proposed (pending approval)
+- F6: design-* skill retirement decision → pending Ramsey's choice (a=retire/b=consolidate/c=document)
+- F7: MEMORY.md retro number → stale, update to R6
+
+### R6 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F1): Add cross-repo dispatch rule to CLAUDE.md** — in the "Worktree agents follow the branch convention" block, after step 4, add:
+```
+**Cross-repo dispatch rule**: The worktree must be created in the **target repo**, not the
+dispatcher's repo. A worktree in guacamayo does not sandbox writes to ai-project-template —
+the agent follows the `Repo:` path in its prompt, which is the live checkout. Create the
+worktree with `git -C ~/workspace/<target-repo> worktree add ...`.
+```
+
+**P2 (F2): Add `--no-track` rule to CLAUDE.md** — update branch creation example in step 1 of worktree convention block: `git checkout -b {PREFIX}-{NUM}-slug}` → `git checkout -b {PREFIX}-{NUM}-slug} --no-track`. Add note under Conventions table: "`git checkout -b NAME origin/main` silently sets upstream to origin/main, breaking push flow — always use `--no-track`."
+
+**P3 (F3): Add quota-masquerade note to shell.md** — new section:
+```markdown
+## Quota masquerade
+Account usage exhaustion surfaces as `error_max_turns` or silent empty results from the Agent
+SDK — indistinguishable from agent logic failures at the API level. Before debugging agent
+behavior, check quota state. SDK-level `error_max_turns` in a low-turn session is a quota
+signal, not a turns signal.
+```
+
+**P4 (F4): Fix Status lines in 2 stale plan docs** — `2026-07-22-workflow-simplification.md` line 5: change `**Status**:` to `Status:`. `2026-07-24-GUA-23-review-verdict.md`: add `Status: COMPLETE` after the title line.
+
+**P5 (F5): Wire TodoWrite nudge hook** — new advisory hook `~/.claude/hooks/todo_write_nudge.sh` that fires a stderr warning at 100 bash calls in a session if no TodoWrite invoked. Add to settings.json PostToolUse/Bash block (exit 0, advisory only). Eval: `grep "HEAVY SESSION" ~/.claude/.hook-pass-log.jsonl` shows entries after wiring.
+
+**P6 (F6): Decide on design-* skills** — three options: (a) retire all 4 (recommended — 3 retro windows zero invocations after description rewrite), (b) consolidate into `/design` dispatch, (c) keep + add trigger examples to CLAUDE.md. Decision required before R7.
+
+---
+
 ## R5 — 2026-07-29
 
 | Date | Change | Area | Verdict | Evidence |

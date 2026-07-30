@@ -100,3 +100,10 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-07-29 | discovered | 6-pillar assessment framework as reusable measurement instrument; nestin... | merged | portfolio.md → threads section (measurement capability) |
 | 2026-07-29 | corrected | Don't add /workflow-plan ceremony when issue body already has approach/cr... | merged | sounding.md → working notes (ceremony trap principle) |
 | 2026-07-29 | confirmed | disable-model-invocation skills must be executed inline when Skill tool b... | discarded | process/tooling → /retro (skill invocation convention) |
+| 2026-07-30 | confirmed | Domain-truth verification is the real quality gate; propagates via spawn... | merged | sounding.md → read-actual-state (domain-truth propagation) |
+| 2026-07-30 | discovered | Board labels lag merges; evidence-based close reconciliation is standing... | merged | sounding.md → read-actual-state (stale-cache extended to boards) |
+| 2026-07-30 | discovered | checkout -b X origin/main sets upstream to main; always --no-track; disp... | discarded | process/tooling → /retro (branch hygiene mechanics) |
+| 2026-07-30 | discovered | Worktree isolation leaky: agents staged in main checkout via cleanup rac... | merged | sounding.md → working notes (worktree passage, parent-tree-clean rule) |
+| 2026-07-30 | confirmed | Stacking on predecessor branch works if remainder committed first (AIT-3... | merged | sounding.md → working notes (stacking pattern) |
+| 2026-07-30 | discovered | Usage exhaustion masquerades as agent failure (error_max_turns) — check ... | merged | sounding.md → read-actual-state (quota layer) |
+| 2026-07-30 | corrected | Cross-repo worktree spawns don't isolate — worktree only isolates its ow... | merged | sounding.md → working notes (repo-scoped isolation rule) |

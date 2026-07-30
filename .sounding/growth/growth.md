@@ -1,17 +1,15 @@
 # Growth - Learning Accumulator
 
-**Last Synthesis**: 2026-07-29 23:18 (/dream — 3 merged (dispatch constraint, assessment framework, ceremony correction), 4 discarded (1 already captured, 3 process/tooling → /retro); all dispositions logged)
-**Entries Since**: 4
+**Last Synthesis**: 2026-07-30 20:19 (/dream — 6 merged into sounding.md (stale-cache→boards+quota, domain-truth propagation, worktree repo-scoped isolation, parent-tree-clean, stacking pattern), 1 discarded (--no-track → /retro); all dispositions logged)
+**Entries Since**: 0
 
 *One-line entries added by /reflect and /grow. Processed and cleared by /synthesize.*
 
 ---
 
-2026-07-30 [confirmed] - Domain-truth verification on agent output is the real quality gate: caught fabricated baseline seeds (PLG #85), and one agent (LIB #66) encoded the gate as a CI test unprompted — the principle propagates through spawn prompts
-2026-07-30 [discovered] - Board labels lag merges systematically: 14 issues today were open ready/in-review for already-merged work; evidence-based close reconciliation is a standing dispatcher duty, and "ready" cannot be trusted without checking main first
-2026-07-30 [discovered] - Dispatch mechanics: `checkout -b X origin/main` silently sets upstream to main and breaks Ramsey's push flow — always branch with --no-track; the dispatcher owns branch hygiene, not the agent
-2026-07-30 [discovered] - Worktree isolation is leaky: two guacamayo agents ended up staging in the main checkout (cleanup race), one carrying my uncommitted ledger edit into its branch — keep the parent session's tree clean before spawning repo-local worktree agents
+- [outcome:partial] AIT-33 executed + verified on stacked branch (uncommitted); GUA-60 driver smoke 4/5, live re-run deferred to post-7pm — 2026-07-30
 
 *Format: YYYY-MM-DD [type] - [concise learning/discovery]*
 *Types: [discovered] = new insight, [confirmed] = validated existing approach, [corrected] = updated understanding*
+*Outcome tags persist across synthesis (pilot measurement — first 20 sessions)*
 *Processed and cleared by /synthesize*
