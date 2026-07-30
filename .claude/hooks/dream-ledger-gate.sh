@@ -21,8 +21,8 @@ case "$file_path" in
   *) exit 0 ;;
 esac
 
-# Resolve repo root from the file path
-repo_root=$(echo "$file_path" | sed 's|/.sounding/growth.md$||')
+# Resolve repo root from the file path (strip suffix via parameter expansion)
+repo_root="${file_path%/.sounding/growth.md}"
 growth="$repo_root/.sounding/growth.md"
 ledger="$repo_root/.sounding/growth-log.md"
 
