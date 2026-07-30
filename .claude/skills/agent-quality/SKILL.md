@@ -1,8 +1,16 @@
+---
+name: agent-quality
+description: >
+  Agent-Quality Dimension Checklist — dimension checklist read by the scan-agent-quality agent (.claude/agents/agent-quality.md).
+  Reference material, not invoked directly.
+allowed-tools: Read
+---
+
 # Agent-Quality Dimension Checklist
 
 Agent: `scan-agent-quality` | ID prefix: `AQ-` | Conditional (agent code only)
 
-Used by: `review/scan/agents/agent-quality.md`
+Used by: `.claude/agents/agent-quality.md`
 
 Activation: `detect-signals` returns `is_agent_code: true`
 

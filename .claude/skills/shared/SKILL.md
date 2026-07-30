@@ -1,3 +1,11 @@
+---
+name: shared
+description: >
+  Shared Scan Rules — cross-scanner finding format, evidence model, and severity
+  mapping for the dimension agents. Reference material, not invoked directly.
+allowed-tools: Read
+---
+
 # Shared Scan Rules
 
 Loaded by all dimension agents. Defines cross-scanner rules: the evidence model,
@@ -19,7 +27,7 @@ Fields:
 - `<PREFIX>-<NNN>`: dimension prefix + 3-digit number (e.g. `CR-001`, `SF-002`)
 - `file:line`: path and line number from the file scanned
 
-Full schema: `review/refs/finding-schema.md`
+Full schema: `review/docs/finding-schema.md`
 
 ## Dimension ID Prefixes
 
@@ -43,8 +51,10 @@ Four states — pick the most honest one:
 | `hypothesis` | Pattern matches a known smell | You see the shape but can't confirm the impact without more context |
 | `question` | Open question, not a defect | You don't have enough information to decide |
 
-**Rule**: `hypothesis` and `question` cannot carry `merge_impact: blocker` or `important`.
-Use `suggestion` or `question` impact for unconfirmed findings.
+**Rule**: `question` cannot carry `merge_impact: blocker` or `important` (schema-enforced).
+Evidence state and merge impact are otherwise orthogonal — a plausible safety concern with
+insufficient evidence is `hypothesis` + `blocker`, phrased as a hypothesis ("this appears
+to..."), never downgraded to `nit`.
 
 **Rule**: When in doubt, downgrade to `hypothesis`. Never bluff `verified`.
 
@@ -52,8 +62,8 @@ Use `suggestion` or `question` impact for unconfirmed findings.
 
 | Finding tier | merge_impact | evidence constraint |
 |---|---|---|
-| [Blocking] | blocker | verified or supported only |
-| [Non-blocking] | important or suggestion | any state |
+| [Blocking] | blocker | any state except question |
+| [Non-blocking] | important or suggestion | important: any state except question |
 | [Nit] | nit | any state |
 
 ## Shared Operational Rules

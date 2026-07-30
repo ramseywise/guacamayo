@@ -16,34 +16,21 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-07-29 evening)
+## Live pick-up points (as of 2026-07-30 midday)
 
-**AI Engineering Portfolio Assessment (2026-07-29)** — 3-session arc complete. 11 new issues created and refined to `ready`:
-- AIT #27/#28/#29 — verification loop, token budget, OTel spans (P1 template scaffolds)
-- LIS #84/#85 — CI-gate RAGAS evals (P1), verification loop (P2)
-- ATL #40/#41 — golden datasets, context engineering (P2)
-- LIB #66 — answer-quality graders + golden dataset (P2)
-- JOB #26 — test suite + CI 0→1 (P2)
-- PLG #85/#86 — continuous eval, OTel spans (P3)
-  => All `ready`, no plan docs needed (issue body IS the plan). Execute directly.
+**Execution day 2026-07-30** — 3 waves dispatched the assessment backlog. 14 branches committed + pushed, awaiting PR + merge (issues close on merge):
+- Wave 1: GUA-53, AIT-27, LIS-84, PLG-85, JOB-26, ATL-40
+- Wave 2: ATL-41, AIT-28, LIB-54, GUA-49, LIS-85, PLG-86
+- Wave 3: AIT-29, LIB-66
+  => Next: open/merge PRs; install eval-runner plist after GUA-49 merges.
 
-**Fleet shipment (2026-07-29 earlier)** — 6 PRs still open awaiting merge:
-- listen-wiseer PR #83 · atlas PR #39 · learn-ai-engineering PR #104
-- ai-project-template PR #26 · librarian PR #64 · guacamayo PR #56
-  => After merges: close related issues; `make pull` sweep.
+**Time-sensitive**: librarian PR #69 (cron dashboard fix) must merge before the next 09:00 launchd run.
 
-**guacamayo** (this repo)
-- 9 issues in `in-review` need audit/merge. 5 `ready`, 5 `backlog`.
-- Retro R4 current (2026-07-28). Growth: 7 entries, synthesis due at /dream.
+**Closed via evidence pass**: GUA #31–34/36/37/39/40/42/48, ATL #37, LIS #77, LAE #28/#102/#105. GUA #35 done in-session (CI checks required on main). GUA #41 back to ready (work never landed).
 
-**librarian**
-- #54 (path traversal fix) ready. #66 (answer-quality graders) ready — NEW.
+**Wave 4 queue**: AIT #22/#23, LIB #65 (reconcile in-flight dashboard.py first), LIB #68 (region injection), GUA #41/#43–47/#50, LAE #106 (blocked on 3 vendoring decisions).
 
-**job-system**
-- #15, #18, #19 in-progress; #16, #17 in-review; #26 ready — NEW.
-
-**playground**
-- #85/#86 ready — NEW. Older PRs still open: PLG #84/#81/#78.
+**guacamayo** — Retro R5 current (07-29). Growth: 4 entries, synthesis at 5.
 
 ---
 

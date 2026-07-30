@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 
-from review.dao.fingerprint import (
+from review.fingerprint import (
     compare_sweeps,
     finding_to_sweep_finding,
     latest_sweep_path,

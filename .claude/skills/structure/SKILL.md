@@ -1,8 +1,16 @@
+---
+name: structure
+description: >
+  Structure Dimension Checklist — dimension checklist read by the scan-structure agent (.claude/agents/structure.md).
+  Reference material, not invoked directly.
+allowed-tools: Read
+---
+
 # Structure Dimension Checklist
 
 Agent: `scan-structure` | ID prefix: `ST-` | Always-on
 
-Used by: `review/scan/agents/structure.md`
+Used by: `.claude/agents/structure.md`
 
 ## Naming and Layering
 

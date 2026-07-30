@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # review/setup.sh — idempotent symlink setup for the review package.
 #
-# Creates ~/.claude/refs/ symlinks pointing at guacamayo/review/refs/ canonical copies.
+# Creates ~/.claude/refs/ symlinks pointing at guacamayo/review/docs/ canonical copies.
 # Safe to re-run: existing symlinks are overwritten, real files are left untouched.
 #
 # Usage:
@@ -11,7 +11,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REVIEW_REFS="$SCRIPT_DIR/refs"
+REVIEW_REFS="$SCRIPT_DIR/docs"
 CLAUDE_REFS="$HOME/.claude/refs"
 
 if [[ ! -d "$CLAUDE_REFS" ]]; then

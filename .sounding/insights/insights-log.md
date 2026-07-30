@@ -1,3 +1,44 @@
+## 2026-07-30 (261 sessions, 2026-07-15 to 2026-07-30)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 22% | — |
+| Cache hit rate | 96% | 84% savings |
+| Total tool uses | 21091 | — |
+| Subagent transcripts | 574 | 37% of usage |
+| Sessions analyzed | 261 | 16 active days |
+| Compacts deployed | 166 invocations, 64 sessions | — |
+| Total tool errors | 735 | — |
+
+### Model distribution
+(Cost-weighted distribution data in insights-report.html)
+
+### Tool breakdown
+Bash: 49.1%, Edit: 21.4%, Read: 19.0%, Write: 4.5%
+
+### Skill usage (cost-weighted %, top 5)
+- compact: 3.0%
+- grow: 1.7%
+- wake: 1.6%
+- dream: 0.8%
+- execute: 0.7%
+
+### Error breakdown
+| Type | Count | % |
+|------|-------|---|
+| command_failed | 319 | 43.4% |
+| other | 260 | 35.4% |
+| file_not_found | 83 | 11.3% |
+| user_rejected | 39 | 5.3% |
+| permission_denied | 32 | 4.4% |
+| edit_failed | 2 | 0.3% |
+
+### Context distribution
+<50k: 23%, 50-100k: 36%, 100-150k: 19%, >150k: 22%
+
+---
+
 ## 2026-07-29 (257 sessions, 2026-07-15 to 2026-07-29)
 
 ### Key metrics

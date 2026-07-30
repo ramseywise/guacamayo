@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 
-from review.dao.fingerprint import compare_sweeps
+from review.fingerprint import compare_sweeps
 from review.schemas.models import (
     DimensionTrend,
     SweepRecord,
