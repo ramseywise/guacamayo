@@ -3,7 +3,7 @@
 import json
 import subprocess
 
-from review.dao.signals import active_dimensions, detect_signals
+from review.signals import active_dimensions, detect_signals
 from tests.review.conftest import REPO_ROOT
 
 

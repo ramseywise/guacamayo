@@ -1,50 +1,46 @@
-# Handover — 2026-07-29 AI Engineering Portfolio Assessment (3-session arc complete)
+# Handover — 2026-07-30 Execution Day: 3 Waves, 15 Issues, 7 Repos
 
-**Context**: Completed the 3-session AI engineering maturity assessment: framework → portfolio scorecard → template gap analysis. Then created 11 GitHub issues and refined all to `ready`.
+**Context**: Meta-session dispatched the portfolio-assessment backlog. Morning: traced + fixed the dashboard.html cron regression. Then three execution waves of parallel sonnet agents, one per target repo, plus an evidence-based close pass over stale issues.
 
 ## Current State
 
-**Assessment arc complete** — all 3 artifacts written:
-1. Framework: `learn-ai-engineering/.claude/docs/research/ai-eng-assessment-framework.md`
-2. Portfolio: `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md`
-3. Template gaps: `ai-project-template/.claude/docs/research/template-pillar-gaps.md`
+**All agent branches committed + pushed by Ramsey** (issues close on PR merge):
+- Wave 1: `GUA-53-shellcheck-lint`, `AIT-27-verification-loop`, `LIS-84-ci-gate-ragas`, `PLG-85-continuous-eval`, `JOB-26-test-suite-ci`, `ATL-40-golden-datasets`
+- Wave 2: `ATL-41-context-engineering`, `AIT-28-token-budget`, `LIB-54-path-traversal`, `GUA-49-eval-runner`, `LIS-85-verification-loop`, `PLG-86-otel-spans`
+- Wave 3: `AIT-29-otel-spans`, `LIB-66-answer-graders` (check push state)
 
-**11 issues created and refined to `ready`** across 6 repos:
-- AIT #27/#28/#29 — verification loop, token budget, OTel spans (template scaffold)
-- LIS #84/#85 — CI-gate RAGAS evals, verification loop
-- ATL #40/#41 — golden datasets, context engineering
-- LIB #66 — answer-quality graders + golden dataset
-- JOB #26 — test suite + CI (0→1)
-- PLG #85/#86 — continuous eval tracking, OTel spans
+**Dashboard cron regression fixed**: librarian `bug/cartographer-dashboard-path` → PR #69 (`--no-dashboard` on facts cron; defaults corrected — old `--ledger` default pointed at a nonexistent file). **PR #69 must merge before the next 09:00 launchd run** or dashboard.html regenerates. Real fix (region injection into context-dashboard.html marker regions) = LIB #68.
 
-**Experiment tracking**: 4 new hypothesis rows in tooling-ledger.md (3 AIT pillar experiments + 1 composite portfolio metric). Dashboard updated with portfolio experiments card.
+**Closed today (evidence pass)**: GUA #31/32/33/34/36/37/39/40/42/48, ATL #37 (PR #39), LIS #77 (PR #83), LAE #28/#102/#105. Done in-session: GUA #35 (required status checks `ci / lint`+`ci / test` now on guacamayo main, strict).
 
-**Growth**: 7 entries pending — synthesis due at next /dream.
+**Not done, back to ready**: GUA #41 (parser stratification — no code exists; matches ledger hypothesis due 08-17).
 
 ## Decisions Made
 
-- Issues from assessment go straight to `/workflow-execute` — no separate `/workflow-plan` needed when the issue body already has approach, acceptance criteria, and sizing.
-- Priority: P1 = AIT template scaffolds + LIS CI-gate; P2 = repo-specific improvements; P3 = playground polish.
-- Portfolio experiment hypothesis: `ratio:portfolio-avg-score above 12/18 at next re-assessment` — due 10-01.
+- Bulk-close needs evidence per issue — double-check caught 2 of 10 "merged" issues that weren't (GUA #35, #41).
+- GUA #49 eval runner placed in guacamayo `scripts/` (librarian + ~/.claude were mid-flight). Migration to librarian tools/ possible later. Plist NOT installed — Ramsey's step post-merge (instructions in agent report / scripts/com.wiseer.eval-runner.plist).
+- Branch creation for cross-repo agents: always `--no-track` — `checkout -b X origin/main` set upstream to main and broke the push flow (fixed via `branch --unset-upstream` on 6 repos).
+- PLG #85 fabricated baseline seeds stripped — baselines seed from first real run only.
 
 ## Open Threads
 
-- `tooling-ledger-log.md` is out of append order (R4 before R3/R2) — `tail -1` returns R2 instead of R4. Needs either file re-sort or grep strategy change.
-- Guacamayo has 9 issues in `in-review` from the earlier fleet agent run — need Ramsey's review/merge.
-- `disable-model-invocation` on workflow skills blocks Skill tool invocation — execute logic directly instead.
+- **Wave 4 candidates**: AIT #22/#23 (behind #29 merge), LIB #65 (collides with in-flight dashboard.py work — reconcile first), LIB #68 (region injection), GUA #41/#43/#44/#45/#46/#47/#50, LAE #106 (needs Ramsey's 3 vendoring decisions: manifest-vs-submodule-vs-LFS; PDFs in git or drive+index; WHAT-TO-READ.md per pruned repo).
+- **GUA #43/#44 reconciliation**: unmerged librarian branch `GUA-43-dashboard-segmentation` + uncommitted `dashboard.py` diff in `/private/tmp/librarian-gua43` worktree (coverage-table row). Salvage or restart before spawning.
+- **Label-lag pattern (retro-worthy)**: 14 issues today were open for already-merged work. Auto-label hook (#42, closed) exists — why didn't it close/transition these? Candidate retro item.
+- **Eval-runner follow-on**: 3 of 53 evals.json need a harness (akira, sanyi behavioral; harness-creator) — future issue when GUA #47 Eval tab starts.
+- **LIB #66 caveat**: committed baseline is oracle-only (1.0/1.0); wiring real pipeline.search/answer scores is separate live-server work.
 
 ## Immediate Next Steps
 
-1. Review + merge the 9 in-review guacamayo issues from the fleet run
-2. Pick up P1 issues for execution — AIT #27 (verification loop) or LIS #84 (CI-gate evals)
-3. Run `/dream` to synthesize the 7 pending growth entries
-4. Fix tooling-ledger-log.md ordering
+1. Merge PR #69 (librarian cron fix) — time-sensitive
+2. Open + merge PRs for the 14 pushed branches; issues close on merge
+3. Install eval-runner plist after GUA #49 merges
+4. Answer LAE #106 vendoring questions → spawn it
+5. Reconcile GUA #43/#44 in-flight artifacts → wave 4
 
 ## Key Files
 
-- `learn-ai-engineering/.claude/docs/research/ai-eng-assessment-framework.md`
-- `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md`
-- `ai-project-template/.claude/docs/research/template-pillar-gaps.md`
-- `.sounding/tooling-ledger.md`
-- `.sounding/context-dashboard.html`
-- `.sounding/growth.md`
+- `.sounding/tooling-ledger.md` (dashboard hypothesis row updated: failed day 1 → fixed, clock reset)
+- `librarian/tools/cartographer/__main__.py`, `cartographer-cron.sh` (on bug branch / PR #69)
+- `scripts/eval-runner.sh`, `scripts/com.wiseer.eval-runner.plist` (on GUA-49 branch)
+- `guacamayo/.claude/docs/research/ai-eng-portfolio-assessment.md` (the source assessment)
