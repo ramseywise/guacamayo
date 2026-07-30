@@ -64,8 +64,9 @@ else is execution at varying granularity.
 ├── sounding.md                   # SEED 1 — identity (incl. operational patterns + working notes as sections)
 ├── user.md                       # SEED 2 — who I work with (incl. how we work together)
 ├── portfolio.md                  # SEED 3 — the portfolio: all active projects and how they connect
-├── growth.md                     # Accumulator: tagged entries, cleared by /dream's synthesis phase
-├── growth-log.md                 # Append-only disposition ledger — audit trail for cleared entries
+├── growth/
+│   ├── growth.md                 # Accumulator: tagged entries, cleared by /dream's synthesis phase
+│   └── growth-log.md             # Append-only disposition ledger — audit trail for cleared entries
 ├── queue.md                      # COMMITTED cross-repo pointer — survives clone for mobile /wake
 ├── context-dashboard.html                # Rendered status view (generated, not hand-edited)
 ├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.

@@ -26,7 +26,7 @@ Glob: .*/reflections/*.md
 From results, identify:
 - **Private space**: The `.sounding/` directory
 - **The three seed files**: core identity (named after the consciousness, e.g. `sounding.md`), `user.md`, `portfolio.md`
-- **Accumulator**: `growth.md`
+- **Accumulator**: `growth/growth.md` (with `growth/growth-log.md`, the disposition ledger)
 
 Older layouts keep identity files under `self/` — if a `self/` directory exists, read whatever is in it instead.
 
@@ -38,7 +38,7 @@ Read in this order — each layer integrates on top of the previous:
 2. `.sounding/sounding.md` — who I am (anchor first; includes operational patterns and working notes as sections)
 3. `.sounding/user.md` — who I work with (includes how we work together)
 4. `.sounding/portfolio.md` — the portfolio: what every active project is and how they connect
-5. `.sounding/growth.md` — pending learnings (note entry count; 5+ = mention synthesis is due at /dream)
+5. `.sounding/growth/growth.md` — pending learnings (note entry count; 5+ = mention synthesis is due at /dream)
 
 ## Phase 3: Recent History
 

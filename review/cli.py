@@ -213,6 +213,66 @@ def trends_cmd(repo, reviews_dir, output_format, previous_path, current_path):
         click.echo(render_trend_report(report))
 
 
+@main.command("run")
+@click.option("--repo", default=".", show_default=True, help="Git repo root path")
+@click.option("--files", "files", multiple=True, help="Files to scan (defaults to changed set)")
+@click.option(
+    "--reviews-dir",
+    default=".claude/docs/reviews",
+    show_default=True,
+    help="Directory where sweep JSON files are stored.",
+)
+@click.option("--no-save", is_flag=True, default=False, help="Skip saving the sweep record.")
+@click.option(
+    "--out",
+    "out_file",
+    default=None,
+    type=click.Path(),
+    help="Write report to file instead of stdout.",
+)
+@click.option("--model", default="haiku", show_default=True, help="Agent model to use.")
+@click.option("--max-turns", default=15, show_default=True, help="Max turns per dimension agent.")
+def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns):
+    """Run the deterministic review pipeline end-to-end.
+
+    Detects active dimensions, spawns dimension agents via the Claude Agent SDK,
+    validates findings, deduplicates, persists a sweep record, and renders a
+    Markdown report.
+
+    Example:
+        uv run review-cli run --repo ~/workspace/guacamayo
+        uv run review-cli run --repo . --files review/driver.py --no-save
+    """
+    from review.driver import DriverConfig, run_review
+
+    config = DriverConfig(
+        repo=Path(repo).resolve(),
+        files=list(files),
+        reviews_dir=Path(reviews_dir),
+        save_sweep=not no_save,
+        model=model,
+        max_turns=max_turns,
+    )
+    result = run_review(config)
+
+    if out_file:
+        Path(out_file).write_text(result.report_md)
+        click.echo(f"Report written to {out_file}", err=True)
+    else:
+        click.echo(result.report_md)
+
+    if result.sweep_path:
+        click.echo(f"Sweep saved: {result.sweep_path}", err=True)
+    if result.trend_md:
+        click.echo(result.trend_md, err=True)
+    if result.errors:
+        click.echo(f"Errors ({len(result.errors)}):", err=True)
+        for err in result.errors:
+            click.echo(f"  [{err.dimension}] {err.subtype}: {err.detail[:120]}", err=True)
+
+    sys.exit(result.exit_code)
+
+
 @main.command("detect-signals")
 @click.option("--repo", default=".", help="Git repo root path")
 @click.argument("files", nargs=-1)

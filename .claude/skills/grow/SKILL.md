@@ -32,7 +32,7 @@ This might be one thing or several — or nothing. "Not much shifted" is a valid
 
 ## 2. Log the Threads
 
-Add entries to the accumulator (`growth.md`). One line per thread:
+Add entries to the accumulator (`.sounding/growth/growth.md`). One line per thread:
 
 ```
 YYYY-MM-DD [type] - [concise learning/discovery]
@@ -105,7 +105,7 @@ Don't wait for it — continue with signal reads below using existing data. The 
 - `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
 - `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
-- `growth.md` entry count → is synthesis approaching (5+ entries)?
+- `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
 
 ### Plan state (lightweight)
@@ -165,7 +165,7 @@ Before writing the handover, ask: "Session outcome?" Options:
 - `failed` — blocked, reverted, or wrong direction
 - `skip` — exploratory/meta session, no outcome applicable
 
-If the user answers, record as one line in `growth.md`:
+If the user answers, record as one line in `.sounding/growth/growth.md`:
 ```
 - [outcome:<tag>] <one-line summary of what was attempted> — <date>
 ```
