@@ -38,31 +38,33 @@ def _is_candidate_pair(a: ReviewFinding, b: ReviewFinding) -> bool:
 
 
 class _UnionFind:
-    def __init__(self, items: list[str]) -> None:
+    def __init__(self, items: list[int]) -> None:
         self._parent = {item: item for item in items}
 
-    def find(self, item: str) -> str:
+    def find(self, item: int) -> int:
         root = item
         while self._parent[root] != root:
             root = self._parent[root]
         self._parent[item] = root
         return root
 
-    def union(self, a: str, b: str) -> None:
+    def union(self, a: int, b: int) -> None:
         ra, rb = self.find(a), self.find(b)
         if ra != rb:
             self._parent[ra] = rb
 
 
 def find_duplicate_clusters(findings: list[ReviewFinding]) -> list[list[ReviewFinding]]:
-    by_id = {f.id: f for f in findings}
-    uf = _UnionFind(list(by_id))
+    # Keyed on list index, not id: ids are only unique within a dimension's numbering
+    # (see .claude/skills/shared/SKILL.md), and a repair re-scan renumbers from 001, so
+    # distinct findings routinely collide on id. Index keys conserve every finding.
+    uf = _UnionFind(list(range(len(findings))))
     for i, f1 in enumerate(findings):
-        for f2 in findings[i + 1 :]:
+        for j, f2 in enumerate(findings[i + 1 :], start=i + 1):
             if _is_candidate_pair(f1, f2):
-                uf.union(f1.id, f2.id)
-    clusters: dict[str, list[ReviewFinding]] = {}
-    for fid, finding in by_id.items():
-        root = uf.find(fid)
+                uf.union(i, j)
+    clusters: dict[int, list[ReviewFinding]] = {}
+    for idx, finding in enumerate(findings):
+        root = uf.find(idx)
         clusters.setdefault(root, []).append(finding)
     return list(clusters.values())

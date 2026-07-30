@@ -514,7 +514,9 @@ async def _run_review_async(
     errors: list[ScanError] = []
 
     for dim, raw in zip(dimensions, scan_results, strict=True):
-        reporter = _DIMENSION_TO_REPORTER.get(dim)
+        # Indexed, not .get(): an unmapped dimension is a wiring bug, and a None here
+        # surfaces as a confusing Pydantic error on the non-optional reporter field.
+        reporter = _DIMENSION_TO_REPORTER[dim]
 
         if isinstance(raw, ScanError):
             raw.dimension = dim
@@ -563,13 +565,16 @@ async def _run_review_async(
                 )
                 continue
 
-            # Re-validate repaired findings
+            # Re-validate repaired findings. The repair re-scans the same files in full,
+            # so its output replaces pass 1 rather than adding to it — appending would
+            # double every finding that was already valid before the repair.
+            repaired_findings: list[ReviewFinding] = []
             repair_errors: list[str] = []
             for raw_finding in repaired_raw:
                 ok, err = validate_finding(raw_finding)
                 if ok:
                     try:
-                        dim_findings.append(ReviewFinding.model_validate(raw_finding))
+                        repaired_findings.append(ReviewFinding.model_validate(raw_finding))
                     except (ValueError, TypeError) as exc:
                         repair_errors.append(str(exc))
                 else:
@@ -590,6 +595,8 @@ async def _run_review_async(
                     )
                 )
                 continue
+
+            dim_findings = repaired_findings
 
         all_findings.extend(dim_findings)
         result.dispatch.append(ReporterDispatchEntry(reporter=reporter, status="completed"))

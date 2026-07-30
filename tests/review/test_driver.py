@@ -363,6 +363,57 @@ class TestRunReview:
         assert result.exit_code == 1
         assert len(result.errors) > 0
 
+    def test_repair_replaces_pass_one_findings(self, tmp_path: Path) -> None:
+        """A successful repair replaces pass-1 findings rather than adding to them (IM-001).
+
+        Pass 1 returns one valid + one invalid finding, forcing a repair. The repair
+        re-scans the same files in full and returns both as valid. Appending into the
+        un-cleared pass-1 list double-counted the finding that was valid all along —
+        previously masked by BL-001's id-keyed dict absorbing the duplicate.
+        """
+        good = make_finding_dict("CR-001")
+        bad = {"id": "CR-002", "reporter": "correctness"}  # incomplete → invalid
+        repaired = [make_finding_dict("CR-001"), make_finding_dict("CR-002", path="other.py")]
+
+        async def mixed_scan(
+            dimension: str, files: list[str], config: DriverConfig
+        ) -> list[dict] | ScanError:
+            if dimension == "correctness":
+                return [good, bad]
+            return []
+
+        config = DriverConfig(
+            repo=tmp_path,
+            files=["review/driver.py"],
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+
+        import review.driver as driver_module
+
+        original_repair = driver_module._repair_scan
+
+        async def mock_repair(dimension, files, config, error_detail):
+            return repaired
+
+        driver_module._repair_scan = mock_repair
+        try:
+            result = run_review(config, scan_fn=mixed_scan)
+        finally:
+            driver_module._repair_scan = original_repair
+
+        assert result.exit_code == 0
+        # Exactly the repair's two findings — not three (CR-001 counted twice)
+        assert len(result.findings) == 2
+        assert sorted(f.id for f in result.findings) == ["CR-001", "CR-002"]
+        # The count alone cannot catch the double-add: the re-added CR-001 is an exact
+        # positional match of the original, so dedup merges it back into one cluster.
+        # The absorbed-id marker in `basis` is what makes the duplicate observable.
+        absorbed = [b for f in result.findings for b in f.basis if b.startswith("absorbed:")]
+        assert absorbed == [], f"repair re-added pass-1 findings: {absorbed}"
+
     def test_scan_error_from_sdk_fails_run(self, tmp_path: Path) -> None:
         """ScanError from scan_fn → exit_code=1, dimension in errors."""
 
