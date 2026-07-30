@@ -80,6 +80,35 @@ class TestDeduplication:
         all_ids = {f.id for cluster in clusters for f in cluster}
         assert all_ids == {"AK-001", "AK-002", "AK-003"}
 
+    def test_conservation_distinct_findings_sharing_an_id(self):
+        """Findings are conserved even when ids collide (BL-001 regression).
+
+        Dimensions number findings independently from 001, and a repair re-scan
+        renumbers from 001 again, so distinct findings routinely share an id.
+        Keying the working set on id dropped one of them before clustering ran.
+        """
+        f1 = make_finding("CR-001", path="a.py", start_line=1, end_line=5, title="bug in a")
+        f2 = make_finding("CR-001", path="b.py", start_line=1, end_line=5, title="bug in b")
+        clusters = find_duplicate_clusters([f1, f2])
+        emitted = [f for cluster in clusters for f in cluster]
+        assert len(emitted) == 2
+        assert {f.claim.title for f in emitted} == {"bug in a", "bug in b"}
+        assert len(clusters) == 2  # different files → not semantic duplicates
+
+    def test_conservation_no_finding_lost_or_duplicated(self):
+        """N findings in → N findings out, counted by identity not id."""
+        findings = [
+            make_finding("CR-001", path="a.py", start_line=1, end_line=5),
+            make_finding("CR-001", path="b.py", start_line=1, end_line=5),
+            make_finding("SF-001", path="c.py", start_line=1, end_line=5),
+            make_finding("SF-001", path="c.py", start_line=3, end_line=8),
+        ]
+        clusters = find_duplicate_clusters(findings)
+        emitted = [f for cluster in clusters for f in cluster]
+        assert len(emitted) == len(findings)
+        # identity check: every input object appears exactly once
+        assert sorted(map(id, emitted)) == sorted(map(id, findings))
+
     def test_cli_dedup(self):
         f1 = make_finding("AK-001", path="a.py", start_line=1, end_line=10)
         f2 = make_finding("AK-002", path="a.py", start_line=8, end_line=15)

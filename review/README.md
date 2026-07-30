@@ -14,12 +14,14 @@ without a model call lives here.
 | Dimension agents | `.claude/agents/` | LLM judgment: `correctness` (CR-), `safety` (SF-), `structure` (ST-), `agent-quality` (AQ-), `contracts` (CT-), `wander` (WD-) |
 | Checklists | `.claude/skills/` | Per-dimension checklists + `shared` scan rules, read by the agents; not invoked directly |
 
-Orchestration is global: `/akira`, `/code-review`, and `/workflow-review` (in
-`~/.claude/skills/`) dispatch the agents and pipe their output through this CLI.
-Agents preload the global `review-shared` skill via frontmatter.
+Orchestration: `review-cli run` is the single entry point — it owns the full pipeline
+from signal detection through report rendering. Skills (`/akira`, `/workflow-review`)
+call `review-cli run` and present the result; they no longer orchestrate individual
+CLI subcommands. Agents preload the global `review-shared` skill via frontmatter.
 
 ## Package layout
 
+- `driver.py` — **pipeline owner**: `run_review(config, scan_fn)` orchestrates all stages end-to-end; `sdk_scan` is the real Agent SDK implementation; injectable `scan_fn` for testing
 - `schemas/models.py` — Pydantic models: `ReviewFinding`, `ReviewReport`, `SweepRecord`, reporter/severity/category enums, ID-prefix validation
 - `validation.py` — finding/report validators (evidence-state vs merge-impact consistency, dispatch coverage)
 - `signals.py` — regex file-signal detection → which dimensions activate (no LLM call)
@@ -36,13 +38,24 @@ Agents preload the global `review-shared` skill via frontmatter.
 
 ```
 files/diff
-  → review-cli detect-signals          # which dimensions activate
-  → dispatch .claude/agents/*          # LLM scan (orchestrated by skills)
-  → review-cli validate-finding        # schema gate per finding
-  → review-cli dedup                   # cross-dimension clustering
-  → review-cli fingerprint --save      # persist sweep record
-  → review-cli trends                  # diff vs previous sweep
-  → review-cli render-report           # deterministic Markdown output
+  → review-cli run                     # single entry point (the deterministic driver)
+      ├─ detect-signals                # which dimensions activate (no LLM)
+      ├─ sdk_scan × N dimensions       # Claude Agent SDK, concurrent, output_format json_schema
+      │   └─ validate_finding          # Pydantic gate; one repair round-trip then hard fail
+      ├─ find_duplicate_clusters       # union-find dedup; deterministic cluster merge
+      ├─ fingerprint + save_sweep      # SweepRecord → .claude/docs/reviews/
+      ├─ build_trend_report            # diff vs previous sweep
+      └─ render_report                 # deterministic Markdown output → stdout
+```
+
+Ad-hoc subcommands (still available for standalone use):
+```
+  review-cli detect-signals            # standalone signal detection
+  review-cli validate-finding          # validate a single finding JSON
+  review-cli dedup                     # cluster a findings list
+  review-cli fingerprint --save        # fingerprint and save sweep
+  review-cli trends                    # trend diff between two sweeps
+  review-cli render-report             # render Markdown from findings JSON
 ```
 
 ## Usage

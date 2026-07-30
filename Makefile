@@ -18,7 +18,7 @@ lint:  ## Verify skill files referenced in CLAUDE.md exist
 test:  ## Verify identity files exist and have required headers
 	@echo "Checking identity structure..."; \
 	FAIL=0; \
-	for f in .sounding/sounding.md .sounding/user.md .sounding/portfolio.md .sounding/growth.md .sounding/notes/handover.md; do \
+	for f in .sounding/sounding.md .sounding/user.md .sounding/portfolio.md .sounding/growth/growth.md .sounding/notes/handover.md; do \
 		if [ ! -f "$$f" ]; then echo "  MISSING: $$f"; FAIL=1; fi; \
 	done; \
 	[ $$FAIL -eq 0 ] && echo "  OK (all seed files present)"

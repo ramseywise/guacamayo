@@ -1,7 +1,8 @@
 ---
 name: safety
 description: >
-  Safety Dimension Checklist — dimension checklist read by the scan-safety agent (.claude/agents/safety.md).
+  Safety Dimension Checklist — safeguards, secrets/PII, security, privacy and data,
+  reliability, and performance/scale. Read by the scan-safety agent (.claude/agents/safety.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
@@ -37,30 +38,66 @@ Used by: `.claude/agents/safety.md`
 
 ## Security
 
-- Authentication missing or bypassable
-- Authorization check absent or order-dependent (check after operation)
-- SQL/command injection vectors (unparameterized queries, `os.system` with user input)
-- Path traversal (user-controlled file paths without normalization)
-- Unsafe deserialization (`pickle`, `yaml.load` without Loader)
-- Unsafe writes to filesystem from external input
+- **Authn**: Is authentication required where it should be, and not bypassable?
+- **Authz**: Is authorization checked at the right boundary — not just "is this user
+  logged in" but "can this user do this specific thing"? Is the check order-dependent
+  (performed after the operation)?
+- **Injection**: Is user-controlled input safe from injection (SQL, command, template,
+  prompt) at every sink it reaches? Unparameterized queries, `os.system` with user input
+- **Path traversal**: user-controlled file paths without normalization
+- **Unsafe deserialization**: `pickle`, `yaml.load` without Loader
+- **Unsafe writes**: Can a malicious or malformed input turn a write into an unintended
+  data modification?
 
 ## Privacy and Data
 
-- PII collected beyond stated purpose
-- Audit trail missing for sensitive operations
-- Data exposure through error messages or stack traces
-- Tenant isolation violated (shared cache, shared DB rows)
-- Sensitive data in URLs, query params, or logs
+- **PII**: Does this diff introduce, log, or expose PII that wasn't handled carefully
+  before? Is PII collected beyond stated purpose?
+- **Auditability**: Is there an audit trail for the sensitive actions this change introduces?
+- **Data exposure**: Does data leak through error messages or stack traces?
+- **Tenant isolation**: If multi-tenant, can one tenant's data or actions leak into
+  another's (shared cache, shared DB rows)?
+- **Sensitive data in transit**: secrets or PII in URLs, query params, or logs
+- **Validation**: Is data validated at the boundary where it enters the system, not just
+  assumed correct downstream?
+- **Provenance**: Is the provenance of the data (where it came from, how trustworthy it
+  is) tracked or lost?
+- **Serialization**: Does serialization/deserialization round-trip correctly, including
+  edge cases (nulls, new/missing fields)?
+- **Source of truth**: Is it clear what the single source of truth is, or does this diff
+  create a second one that can drift?
 
 ## Reliability
 
-- Retry/backoff logic present for external calls (network, DB, third-party APIs)
-- Timeout configuration on HTTP/API calls — every outbound call has an explicit timeout
-- Circuit breaker or fallback for degraded dependencies (graceful degradation, not cascading failure)
-- Graceful degradation path documented: what does the system do when a dependency is down?
-- Retry budgets bounded: max retries + jitter + exponential backoff (unbounded retries are `[Blocking]`)
-- Backpressure handling: does the system shed load or queue under high throughput, or does it fail silently?
-- SLI/SLO boundary assertions: are error rate and latency thresholds enforced, or is the caller expected to handle degradation?
+- **Retries**: Are retries used where transient failures are expected, and avoided where
+  they'd cause harm (non-idempotent writes)? Retry budgets bounded — max retries + jitter
+  + exponential backoff (unbounded retries are `[Blocking]`)
+- **Timeouts**: Does every outbound HTTP/API call have an explicit, reasonable timeout?
+- **Idempotency**: Is the operation idempotent, so a retry or duplicate delivery doesn't
+  cause incorrect state?
+- **Fallback**: Is there a circuit breaker or fallback for degraded dependencies, or does
+  the whole path fail hard (cascading failure)?
+- **Graceful degradation**: What does the system do when a dependency is down — is that
+  path documented?
+- **Cancellation**: Can the operation be cancelled cleanly, leaving state safe?
+- **Backpressure**: Does the system shed load or queue under high throughput, or fail silently?
+- **SLI/SLO boundaries**: Are error rate and latency thresholds enforced, or is the caller
+  expected to absorb degradation?
+
+## Performance and Scale
+
+- **N+1 queries**: Does this diff put a query or external call inside a loop that could be
+  batched into one call instead?
+- **Unbounded loops/results**: Can this operation iterate over or load an unbounded amount
+  of data — is there a missing limit or pagination?
+- **Hot-path complexity**: Does this add an algorithm whose complexity degrades badly at
+  production scale (O(n²) over user-facing or growing data)?
+- **Missing indexes**: If this changes a query pattern, does the store have (or gain) an
+  index to support it at scale?
+
+Evidence for this dimension is usually incomplete without production data (query plans,
+load numbers). When unverified, phrase findings as `hypothesis` — never `verified` — per
+the evidence standard below.
 
 ## Evidence Standard
 

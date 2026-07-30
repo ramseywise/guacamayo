@@ -12,7 +12,7 @@ NOW=$(date '+%Y-%m-%d %H:%M')
 # ── Collect data ──────────────────────────────────────────────────────────────
 
 # Growth entries
-GROWTH_COUNT=$(grep -cE '^[0-9]{4}-' .sounding/growth.md 2>/dev/null || true)
+GROWTH_COUNT=$(grep -cE '^[0-9]{4}-' .sounding/growth/growth.md 2>/dev/null || true)
 GROWTH_COUNT=${GROWTH_COUNT:-0}
 if [ "$GROWTH_COUNT" -ge 5 ]; then
   GROWTH_NOTE='<div class="tile-note" style="color:var(--warn)">synthesis due at /dream</div>'
