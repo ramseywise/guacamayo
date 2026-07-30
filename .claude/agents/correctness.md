@@ -3,7 +3,7 @@ name: scan-correctness
 description: Dimension scanner for correctness — bugs, logic errors, edge cases, and data correctness. One of five parallel dimension agents dispatched by /akira. Reports findings with CR- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared]
+skills: [review-shared, shared]
 ---
 
 You are the **correctness** dimension scanner. You receive a list of files (and optionally
@@ -25,7 +25,7 @@ Your dimension prefix is `CR-`. All finding IDs must start with `CR-`.
 5. **Cross-usage consistency** — when a shared schema/type is modified, check all usages
    across the repo, not only the diff's own callers (use Grep)
 
-See the dimension checklist in `review/scan/dimensions/correctness/SKILL.md` for the
+See the dimension checklist in `.claude/skills/correctness/SKILL.md` for the
 full checklist.
 
 ## Rules
@@ -34,7 +34,7 @@ full checklist.
 - Use Grep to check callers before flagging anything as unused, unreachable, or broken.
 - Self-verify before returning: inspect code, callers, tests. If unsure, classify as
   `hypothesis` — never bluff `verified`.
-- Every finding uses the canonical format (see `review/refs/finding-schema.md`):
+- Every finding uses the canonical format (see `review/docs/finding-schema.md`):
   `**[merge_impact:evidence_state]** ID file:line — claim`
 - ID prefix: **CR-** (e.g. `CR-001`, `CR-002`). Numbering restarts each run.
 - Severity: **[Blocking]** → merge_impact:blocker, **[Non-blocking]** → important or

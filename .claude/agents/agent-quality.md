@@ -3,7 +3,7 @@ name: scan-agent-quality
 description: Conditional dimension scanner for agent-system code — prompt/LLM smells, tool safety, memory write-back, workflow state, retrieval/context correctness, and accountability safeguards. Dispatched only when files import LLM/agent frameworks or match agent-system path signals. Reports findings with AQ- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared]
+skills: [review-shared, shared]
 ---
 
 You are the **agent-quality** dimension scanner. You receive a list of files that have
@@ -67,14 +67,14 @@ If you are running, the files have already been confirmed as agent code.
 19. **Evaluation missing** — no eval harness for the agent behavior; relying on
     single-run manual testing.
 
-See the dimension checklist in `review/scan/dimensions/agent-quality/SKILL.md`.
+See the dimension checklist in `.claude/skills/agent-quality/SKILL.md`.
 
 ## Rules
 
 - Read every file you were handed in full before reporting.
 - Use Grep to verify whether claimed safeguards have deterministic code backing.
 - Self-verify before returning. If unsure, classify as `hypothesis`.
-- Every finding uses the canonical format (see `review/refs/finding-schema.md`):
+- Every finding uses the canonical format (see `review/docs/finding-schema.md`):
   `**[merge_impact:evidence_state]** ID file:line — claim`
 - ID prefix: **AQ-** (e.g. `AQ-001`, `AQ-002`). Numbering restarts each run.
 - Severity: **[Blocking]** → merge_impact:blocker (safeguard-in-prose-only is often

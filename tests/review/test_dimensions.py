@@ -14,7 +14,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from review.dao.deduplication import find_duplicate_clusters
+from review.deduplication import find_duplicate_clusters
 from review.schemas.models import (
     REPORTER_ID_PREFIX,
     Category,
@@ -24,16 +24,16 @@ from tests.review.conftest import REPO_ROOT as _REPO_ROOT_STR
 from tests.review.conftest import make_finding
 
 REPO_ROOT = Path(_REPO_ROOT_STR)
-SCAN_AGENTS_DIR = REPO_ROOT / "review" / "scan" / "agents"
-SCAN_DIMS_DIR = REPO_ROOT / "review" / "scan" / "dimensions"
-WANDER_AGENTS_DIR = REPO_ROOT / "review" / "wander" / "agents"
-SCAN_SHARED_DIR = REPO_ROOT / "review" / "scan" / "shared"
+SCAN_AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
+SCAN_DIMS_DIR = REPO_ROOT / ".claude" / "skills"
+WANDER_AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
+SCAN_SHARED_DIR = REPO_ROOT / ".claude" / "skills" / "shared"
 
 EXPECTED_DIMENSIONS = ["correctness", "safety", "structure", "agent-quality", "contracts"]
 
 
 class TestDimensionAgentMarkdowns:
-    """Each dimension must have an agent markdown in review/scan/agents/."""
+    """Each dimension must have an agent markdown in .claude/agents/."""
 
     @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
     def test_agent_markdown_exists(self, dimension):

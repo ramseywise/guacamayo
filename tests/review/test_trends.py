@@ -4,18 +4,18 @@ from __future__ import annotations
 
 import json
 
-from review.dao.trends import (
-    build_trend_report,
-    compute_dimension_trends,
-    direction_from_counts,
-    render_trend_report,
-)
 from review.schemas.models import (
     DimensionTrend,
     SweepFinding,
     SweepRecord,
     TrendDirection,
     TrendReport,
+)
+from review.trends import (
+    build_trend_report,
+    compute_dimension_trends,
+    direction_from_counts,
+    render_trend_report,
 )
 from tests.review.conftest import REPO_ROOT
 

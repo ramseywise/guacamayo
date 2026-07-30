@@ -1,8 +1,16 @@
+---
+name: safety
+description: >
+  Safety Dimension Checklist — dimension checklist read by the scan-safety agent (.claude/agents/safety.md).
+  Reference material, not invoked directly.
+allowed-tools: Read
+---
+
 # Safety Dimension Checklist
 
 Agent: `scan-safety` | ID prefix: `SF-` | Always-on
 
-Used by: `review/scan/agents/safety.md`
+Used by: `.claude/agents/safety.md`
 
 ## Safeguards
 
