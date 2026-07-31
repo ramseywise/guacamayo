@@ -37,9 +37,11 @@ from review.schemas.models import (
     Reporter,
     ReporterDispatchEntry,
     ReviewFinding,
+    StaticAnalysisResult,
     SweepRecord,
 )
 from review.signals import active_dimensions, detect_signals
+from review.static_analysis import run_static_analysis
 from review.trends import build_trend_report, render_trend_report
 from review.validation import validate_finding
 
@@ -60,6 +62,8 @@ class DriverConfig:
     max_turns: int = 30
     # agents dir: defaults to repo/.claude/agents
     agents_dir: Path | None = None
+    # escape hatch: set False to skip static analysis (e.g. in tests that don't need it)
+    static_analysis: bool = True
 
     def __post_init__(self) -> None:
         self.repo = Path(self.repo).resolve()
@@ -90,6 +94,7 @@ class DriverResult:
     errors: list[ScanError] = field(default_factory=list)
     dispatch: list[ReporterDispatchEntry] = field(default_factory=list)
     exit_code: int = 0
+    static_analysis: StaticAnalysisResult | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -501,6 +506,41 @@ async def _run_review_async(
     # active_dimensions already includes wander unconditionally — keep that.
     dimensions = active_dimensions(signals)
 
+    # --- Stage 1b: static analysis (Layer 1) — deterministic, never blocks dispatch ---
+    sa_result: StaticAnalysisResult | None = None
+    if config.static_analysis:
+        sa_result = run_static_analysis(config.repo, files)
+        result.static_analysis = sa_result
+        # Append LINT dispatch entry; status never feeds exit_code (OQ2)
+        if sa_result.status == "not_detected":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="skipped",
+                    skip_reason="no static analysis tool detected",
+                )
+            )
+        elif sa_result.status == "tool_unavailable":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="skipped",
+                    skip_reason="tool configured but not installed",
+                )
+            )
+        elif sa_result.status == "failed":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="failed",
+                    skip_reason=sa_result.detail or "static analysis failed",
+                )
+            )
+        else:
+            result.dispatch.append(
+                ReporterDispatchEntry(reporter=Reporter.LINT, status="completed")
+            )
+
     # --- Stage 2: concurrent dimension scans ---
     print(
         f"[driver] scanning {len(dimensions)} dimensions over {len(files)} files",
@@ -690,6 +730,9 @@ async def _run_review_async(
         "repo": str(config.repo),
         "diff_scope": f"{len(files)} file(s)",
     }
+    # Static analysis result — passed separately from findings so it never enters dedup
+    if sa_result is not None:
+        report_data["static_analysis"] = sa_result.model_dump()
     result.report_md = render_report(report_data)
     result.findings = merged_findings
 
