@@ -232,7 +232,12 @@ def trends_cmd(repo, reviews_dir, output_format, previous_path, current_path):
 )
 @click.option("--model", default="haiku", show_default=True, help="Agent model to use.")
 @click.option("--max-turns", default=15, show_default=True, help="Max turns per dimension agent.")
-def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns):
+@click.option(
+    "--session-id",
+    default=None,
+    help="Claude Code session id (from hook payload). Stamped on each emitted finding row.",
+)
+def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns, session_id):
     """Run the deterministic review pipeline end-to-end.
 
     Detects active dimensions, spawns dimension agents via the Claude Agent SDK,
@@ -252,6 +257,7 @@ def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns):
         save_sweep=not no_save,
         model=model,
         max_turns=max_turns,
+        session_id=session_id,
     )
     result = run_review(config)
 
