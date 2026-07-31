@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from enum import Enum
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -261,3 +262,26 @@ class TrendReport(BaseModel):
     resolved_findings: list[SweepFinding] = Field(default_factory=list)
     recurring_findings: list[SweepFinding] = Field(default_factory=list)
     dimension_trends: list[DimensionTrend] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Static analysis (Layer 1) result
+# ---------------------------------------------------------------------------
+
+
+class StaticAnalysisResult(BaseModel):
+    """Result of running a static analysis (lint) tool in check mode.
+
+    This is a *separate* model from ReviewFinding — it never enters all_findings,
+    find_duplicate_clusters, or sweep persistence. It is carried on DriverResult and
+    rendered in its own report section, tagged as tool-verified.
+    """
+
+    tool: str | None
+    status: Literal["ok", "violations", "not_detected", "tool_unavailable", "failed"]
+    command: list[str] = Field(default_factory=list)
+    exit_code: int | None = None
+    violation_count: int = 0
+    raw_output: str = ""
+    scoped: bool = True
+    detail: str | None = None
