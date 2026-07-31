@@ -700,7 +700,7 @@ code {
     </div>
 
     <div class="explainer">
-      <strong>The 150k cliff:</strong> Sessions that grow past 150k context tokens cost 5&times; more per turn because the overflow can't be cached. In early July, 66-75% of sessions were hitting this cliff. The goal is &lt;30%. <strong>Compaction</strong> is the mechanism — it compresses prior conversation to reclaim context space. Autocompact was broken Jul 15-18 (zero auto-triggered compactions despite sessions reaching 300k–557k tokens) and has fired reliably every day since Jul 19.
+      <strong>The 150k cliff:</strong> Sessions that grow past 150k context tokens cost 5&times; more per turn because the overflow can't be cached. In early July, 66-75% of sessions were hitting this cliff. The goal is &lt;30%. <strong>Compaction</strong> is the mechanism — it compresses prior conversation to reclaim context space. Autocompact was broken Jul 15-18 (zero auto-triggered compactions despite sessions reaching 300k–557k tokens) and fired reliably every day since Jul 19 <em>in the transcripts examined</em> &mdash; but Ramsey reports it not firing in <strong>terminal mode</strong> (Jul 30 and again Jul 31). The Jul 30 investigation that found "no defect" read a VS Code session, so it never covered that surface. Treat this claim as contested pending a terminal-mode transcript.
     </div>
 
     <!-- Max context p50/p90 -->
@@ -1049,7 +1049,7 @@ code {
     <!-- Promotion funnel -->
     <div class="card">
       <div class="card-title">Identity promotion funnel</div>
-      <p class="card-note">Growth entries flow: captured &rarr; synthesized into identity seeds &rarr; flagged for retro. Last synthesis: Jul 30 20:19. Last grow: Jul 30 (PM). Last dream: Jul 30 20:19 (session close). Growth: 0 pending (7 processed at synthesis). Retro: spawned at dream (retro-worthy: worktree isolation leak &times;3, max_turns config). Evening 07-30: AIT-34 landed (8f8bac3, 5 files, Scenario C all-PASS) but agent leaked into live ai-project-template checkout and committed the staged AIT-33 diff (4eac907) &mdash; both messages need reword; LAE link-check fix staged on stale branch; GUA-60 live runs still owed post-usage-reset. Insights fresh (ran 07-30, 261 sessions).</p>
+      <p class="card-note">Growth entries flow: captured &rarr; synthesized into identity seeds &rarr; flagged for retro. Last synthesis: Jul 30 20:19. <strong>Last grow: Jul 31 19:20.</strong> Last dream: Jul 30 20:19. <strong>Growth: 7 pending &mdash; synthesis due at next dream.</strong> Last retro: R6 (Jul 30); <strong>retro-worthy: yes</strong> &mdash; 4 FRICTION items named by Ramsey (repo-prefix/branch mismatch, work not left staged for review, <code>make ship</code>/<code>make pull</code> misfiring, autocompact not firing in terminal mode) plus red-main-accepts-merges across 3 repos. Hypotheses: 29 open. Session 07-31: board reconciliation (~20 issues closed as already-merged; root cause guacamayo#67), librarian red main fixed and staged on <code>bug/fastapi-dev-dep</code>, AIT #35/#36 diagnosed (main red on every matrix leg &mdash; #35 is the fix), playground#88 + librarian#73 filed. Insights refreshed 07-31 (303 sessions): &gt;150k share flat at 22% across both runs, cache 96% / 84% savings, 192 compact invocations in 78 sessions, 8,419 Bash antipatterns (27.8/session).</p>
       <div class="stat-row">
         <div class="stat"><span class="value">9</span><span class="label">entries in</span></div>
         <div class="stat"><span class="value">1</span><span class="label">to sounding</span></div>
