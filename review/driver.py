@@ -66,6 +66,10 @@ class DriverConfig:
     static_analysis: bool = True
     # session_id: passed from invoking skill via --session-id; null when absent
     session_id: str | None = None
+    # findings JSONL target; None uses the shared cross-repo file. Tests MUST set this
+    # (or rely on the autouse redirect in tests/review/conftest.py) — the default is
+    # real data, not a scratch path.
+    findings_path: Path | None = None
 
     def __post_init__(self) -> None:
         self.repo = Path(self.repo).resolve()
@@ -150,7 +154,7 @@ def emit_findings_jsonl(
     *,
     repo: str,
     session_id: str | None,
-    jsonl_path: Path = _FINDINGS_JSONL_PATH,
+    jsonl_path: Path | None = None,
 ) -> None:
     """Append one JSONL line per finding to the review-findings file.
 
@@ -165,11 +169,14 @@ def emit_findings_jsonl(
         findings: Merged, deduplicated findings from the driver run.
         repo: Repository name (config.repo.name).
         session_id: Claude Code session id from --session-id option, or None.
-        jsonl_path: Target JSONL file (overridable in tests).
+        jsonl_path: Target JSONL file. None resolves _FINDINGS_JSONL_PATH at call
+            time (not import time) so tests can monkeypatch the module global.
     """
     if not findings:
         return
 
+    if jsonl_path is None:
+        jsonl_path = _FINDINGS_JSONL_PATH
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
 
@@ -751,6 +758,7 @@ async def _run_review_async(
         merged_findings,
         repo=repo_name,
         session_id=config.session_id,
+        jsonl_path=config.findings_path or _FINDINGS_JSONL_PATH,
     )
 
     # --- Stage 6: trends ---
