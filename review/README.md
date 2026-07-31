@@ -39,14 +39,41 @@ CLI subcommands. Agents preload the global `review-shared` skill via frontmatter
 ```
 files/diff
   → review-cli run                     # single entry point (the deterministic driver)
-      ├─ detect-signals                # which dimensions activate (no LLM)
-      ├─ sdk_scan × N dimensions       # Claude Agent SDK, concurrent, output_format json_schema
+      ├─ detect-signals                # Stage 1: which dimensions activate (no LLM)
+      ├─ run_static_analysis           # Stage 1b: Layer 1 — deterministic lint (read-only)
+      │   └─ StaticAnalysisResult      # separate type; never enters all_findings or dedup
+      ├─ sdk_scan × N dimensions       # Stage 2: Claude Agent SDK, concurrent, output_format json_schema
       │   └─ validate_finding          # Pydantic gate; one repair round-trip then hard fail
-      ├─ find_duplicate_clusters       # union-find dedup; deterministic cluster merge
-      ├─ fingerprint + save_sweep      # SweepRecord → .claude/docs/reviews/
-      ├─ build_trend_report            # diff vs previous sweep
-      └─ render_report                 # deterministic Markdown output → stdout
+      ├─ find_duplicate_clusters       # Stage 4: union-find dedup; deterministic cluster merge
+      ├─ fingerprint + save_sweep      # Stage 5: SweepRecord → .claude/docs/reviews/
+      ├─ build_trend_report            # Stage 6: diff vs previous sweep
+      └─ render_report                 # Stage 7: deterministic Markdown output → stdout
 ```
+
+### Stage 1b — Static Analysis (Layer 1)
+
+`review/static_analysis.py` implements deterministic lint detection and invocation.
+It runs between scope detection and the concurrent LLM dimension scans.
+
+**Non-negotiable rules:**
+- **Read-only only.** The linter is invoked in check mode. `--fix`, `--write`,
+  `format`, and `--unsafe-fixes` are forbidden in `TOOL_TABLE` and asserted by tests.
+- **Never blocks dispatch.** Dimension scans proceed regardless of whether static
+  analysis ran, found violations, or failed entirely. `exit_code` and `merge_decision`
+  are never set by this stage (OQ2).
+- **Excluded from dedup by construction.** `StaticAnalysisResult` is not a
+  `ReviewFinding`; it never enters `all_findings` or `find_duplicate_clusters`. It
+  travels on `DriverResult.static_analysis` and is rendered in its own section.
+- **No-tool fallback.** When no tool is detected, the driver records
+  `status="not_detected"` and adds a skipped `Reporter.LINT` dispatch entry.
+  When a tool is configured but not installed, `status="tool_unavailable"`.
+  Neither case fails the driver.
+- **File scoping.** Changed files are filtered to extensions the tool handles and
+  passed after `--` so filenames cannot be parsed as flags. When the changed set
+  exceeds 200 files, path args are dropped and the tool uses its own config scope
+  (`scoped=False` recorded in the result).
+
+Tool detection order (first match wins): ruff → biome → eslint → golangci-lint → flake8.
 
 Ad-hoc subcommands (still available for standalone use):
 ```

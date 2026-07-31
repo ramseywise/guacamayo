@@ -1,3 +1,44 @@
+## 2026-07-31 (303 sessions, 2026-07-15 to 2026-07-31)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Sessions analyzed | 303 | — |
+| Messages | 3,422 | — |
+| >150k context share | 22% | — |
+| Cache hit rate | 96% | 84% savings |
+| Subagent transcripts | 594 | 38% of usage |
+| Compacts deployed | 192 invocations, 78 sessions | — |
+| Bash antipatterns | 8,419 | 27.8 per session |
+| Interruptions | 49 | Hook blocks: 39 |
+
+### Context distribution
+<50k: 22%, 50-100k: 37%, 100-150k: 19%, >150k: 22%
+
+### Cache performance
+- Hit rate: 96%
+- Cost savings: 84%
+- Cache read tokens: 3.94B
+- Cache write tokens: 125M
+
+### Parallelism
+- Session parallelism: 1× (21%), 2–3× (66%), 4+ (14%)
+- Overlap events: 547 across 297 sessions
+- 99% of messages ran with parallelism
+
+### Response time
+- Median: 2m 42s
+- Average: 5m 54s
+- Modal bucket: 2–5m (690 responses)
+- 68% of responses over 1 minute
+
+### Read/Edit patterns
+- Sessions with read/edit ratio <1: 139
+- Average ratio: 1.19
+- Output median: 479 tokens, p75: 781, p90: 1,250
+
+---
+
 ## 2026-07-30 (261 sessions, 2026-07-15 to 2026-07-30)
 
 ### Key metrics
