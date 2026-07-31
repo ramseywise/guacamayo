@@ -108,11 +108,106 @@ def _render_reporter_dispatch(dispatch: list[dict]) -> str:
     return "\n".join(lines) + "\n"
 
 
+_STATIC_ANALYSIS_TAG = (
+    "_Tool-verified — not LLM judgment. Excluded from dedup and from the merge decision._"
+)
+_VIOLATION_TRUNCATION_LIMIT = 50
+
+
+def _render_static_analysis(result: dict) -> str:
+    """Render the Static Analysis (Layer 1) section from a StaticAnalysisResult dict.
+
+    Returns an empty string when the result indicates no tool was detected.
+    The section is always tagged as tool-verified and never influences merge_decision.
+    """
+    status = result.get("status", "")
+    tool = result.get("tool")
+
+    lines = [
+        "## Static Analysis (Layer 1)",
+        "",
+        _STATIC_ANALYSIS_TAG,
+    ]
+
+    if status == "not_detected":
+        lines += [
+            "",
+            (
+                "No static analysis tool detected. "
+                "Layer 1 (style, naming, formatting) is out of scope for this review."
+            ),
+            "",
+            (
+                "_Recommendation: add ruff (Python), biome (JS/TS), eslint, golangci-lint, or flake8 "
+                "to this repository to enable Layer 1 analysis._"
+            ),
+        ]
+        return "\n".join(lines)
+
+    if status == "tool_unavailable":
+        lines += [
+            "",
+            f"**Tool**: `{tool}`",
+            "",
+            f"Tool configured but not installed: {result.get('detail', '')}",
+        ]
+        return "\n".join(lines)
+
+    command = result.get("command") or []
+    exit_code = result.get("exit_code")
+    violation_count = result.get("violation_count", 0)
+    raw_output = result.get("raw_output", "")
+    scoped = result.get("scoped", True)
+    detail = result.get("detail")
+
+    cmd_str = " ".join(command) if command else "(unknown)"
+    scope_note = "file-scoped" if scoped else "whole-repo (too many changed files)"
+
+    lines += [
+        "",
+        f"**Tool**: `{tool}`",
+        f"**Command**: `{cmd_str}`",
+        f"**Exit code**: {exit_code}",
+        f"**Scope**: {scope_note}",
+    ]
+
+    if status == "failed":
+        lines += [
+            "",
+            f"Static analysis did not complete: {detail or 'unknown error'}",
+        ]
+        return "\n".join(lines)
+
+    if status == "ok":
+        lines += ["", "No violations found."]
+        return "\n".join(lines)
+
+    # status == "violations"
+    lines += ["", f"**Violations**: {violation_count}"]
+
+    if raw_output:
+        raw_lines = raw_output.splitlines()
+        shown = raw_lines[:_VIOLATION_TRUNCATION_LIMIT]
+        remaining = len(raw_lines) - len(shown)
+        lines += [
+            "",
+            "```",
+        ]
+        lines.extend(shown)
+        if remaining > 0:
+            lines.append(f"... {remaining} more violations not shown")
+        lines.append("```")
+
+    return "\n".join(lines)
+
+
 def render_report(data: dict) -> str:
     """Render a deterministic Markdown review report from the merged findings dict.
 
     Args:
         data: Dict with ``findings`` list plus optional metadata keys.
+              Optional ``static_analysis`` key (StaticAnalysisResult dict) renders
+              a tool-verified Layer 1 section between Findings Summary and Finding Details.
 
     Returns:
         Markdown string.
@@ -124,6 +219,7 @@ def render_report(data: dict) -> str:
     merge_decision_raw = data.get("merge_decision", "")
     wander_questions: list[str] = data.get("wander_questions", [])
     reporter_dispatch: list[dict] = data.get("reporter_dispatch", [])
+    static_analysis: dict | None = data.get("static_analysis")
 
     # Parse findings — accept raw dicts or already-validated models
     raw_findings: list[dict] = data.get("findings", [])
@@ -158,6 +254,10 @@ def render_report(data: dict) -> str:
 
     # Summary table
     sections.append(f"## Findings Summary\n\n{_render_summary_table(sorted_findings)}")
+
+    # Static Analysis (Layer 1) — after Findings Summary, before Finding Details
+    if static_analysis is not None:
+        sections.append(_render_static_analysis(static_analysis))
 
     # Per-finding details
     if sorted_findings:
