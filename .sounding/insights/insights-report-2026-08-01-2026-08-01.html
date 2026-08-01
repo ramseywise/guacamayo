@@ -1,0 +1,503 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Claude Code Usage Report — Jul 15 – Aug 1, 2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222536;
+      --border: #2e3247;
+      --accent: #7c6af7;
+      --accent2: #4ecdc4;
+      --accent3: #f7c948;
+      --accent4: #f76c6c;
+      --accent5: #82e0aa;
+      --text: #e8eaf0;
+      --text2: #9099b5;
+      --text3: #5d6380;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    a { color: var(--accent); text-decoration: none; }
+
+    /* Header */
+    .header {
+      background: linear-gradient(135deg, #1a1d27 0%, #12151f 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 32px 40px 28px;
+    }
+    .header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+    .header .subtitle { color: var(--text2); margin-top: 4px; font-size: 13px; }
+    .header .pill {
+      display: inline-block;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 20px;
+      padding: 2px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin-left: 12px;
+      vertical-align: middle;
+    }
+
+    /* Layout */
+    .main { max-width: 1400px; margin: 0 auto; padding: 32px 40px 60px; }
+    .section { margin-bottom: 40px; }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text3);
+      margin-bottom: 16px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* KPI grid */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 14px;
+    }
+    .kpi-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .kpi-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--kpi-color, var(--accent));
+    }
+    .kpi-label { font-size: 11px; color: var(--text2); font-weight: 500; letter-spacing: 0.3px; margin-bottom: 6px; }
+    .kpi-value { font-size: 28px; font-weight: 700; line-height: 1; letter-spacing: -1px; }
+    .kpi-sub { font-size: 11px; color: var(--text3); margin-top: 5px; }
+
+    /* Chart cards */
+    .chart-grid {
+      display: grid;
+      gap: 20px;
+    }
+    .chart-grid-2 { grid-template-columns: 1fr 1fr; }
+    .chart-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+    .chart-grid-21 { grid-template-columns: 2fr 1fr; }
+    .chart-grid-12 { grid-template-columns: 1fr 2fr; }
+
+    .chart-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 22px 24px;
+    }
+    .chart-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; }
+    .chart-sub { font-size: 11px; color: var(--text3); margin-bottom: 18px; }
+    .chart-wrap { position: relative; }
+
+    /* Insight boxes */
+    .insight-row { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 16px; }
+    .insight {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: var(--text2);
+      flex: 1;
+      min-width: 180px;
+    }
+    .insight strong { color: var(--text); display: block; margin-bottom: 2px; }
+    .insight.warn { border-left-color: var(--accent4); }
+    .insight.good { border-left-color: var(--accent5); }
+    .insight.info { border-left-color: var(--accent3); }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th {
+      text-align: left;
+      color: var(--text3);
+      font-weight: 600;
+      font-size: 10px;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid #1e2134; color: var(--text); }
+    tr:hover td { background: var(--surface2); }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .badge-purple { background: rgba(124,106,247,0.2); color: #a89cf7; }
+    .badge-teal { background: rgba(78,205,196,0.2); color: #4ecdc4; }
+    .badge-yellow { background: rgba(247,201,72,0.2); color: #f7c948; }
+    .badge-red { background: rgba(247,108,108,0.2); color: #f76c6c; }
+    .badge-green { background: rgba(130,224,170,0.2); color: #82e0aa; }
+
+    /* Bar stat */
+    .stat-bar-row { display: flex; align-items: center; gap: 10px; margin: 5px 0; font-size: 12px; }
+    .stat-bar-label { width: 110px; color: var(--text2); flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stat-bar-track { flex: 1; background: var(--border); border-radius: 4px; height: 6px; }
+    .stat-bar-fill { height: 6px; border-radius: 4px; }
+    .stat-bar-val { width: 46px; text-align: right; color: var(--text); font-weight: 600; }
+
+    /* Progress ring */
+    .ring-row { display: flex; gap: 24px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 10px 0; }
+    .ring-item { text-align: center; }
+    .ring-item svg { display: block; margin: 0 auto 6px; }
+    .ring-label { font-size: 11px; color: var(--text2); }
+    .ring-val { font-size: 18px; font-weight: 700; }
+
+    /* Stacked pct */
+    .pct-bar { display: flex; height: 20px; border-radius: 6px; overflow: hidden; width: 100%; }
+    .pct-bar div { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; transition: width 0.3s; }
+
+    /* Session list */
+    .session-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .cost-bar { background: var(--border); border-radius: 3px; height: 4px; margin-top: 3px; }
+    .cost-bar-fill { height: 4px; border-radius: 3px; background: var(--accent); }
+
+    /* Divider */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 8px 0 20px; }
+
+    @media (max-width: 900px) {
+      .chart-grid-2, .chart-grid-3, .chart-grid-21, .chart-grid-12 { grid-template-columns: 1fr; }
+      .main { padding: 20px 16px 40px; }
+      .header { padding: 20px 16px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div>
+      <h1>Claude Code Usage Report <span class="pill">18 days</span></h1>
+      <div class="subtitle">2026-07-15 → 2026-08-01 &nbsp;·&nbsp; 316 sessions &nbsp;·&nbsp; 3,527 user messages &nbsp;·&nbsp; 195.9 msgs/day</div>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+
+  <!-- ═══════════════════════════ KPI ROW ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Overview</div>
+    <div class="kpi-grid">
+      <div class="kpi-card" style="--kpi-color:#7c6af7">
+        <div class="kpi-label">Total Cost Units</div>
+        <div class="kpi-value">1.16B</div>
+        <div class="kpi-sub">usage_cost_units</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#4ecdc4">
+        <div class="kpi-label">Sessions</div>
+        <div class="kpi-value">316</div>
+        <div class="kpi-sub">18 active days</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#f7c948">
+        <div class="kpi-label">User Messages</div>
+        <div class="kpi-value">3,527</div>
+        <div class="kpi-sub">195.9 / day avg</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#f76c6c">
+        <div class="kpi-label">Median Response</div>
+        <div class="kpi-value">2m45s</div>
+        <div class="kpi-sub">avg 357s · p90 &gt;5m</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#82e0aa">
+        <div class="kpi-label">Cache Hit Rate</div>
+        <div class="kpi-value">96%</div>
+        <div class="kpi-sub">84% savings vs uncached</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#7c6af7">
+        <div class="kpi-label">Subagent Share</div>
+        <div class="kpi-value">40%</div>
+        <div class="kpi-sub">636 transcripts</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#4ecdc4">
+        <div class="kpi-label">Total Compacts</div>
+        <div class="kpi-value">206</div>
+        <div class="kpi-sub">83 sessions affected</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#f7c948">
+        <div class="kpi-label">Bash Anti-patterns</div>
+        <div class="kpi-value">9,021</div>
+        <div class="kpi-sub">28.6 per session</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#f76c6c">
+        <div class="kpi-label">Interruptions</div>
+        <div class="kpi-value">50</div>
+        <div class="kpi-sub">across all sessions</div>
+      </div>
+      <div class="kpi-card" style="--kpi-color:#82e0aa">
+        <div class="kpi-label">Hook Blocks</div>
+        <div class="kpi-value">40</div>
+        <div class="kpi-sub">pre-commit guards</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ ACTIVITY TIMELINE ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Activity by Hour of Day</div>
+    <div class="chart-card">
+      <div class="chart-title">Message Volume by Hour</div>
+      <div class="chart-sub">Total messages sent across all sessions, grouped by hour (local time)</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="hourChart"></canvas>
+      </div>
+      <div class="insight-row">
+        <div class="insight info">
+          <strong>Peak: 1pm (2,892 msgs)</strong>
+          Heavy midday cluster 12–17h — classic deep work window
+        </div>
+        <div class="insight info">
+          <strong>Evening burst: 20h (2,331)</strong>
+          Strong second peak 19–22h suggests evening sessions
+        </div>
+        <div class="insight good">
+          <strong>Low late-night activity</strong>
+          Hours 3–4am almost silent — healthy work cadence
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ RESPONSE TIME + CONTEXT ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Response Time & Context Usage</div>
+    <div class="chart-grid chart-grid-2" style="gap:20px">
+      <div class="chart-card">
+        <div class="chart-title">Response Time Distribution</div>
+        <div class="chart-sub">Median 2m45s · Avg 5m57s — long tail of heavy executions</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="rtChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Context Window Usage</div>
+        <div class="chart-sub">Distribution of max context reached per session</div>
+        <div class="chart-wrap" style="height:180px">
+          <canvas id="ctxChart"></canvas>
+        </div>
+        <div style="margin-top:16px">
+          <div class="pct-bar">
+            <div style="width:21%;background:#4ecdc4">21%</div>
+            <div style="width:38%;background:#7c6af7">38%</div>
+            <div style="width:20%;background:#f7c948">20%</div>
+            <div style="width:21%;background:#f76c6c">21%</div>
+          </div>
+          <div style="display:flex;gap:16px;margin-top:8px;flex-wrap:wrap">
+            <span style="font-size:11px;color:var(--text2)"><span style="color:#4ecdc4">■</span> &lt;50k (21%)</span>
+            <span style="font-size:11px;color:var(--text2)"><span style="color:#7c6af7">■</span> 50–100k (38%)</span>
+            <span style="font-size:11px;color:var(--text2)"><span style="color:#f7c948">■</span> 100–150k (20%)</span>
+            <span style="font-size:11px;color:var(--text2)"><span style="color:#f76c6c">■</span> &gt;150k (21%)</span>
+          </div>
+        </div>
+        <div class="insight-row" style="margin-top:12px">
+          <div class="insight warn">
+            <strong>21% over 150k tokens</strong>
+            High context pressure — compacts firing frequently in heavy sessions
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ TOOLS + LANGUAGES ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Tool Usage & Languages</div>
+    <div class="chart-grid chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Top Tools by Invocations</div>
+        <div class="chart-sub">Raw tool call counts across all sessions</div>
+        <div style="margin-top:8px">
+          <div class="stat-bar-row"><div class="stat-bar-label">Bash</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:100%;background:#7c6af7"></div></div><div class="stat-bar-val">12,344</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">Edit</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:40.8%;background:#4ecdc4"></div></div><div class="stat-bar-val">5,036</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">Read</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:36%;background:#f7c948"></div></div><div class="stat-bar-val">4,448</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">Write</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:8.4%;background:#82e0aa"></div></div><div class="stat-bar-val">1,037</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">Agent</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:5.2%;background:#f76c6c"></div></div><div class="stat-bar-val">640</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">ToolSearch</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:3.2%;background:#b39ddb"></div></div><div class="stat-bar-val">391</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">Grep</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:2%;background:#80cbc4"></div></div><div class="stat-bar-val">249</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">TodoWrite</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:1.7%;background:#ffe082"></div></div><div class="stat-bar-val">213</div></div>
+        </div>
+        <div class="insight-row">
+          <div class="insight warn">
+            <strong>Bash dominates at 55%+ of tool calls</strong>
+            9,021 anti-patterns detected — 28.6 per session average
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Languages Touched</div>
+        <div class="chart-sub">File edits by language across all sessions</div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="langChart"></canvas>
+        </div>
+        <div class="insight-row">
+          <div class="insight info">
+            <strong>Markdown #1 (5,451)</strong>
+            Docs, plans, skills — heavy workflow documentation
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ CACHE & COST ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Cache Performance & Cost</div>
+    <div class="chart-grid chart-grid-3">
+      <div class="chart-card" style="grid-column:span 1">
+        <div class="chart-title">Cache Efficiency</div>
+        <div class="chart-sub">Read vs write token ratio</div>
+        <div class="ring-row">
+          <div class="ring-item">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#2e3247" stroke-width="10"/>
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#82e0aa" stroke-width="10"
+                stroke-dasharray="226.2" stroke-dashoffset="9.05" stroke-linecap="round"
+                transform="rotate(-90 45 45)"/>
+              <text x="45" y="50" text-anchor="middle" fill="#e8eaf0" font-size="18" font-weight="700">96%</text>
+            </svg>
+            <div class="ring-val" style="color:#82e0aa"></div>
+            <div class="ring-label">Cache Hit Rate</div>
+          </div>
+          <div class="ring-item">
+            <svg width="90" height="90" viewBox="0 0 90 90">
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#2e3247" stroke-width="10"/>
+              <circle cx="45" cy="45" r="36" fill="none" stroke="#7c6af7" stroke-width="10"
+                stroke-dasharray="226.2" stroke-dashoffset="36.19" stroke-linecap="round"
+                transform="rotate(-90 45 45)"/>
+              <text x="45" y="50" text-anchor="middle" fill="#e8eaf0" font-size="18" font-weight="700">84%</text>
+            </svg>
+            <div class="ring-label">Cost Savings</div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text2);text-align:center">
+          4.11B read tokens · 131.6M write tokens
+        </div>
+      </div>
+      <div class="chart-card" style="grid-column:span 2">
+        <div class="chart-title">Output Tokens per Message</div>
+        <div class="chart-sub">Distribution percentiles across sessions</div>
+        <div class="chart-wrap" style="height:180px">
+          <canvas id="outputTokChart"></canvas>
+        </div>
+        <div class="insight-row">
+          <div class="insight good">
+            <strong>Median 479 tokens/msg</strong>
+            Lean responses — efficient output discipline
+          </div>
+          <div class="insight warn">
+            <strong>P90 at 1,250 tokens</strong>
+            Top sessions get verbose; heavy plan/research modes
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ SUBAGENTS & PARALLELISM ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Subagents & Parallelism</div>
+    <div class="chart-grid chart-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Parallelism Usage</div>
+        <div class="chart-sub">How many concurrent sessions ran simultaneously</div>
+        <div class="chart-wrap" style="height:200px">
+          <canvas id="parallelChart"></canvas>
+        </div>
+        <div class="insight-row">
+          <div class="insight info">
+            <strong>99% of messages in parallel</strong>
+            564 overlap events across 309 sessions — highly concurrent workflow
+          </div>
+          <div class="insight good">
+            <strong>66% in 2–3 parallel sessions</strong>
+            Controlled parallelism — not too scattered
+          </div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Subagent Activity</div>
+        <div class="chart-sub">Heavy sessions vs overall subagent usage</div>
+        <div style="margin-top:20px">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+            <div style="text-align:center">
+              <div style="font-size:42px;font-weight:700;color:#7c6af7">636</div>
+              <div style="font-size:11px;color:var(--text2)">subagent transcripts</div>
+            </div>
+            <div style="flex:1">
+              <div style="margin-bottom:10px">
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Subagents share of usage</div>
+                <div class="pct-bar" style="height:14px">
+                  <div style="width:40%;background:#7c6af7;font-size:10px">40%</div>
+                  <div style="width:60%;background:#2e3247;font-size:10px;color:var(--text3)">60%</div>
+                </div>
+              </div>
+              <div>
+                <div style="font-size:11px;color:var(--text2);margin-bottom:4px">Heavy sessions (47) share</div>
+                <div class="pct-bar" style="height:14px">
+                  <div style="width:57%;background:#f76c6c;font-size:10px">57%</div>
+                  <div style="width:43%;background:#2e3247;font-size:10px;color:var(--text3)">43%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="insight-row">
+            <div class="insight warn">
+              <strong>47 heavy sessions = 57% of cost</strong>
+              Top 15% of sessions consume majority of spend — concentration risk
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════ MODEL DISTRIBUTION ═══════════════════════════ -->
+  <div class="section">
+    <div class="section-title">Model Distribution</div>
+    <div class="chart-grid chart-grid-21">
+      <div class="chart-card">
+        <div class="chart-title">Requests by Model</div>
+        <div class="chart-sub">Total tool/message requests per model variant</div>
+        <div style="margin-top:8px">
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-opus-4-6</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:100%;background:#7c6af7"></div></div><div class="stat-bar-val">17,813</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-fable-5</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:50.6%;background:#4ecdc4"></div></div><div class="stat-bar-val">9,020</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-opus-4-8</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:44.2%;background:#f7c948"></div></div><div class="stat-bar-val">7,873</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-opus-5</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:29.4%;background:#82e0aa"></div></div><div class="stat-bar-val">5,242</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-sonnet-5</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:13.7%;background:#f76c6c"></div></div><div class="stat-bar-val">2,443</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-sonnet-4-6</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:4.6%;background:#b39ddb"></div></div><div class="stat-bar-val">824</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">claude-haiku-4-5</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:1.3%;background:#80cbc4"></div></div><div class="stat-bar-val">223</div></div>
+          <div class="stat-bar-row"><div class="stat-bar-label">&lt;synthetic&gt;</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:0.3%;background:#ffe082"></div></div><div class="stat-bar-val">58</div></div>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Model Share</div>
+        <div class="chart-sub">% of total requests</div>
+        <div class="chart-wrap" style="height:220px">

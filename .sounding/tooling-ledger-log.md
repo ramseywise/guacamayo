@@ -31,6 +31,135 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R7 — 2026-08-01
+
+### Graduated rows (5 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-27 | Plan-doc Status line enforcement (F6) | workflow | dropped | Failing metric for 4 consecutive retros (R4–R7). Not a config lever — 2 specific docs need edits. Retiring as a measured hypothesis; fix is a one-time edit (see P0 below). |
+| 2026-07-30 | Autocompact "no defect found" (metric confusion verdict) | context | failed | Verdict was scoped to VS Code only; terminal-mode recurrence 07-31 contradicts it. Graduated as failed. Active tracking continues in the terminal-mode row (tooling-ledger.md). |
+| 2026-07-30 | R6 F1: Cross-repo dispatch rule added to CLAUDE.md | safety | verified | Confirmed present at `~/.claude/CLAUDE.md:176` ("Cross-repo dispatch rule: The worktree must be created in the target repo…"). 0 cross-repo isolation leaks since applied. |
+| 2026-07-30 | R6 F2: `--no-track` branch creation rule added to CLAUDE.md | friction | verified | Confirmed present at `~/.claude/CLAUDE.md:157,160`. Convention block updated with both the flag and the rationale. |
+| 2026-07-30 | R6 F3: Quota-masquerade diagnostic note added to shell.md | observability | verified | Confirmed present at `~/.claude/rules/shell.md:26` ("## Quota masquerade"). |
+| 2026-07-30 | R6 F5: TodoWrite nudge hook wired (PostToolUse/Bash, advisory, exit 0) | workflow | verified | `~/.claude/hooks/todo_write_nudge.sh` exists on disk and confirmed wired in `~/.claude/settings.json:103`. Measuring effect — metric now tracking. |
+
+### R7 findings
+
+- F1: Co-Authored-By trailer from harness → CLAUDE.md Communication rule proposed (P1)
+- F2: Flat sibling issues with no parent link → refine sub-issue convention + CLAUDE.md dispatcher rule proposed (P2)
+- F3: PR titles are de-hyphenated slugs → Makefile.common fix proposed (P3)
+- F4: Repo-prefix/branch-name mismatch FRICTION → enforcement hook proposed; FRICTION row converted to hypothesis in ledger
+- F5: `make ship` implicit branch target → confirmation echo proposed (P6)
+- F6: Work not reliably staged for review → dispatcher post-agent step made explicit in CLAUDE.md (P7)
+- F7: Red main accepting merges portfolio-wide → branch protection per repo-security-setup.md; FRICTION converted to hypothesis; pending Ramsey per-repo decision
+- P4: /workflow-insights double-date output → SKILL.md step 3 fix proposed (pass bare `insights-report.html`)
+- P5: Bash antipatterns rising (28.55/session, 08-01) → targeted advisory hook proposed
+- Closed 6 rows; 29 active → 30 active (net +7 new findings, -6 graduated)
+
+### R7 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P0 (plan-doc fix — no issue needed)**: Edit the 2 stale plan docs. *(Paths corrected
+post-retro: R7 cited `~/.claude/docs/plans/`, which does not exist — `ls` returns no such
+directory. The files live in guacamayo. The finding was real; the paths were invented.)*
+- `~/workspace/guacamayo/.claude/docs/plans/2026-07-22-workflow-simplification.md` line 5: change `**Status**:` → `Status:`
+- `~/workspace/guacamayo/.claude/docs/plans/2026-07-24-GUA-23-review-verdict.md`: add `Status: COMPLETE` after the title line
+
+**P0b (config drift R7's audit pass missed)**: `~/.claude/docs/` exists again, containing
+`insights/` (2026-07-27.md, latest.json) and `state/insights-report.html`. Global
+CLAUDE.md states it is "deliberately deleted; do not recreate it" and that cross-repo
+state belongs in `guacamayo/.claude/docs/state/`. Something in the insights tooling
+recreates it. Decide: re-delete and fix the writer, or amend CLAUDE.md to permit it.
+
+**P1 (F1): Forbid Co-Authored-By in CLAUDE.md Communication block**
+Add one bullet under Communication:
+```
+- Never add a `Co-Authored-By:` trailer to a drafted commit message or PR body.
+  Ramsey commits and does not want Claude named as co-author.
+```
+*(Rationale corrected post-retro: R7's draft said "the harness appends them
+automatically; adding them in prose duplicates the trailer." It does not append them —
+the built-in commit guidance instructs Claude to write the trailer, which is why all 46
+appear on commits authored by ramseywise. The trailer is unwanted outright, not merely
+duplicated, so the bullet must forbid it rather than warn about duplication.)*
+
+**P2 (F2): Fix flat-sibling-issue explosion in workflow-refine + CLAUDE.md**
+Two changes:
+1. `~/.claude/skills/workflow-refine/SKILL.md:152` — replace "offer to create the sub-issues (labeled `backlog`)" with:
+   ```
+   For `needs-split` items, offer to create real sub-issues (labeled `backlog`) linked
+   to the parent via `addSubIssue` (template in github-projects SKILL.md:93). Sub-issues
+   ride the parent's branch and PR — do NOT create a separate branch per sub-issue.
+   ```
+2. `~/.claude/CLAUDE.md` Session hygiene, after the worktree dispatch rules, add:
+   ```
+   **Sub-issues ride the parent branch.** When workflow-refine splits an issue, sub-issues
+   are linked via `addSubIssue`, land on the parent's branch, and close via `Closes #N`
+   in the same PR. One PR per parent issue, not one per sub-issue.
+   ```
+
+**P3 (F3): PR titles from issue title in Makefile.common**
+Replace `Makefile.common:110` block (the `TITLE=` assignment for `[A-Z]{2,4}-[0-9]+-` branches):
+```make
+	ISSUE_NUM=$$(echo "$$BRANCH" | grep -oE '^[A-Z]{2,4}-[0-9]+' | grep -oE '[0-9]+$$'); \
+	ISSUE_TITLE=$$(gh issue view "$$ISSUE_NUM" --repo "${ISSUE_REPO:-$(shell git remote get-url origin | sed 's/.*github.com[:/]//' | sed 's/.git$$//')}" --json title --jq '.title' 2>/dev/null); \
+	PREFIX=$$(echo "$$BRANCH" | grep -oE '^[A-Z]{2,4}-[0-9]+'); \
+	TITLE=$${ISSUE_TITLE:+$$PREFIX $$ISSUE_TITLE}; \
+	TITLE=$${TITLE:-$$PREFIX $$(echo "$$BRANCH" | sed -E 's/^[A-Z]{2,4}-[0-9]+-//' | tr '-' ' ')}; \
+```
+
+**P4 (double-date fix): workflow-insights SKILL.md step 3**
+Change `~/.claude/skills/workflow-insights/SKILL.md:29` from:
+```
+   python3 ~/.claude/scripts/insights.py --output ~/workspace/guacamayo/.sounding/insights/insights-report-$(date +%F).html
+```
+to:
+```
+   python3 ~/.claude/scripts/insights.py --output ~/workspace/guacamayo/.sounding/insights/insights-report.html
+```
+And change line 34 from:
+```
+   ln -sf insights-report-$(date +%F).html ~/workspace/guacamayo/.sounding/insights/insights-report.html
+```
+to:
+```
+   ln -sf insights-report-$(date +%F).html ~/workspace/guacamayo/.sounding/insights/insights-report.html
+```
+(The symlink step stays, but the `--output` arg is now bare so the parser stamps the date once, not twice. The symlink then points the stable alias at the dated file — parser creates it, symlink aliases it.)
+
+**P5 (Bash antipatterns): targeted advisory hook**
+New hook `~/.claude/hooks/bash_substitution_nudge.sh` — fires on PostToolUse/Bash when the command matches one of the substitutable patterns (`\bcat\b`, `\bhead\b`, `\btail\b`, `\bgrep\b`, `\brg\b`, `\bfind\b`, `\bsed\b`, `\bawk\b`). Emits to stderr:
+```
+[bash-substitution] Use Read/Grep/Glob/Edit instead of <matched_command> — see CLAUDE.md Bash tool section.
+```
+Advisory only (exit 0). Add to settings.json PostToolUse/Bash block alongside todo_write_nudge. Metric: `count-drop:bash-antipatterns below 25/session by 2026-08-31`.
+
+**P6 (F5 / make ship): confirmation echo before push**
+In `~/.claude/Makefile.common` `ship` target, before `git push`, insert:
+```make
+	@BRANCH=$$(git branch --show-current); \
+	ISSUE=$$(echo "$$BRANCH" | grep -oE '^[A-Z]{2,4}-[0-9]+' || echo "(no issue)"); \
+	echo "About to push: branch=$$BRANCH  issue=$$ISSUE"; \
+	echo "Press Enter to confirm or Ctrl-C to abort."; \
+	read _CONFIRM;
+```
+
+**P7 (F6 / staged handoff): CLAUDE.md dispatcher convention clarification**
+In `~/.claude/CLAUDE.md` Session hygiene, step 4 (after completion), replace current text with:
+```
+4. **After completion**: dispatcher soft-resets the branch to staged:
+   ```
+   git checkout {branch} && git reset --soft origin/main
+   ```
+   This is the **required handoff step** — not optional. Worktree directories are cleaned
+   after the agent finishes and staged-only changes are destroyed with them; the soft-reset
+   moves the agent's committed work back to staged so Ramsey reviews the diff and commits herself.
+   After review she may instead keep the agent's commits as-is. Ramsey — not the dispatcher —
+   runs `make ship`. Claude never pushes.
+```
+
+---
+
 ## R6 — 2026-07-30
 
 | Date | Change | Area | Verdict | Evidence |
