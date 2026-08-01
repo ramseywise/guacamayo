@@ -1,3 +1,77 @@
+## 2026-08-01 (316 sessions, 2026-07-15 to 2026-08-01)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Sessions analyzed | 316 | +13 from 07-31 |
+| Messages | 3,527 | +105 from 07-31 |
+| >150k context share | 21% | ↓1pp from 07-31 |
+| Cache hit rate | 96% | 84% savings |
+| Subagent transcripts | 636 | 40% of usage, +42 from 07-31 |
+| Compacts deployed | 206 invocations, 83 sessions | +14 invocations |
+| Bash antipatterns | 9,021 | 28.55 per session |
+| Interruptions | 50 | Hook blocks: 40 |
+
+### Context distribution
+<50k: 21%, 50-100k: 38%, 100-150k: 20%, >150k: 21%
+
+### Cache performance
+- Hit rate: 96%
+- Cost savings: 84%
+- Cache read tokens: 4.11B
+- Cache write tokens: 132M
+
+### Parallelism
+- Session parallelism: 1× (21%), 2–3× (66%), 4+ (13%)
+- Overlap events: 564 across 309 sessions
+- 99% of messages ran with parallelism
+
+### Response time
+- Median: 2m 46s
+- Average: 5m 57s
+- Modal bucket: 2–5m distribution
+- 68% of responses over 1 minute
+
+### Tool breakdown
+Bash: 12,344 uses (49.0%), Edit: 5,036 (19.9%), Read: 4,448 (17.6%), Write: 1,037 (4.1%), Agent: 640
+
+### Skill usage (cost-weighted %, top 8)
+- compact: 3.8%
+- wake: 1.8%
+- grow: 1.7%
+- dream: 0.7%
+- execute: 0.5%
+- workflow-review: 0.5%
+- model: 0.4%
+- workflow-plan: 0.3%
+
+### Model distribution
+(Cost-weighted distribution data in insights-report-2026-08-01.html)
+Primary: claude-opus-4-6, claude-fable-5, claude-opus-4-8
+
+### Error breakdown
+| Type | Count | % |
+|------|-------|---|
+| command_failed | 348 | 44.7% |
+| other | 323 | 41.5% |
+| file_not_found | 95 | 12.2% |
+| permission_denied | 41 | 5.3% |
+| user_rejected | 40 | 5.1% |
+| edit_failed | 2 | 0.3% |
+
+### Read/Edit patterns
+- Sessions with read/edit ratio <1: 145
+- Average ratio: 1.18
+- Output median: 479 tokens, p75: 781, p90: 1,250
+
+### Hook telemetry
+- docs_drift_warn: 74 advisories across 7 repos
+- risky_git_guard: 80 blocks
+- docs_hygiene: 435 advisories across 9 repos
+- task_complete_check: 4 blocks, 49 advisories
+
+---
+
 ## 2026-07-31 (303 sessions, 2026-07-15 to 2026-07-31)
 
 ### Key metrics
