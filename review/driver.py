@@ -64,6 +64,12 @@ class DriverConfig:
     agents_dir: Path | None = None
     # escape hatch: set False to skip static analysis (e.g. in tests that don't need it)
     static_analysis: bool = True
+    # session_id: passed from invoking skill via --session-id; null when absent
+    session_id: str | None = None
+    # findings JSONL target; None uses the shared cross-repo file. Tests MUST set this
+    # (or rely on the autouse redirect in tests/review/conftest.py) — the default is
+    # real data, not a scratch path.
+    findings_path: Path | None = None
 
     def __post_init__(self) -> None:
         self.repo = Path(self.repo).resolve()
@@ -136,6 +142,73 @@ _DIMENSION_TO_REPORTER: dict[str, Reporter] = {
     "contracts": Reporter.CONTRACTS,
     "wander": Reporter.WANDER,
 }
+
+
+_FINDINGS_JSONL_PATH = (
+    Path.home() / "workspace" / "guacamayo" / ".claude" / "docs" / "review-findings.jsonl"
+)
+
+
+def emit_findings_jsonl(
+    findings: list[ReviewFinding],
+    *,
+    repo: str,
+    session_id: str | None,
+    jsonl_path: Path | None = None,
+) -> None:
+    """Append one JSONL line per finding to the review-findings file.
+
+    Stamped fields per finding-schema.md (Persistence format):
+      id, source, date, repo, file, lines, symbols, title,
+      merge_impact, evidence_state, category, session_id.
+
+    session_id is null when the invoking skill does not pass --session-id.
+    The file is created (with parent dirs) if absent. Never overwrites.
+
+    Args:
+        findings: Merged, deduplicated findings from the driver run.
+        repo: Repository name (config.repo.name).
+        session_id: Claude Code session id from --session-id option, or None.
+        jsonl_path: Target JSONL file. None resolves _FINDINGS_JSONL_PATH at call
+            time (not import time) so tests can monkeypatch the module global.
+    """
+    if not findings:
+        return
+
+    if jsonl_path is None:
+        jsonl_path = _FINDINGS_JSONL_PATH
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+
+    with jsonl_path.open("a", encoding="utf-8") as fh:
+        for finding in findings:
+            first_file = finding.location.files[0] if finding.location.files else None
+            file_path = first_file.path if first_file else ""
+            lines_val: str | None = None
+            if first_file:
+                if first_file.start_line is not None and first_file.end_line is not None:
+                    lines_val = f"{first_file.start_line}-{first_file.end_line}"
+                elif first_file.start_line is not None:
+                    lines_val = str(first_file.start_line)
+
+            row: dict = {
+                "id": finding.id,
+                "source": finding.reporter.value,
+                "date": date_str,
+                "repo": repo,
+                "file": file_path,
+                "title": finding.claim.title,
+                "merge_impact": finding.severity.merge_impact.value,
+                "evidence_state": finding.evidence_state.value,
+                "category": finding.category.value,
+                "session_id": session_id,
+            }
+            if lines_val is not None:
+                row["lines"] = lines_val
+            if finding.location.symbols:
+                row["symbols"] = finding.location.symbols
+
+            fh.write(json.dumps(row) + "\n")
 
 
 def load_agent_prompt(dimension: str, agents_dir: Path) -> str:
@@ -679,6 +752,14 @@ async def _run_review_async(
         date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
         repo_name = config.repo.name
         record = SweepRecord(repo=repo_name, sweep_date=date_str, findings=sweep_findings)
+
+    # --- Stage 5b: emit findings to JSONL (beside sweep, always runs when findings exist) ---
+    emit_findings_jsonl(
+        merged_findings,
+        repo=repo_name,
+        session_id=config.session_id,
+        jsonl_path=config.findings_path or _FINDINGS_JSONL_PATH,
+    )
 
     # --- Stage 6: trends ---
     trend_md = ""
