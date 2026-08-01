@@ -1,5 +1,7 @@
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = str(Path(__file__).resolve().parent.parent.parent)
 
 from review.schemas.models import (
@@ -14,6 +16,22 @@ from review.schemas.models import (
     ReviewFinding,
     Severity,
 )
+
+
+@pytest.fixture(autouse=True)
+def _isolate_findings_jsonl(tmp_path, monkeypatch):
+    """Redirect the shared findings JSONL to a scratch path for every test.
+
+    `emit_findings_jsonl` defaults to ~/workspace/guacamayo/.claude/docs/
+    review-findings.jsonl — a real, git-ignored cross-repo data file with no
+    history to restore from. Pipeline tests reach it through `run_review`
+    without naming it, so without this fixture a test run appends fixture rows
+    to production data (observed: 31 fixture rows against 7 real ones).
+
+    Autouse and unconditional on purpose: opting in per-test is the failure
+    mode this prevents.
+    """
+    monkeypatch.setattr("review.driver._FINDINGS_JSONL_PATH", tmp_path / "review-findings.jsonl")
 
 
 def make_finding(

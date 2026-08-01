@@ -23,6 +23,7 @@ from review.driver import (
     DriverConfig,
     DriverResult,
     ScanError,
+    emit_findings_jsonl,
     load_agent_prompt,
     merge_cluster,
     parse_scan_result,
@@ -718,3 +719,209 @@ class TestFindingsSchema:
 
     def test_findings_is_array(self) -> None:
         assert FINDINGS_SCHEMA["properties"]["findings"]["type"] == "array"
+
+
+# ---------------------------------------------------------------------------
+# emit_findings_jsonl — JSONL emission path
+# ---------------------------------------------------------------------------
+
+
+class TestEmitFindingsJsonl:
+    def test_emits_one_line_per_finding(self, tmp_path: Path) -> None:
+        """Each finding produces exactly one JSONL line."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        f1 = make_finding("CR-001")
+        f2 = make_finding("CR-002", title="Second finding")
+        emit_findings_jsonl([f1, f2], repo="testrepo", session_id=None, jsonl_path=jsonl)
+        lines = jsonl.read_text().splitlines()
+        assert len(lines) == 2
+
+    def test_session_id_stamped_when_provided(self, tmp_path: Path) -> None:
+        """session_id value appears verbatim in the emitted row."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        sid = "abc-123-def-456"
+        emit_findings_jsonl(
+            [make_finding("CR-001")], repo="testrepo", session_id=sid, jsonl_path=jsonl
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["session_id"] == sid
+
+    def test_session_id_null_when_absent(self, tmp_path: Path) -> None:
+        """session_id is JSON null when not provided."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        emit_findings_jsonl(
+            [make_finding("CR-001")], repo="testrepo", session_id=None, jsonl_path=jsonl
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["session_id"] is None
+
+    def test_required_fields_present(self, tmp_path: Path) -> None:
+        """All required schema fields appear in each emitted row."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        emit_findings_jsonl(
+            [make_finding("CR-001")], repo="myrepo", session_id=None, jsonl_path=jsonl
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        for field in (
+            "id",
+            "source",
+            "date",
+            "repo",
+            "file",
+            "title",
+            "merge_impact",
+            "evidence_state",
+            "category",
+            "session_id",
+        ):
+            assert field in row, f"missing required field: {field}"
+
+    def test_appends_to_existing_file(self, tmp_path: Path) -> None:
+        """Emission appends, never overwrites."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        emit_findings_jsonl([make_finding("CR-001")], repo="r", session_id=None, jsonl_path=jsonl)
+        emit_findings_jsonl([make_finding("CR-002")], repo="r", session_id=None, jsonl_path=jsonl)
+        lines = jsonl.read_text().splitlines()
+        assert len(lines) == 2
+        ids = [json.loads(l)["id"] for l in lines]
+        assert ids == ["CR-001", "CR-002"]
+
+    def test_no_file_created_for_empty_findings(self, tmp_path: Path) -> None:
+        """Empty findings list → no file created."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        emit_findings_jsonl([], repo="r", session_id=None, jsonl_path=jsonl)
+        assert not jsonl.exists()
+
+    def test_creates_parent_dirs(self, tmp_path: Path) -> None:
+        """Parent directories are created if they don't exist."""
+        jsonl = tmp_path / "deep" / "nested" / "review-findings.jsonl"
+        emit_findings_jsonl([make_finding("CR-001")], repo="r", session_id=None, jsonl_path=jsonl)
+        assert jsonl.exists()
+
+    def test_lines_field_for_start_and_end(self, tmp_path: Path) -> None:
+        """start_line + end_line → 'N-M' lines value in emitted row."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        finding = ReviewFinding(
+            id="CR-001",
+            reporter=Reporter.CORRECTNESS,
+            category=Category.CORRECTNESS,
+            evidence_state=EvidenceState.VERIFIED,
+            location=Location(files=[FileLocation(path="foo.py", start_line=10, end_line=20)]),
+            claim=Claim(title="T", observation="O"),
+            severity=Severity(merge_impact=MergeImpact.NIT),
+            comment_type=CommentType.NIT,
+        )
+        emit_findings_jsonl([finding], repo="r", session_id=None, jsonl_path=jsonl)
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["lines"] == "10-20"
+
+    def test_run_review_emits_jsonl_with_session_id(self, tmp_path: Path) -> None:
+        """run_review end-to-end: session_id from config is stamped in the JSONL output."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        sid = "session-xyz-789"
+
+        findings_by_dim = {
+            "correctness": [make_finding_dict("CR-001")],
+        }
+        config = DriverConfig(
+            repo=tmp_path,
+            files=["review/driver.py"],
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+            session_id=sid,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+
+        import review.driver as driver_module
+
+        original_emit = driver_module.emit_findings_jsonl
+
+        captured: list[dict] = []
+
+        def capturing_emit(
+            findings, *, repo, session_id, jsonl_path=driver_module._FINDINGS_JSONL_PATH
+        ):
+            original_emit(findings, repo=repo, session_id=session_id, jsonl_path=jsonl)
+            for f in findings:
+                captured.append({"session_id": session_id})
+
+        driver_module.emit_findings_jsonl = capturing_emit
+        try:
+            result = run_review(config, scan_fn=make_fake_scan(findings_by_dim))
+        finally:
+            driver_module.emit_findings_jsonl = original_emit
+
+        assert result.exit_code == 0
+        assert len(captured) >= 1
+        assert all(c["session_id"] == sid for c in captured)
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["session_id"] == sid
+
+    def test_run_review_session_id_null_when_absent(self, tmp_path: Path) -> None:
+        """run_review: session_id=None in config → JSON null in emitted row."""
+        jsonl = tmp_path / "review-findings.jsonl"
+
+        findings_by_dim = {
+            "correctness": [make_finding_dict("CR-001")],
+        }
+        config = DriverConfig(
+            repo=tmp_path,
+            files=["review/driver.py"],
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+            session_id=None,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+
+        import review.driver as driver_module
+
+        original_emit = driver_module.emit_findings_jsonl
+
+        def capturing_emit(
+            findings, *, repo, session_id, jsonl_path=driver_module._FINDINGS_JSONL_PATH
+        ):
+            original_emit(findings, repo=repo, session_id=session_id, jsonl_path=jsonl)
+
+        driver_module.emit_findings_jsonl = capturing_emit
+        try:
+            result = run_review(config, scan_fn=make_fake_scan(findings_by_dim))
+        finally:
+            driver_module.emit_findings_jsonl = original_emit
+
+        assert result.exit_code == 0
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["session_id"] is None
+
+    def test_cli_run_accepts_session_id_option(self, tmp_path: Path, monkeypatch) -> None:
+        """review-cli run --session-id passes the value through to DriverConfig."""
+        sid = "cli-session-abc"
+        captured_configs: list[DriverConfig] = []
+
+        async def fake_scan(dimension: str, files, config: DriverConfig):
+            return []
+
+        def stub_run_review(config: DriverConfig, scan_fn=None) -> DriverResult:
+            captured_configs.append(config)
+            return run_review(config, scan_fn=fake_scan)
+
+        monkeypatch.setattr("review.driver.run_review", stub_run_review)
+
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            [
+                "run",
+                "--repo",
+                str(tmp_path),
+                "--no-save",
+                "--files",
+                "review/driver.py",
+                "--session-id",
+                sid,
+            ],
+        )
+        assert result.exit_code == 0, result.output
+        assert len(captured_configs) == 1
+        assert captured_configs[0].session_id == sid

@@ -138,11 +138,12 @@ one JSON line per finding to the review-findings file. Cartographer reads this f
 for dashboard aggregation.
 
 ```json
-{"id":"AK-001","source":"akira-scan","date":"2026-07-23","repo":"guacamayo","file":"src/foo.py","lines":"42-48","symbols":["load_config"],"title":"Unchecked None return","merge_impact":"blocker","evidence_state":"verified","category":"bugs","issue":"GUA-12","review_type":"code-review","session_id":"optional"}
+{"id":"AK-001","source":"akira-scan","date":"2026-07-23","repo":"guacamayo","file":"src/foo.py","lines":"42-48","symbols":["load_config"],"title":"Unchecked None return","merge_impact":"blocker","evidence_state":"verified","category":"bugs","session_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}
 ```
 
-Required fields: id, source, date, repo, file, title, merge_impact, evidence_state.
-Optional: lines, symbols, category, issue, review_type, session_id.
+Required fields: id, source, date, repo, file, title, merge_impact, evidence_state, category, session_id.
+Optional-but-expected: session_id is null when the invoking skill omits --session-id (pre-convention rows and skill invocations without the flag). Findings written after GUA-63 should always carry a non-null session_id.
+Optional: lines, symbols.
 Reduced rows (severity conflated into one field, missing id/source) break dashboard
 trending and cross-review dedup — write the full row or none.
 
