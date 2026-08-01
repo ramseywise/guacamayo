@@ -16,29 +16,28 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-07-31 evening)
+## Live pick-up points (as of 2026-08-01)
 
-*Refreshed 2026-07-31 19:20 (/grow). The 07-30 wave entries are gone — those PRs all merged.*
+*Refreshed 2026-08-01 (/grow). The 07-31 librarian / AIT-35 / GUA-62 entries are gone — all landed.*
 
-**librarian** — red main FIXED, staged on `bug/fastapi-dev-dep` (main.py + pyproject.toml + uv.lock). Cause: `TestClient` context manager runs `lifespan`, which imported `.embeddings` → numpy, absent under CI's `uv sync --group dev`. Fix guards both `api`-extra startup jobs. Verified 319 passed dev-only / 318 full-extras.
-  => Next: Ramsey reviews + commits + ships. Unblocks that repo's main.
+**`~/.claude` (dotclaude)** — CLA-71 guard defect fixed and committed as `2863fb4` on `bug/risky-guard-variable-cd`, **unpushed**. `risky_git_guard.sh` now resolves a mid-chain `cd` (takes the LAST one) and blocks `$VAR` targets without asserting a `Resolved target:` it never resolved. Suite 20 → 26 cases, all green.
+  => Next: Ramsey pushes + ships.
 
-**ai-project-template** — main red on EVERY matrix leg (two files missing `.jinja`: `stall_detector.py`, `verification_loop.py`). PR #35 (`AIT-34`) is the fix and passes 12 legs. Its 7 remaining `test-py` failures are a stale assertion at `.github/workflows/test-render.yml:240` (`backend/src/...` vs flat-layout `src/...`) — one-line fix. 8th failure is TS ESLint inherited from main. PR #36 (`AIT-32`) still has the un-suffixed files; do NOT rebase it until #35 merges.
-  => Next: decide the one-liner on #35, merge #35, then rebase #36. Separate issue owed for the TS lint errors on main.
+**guacamayo GUA-63** — `GUA-63-session-id-findings`, 2 commits, no remote. Verified merge-clean against origin/main (`git merge-tree`), rebased in a probe worktree, `uv run pytest tests/review -q` → 302 passed.
+  => Next: Ramsey pushes + opens PR with `Closes #63`.
 
-**guacamayo GUA-62** — static-analysis stage EXECUTED, 6 commits on `GUA-62-static-analysis-stage` (291 tests green). Plan doc `Status: EXECUTED — 2026-07-31 (pending /workflow-review)`. Behind origin/main by #68.
-  => Next: rebase onto origin/main, then ship. Close #62 after PR merge.
+**learn-ai-engineering LAE-30 — RESOLVED (discarded).** `LAE-30-rl-depth-content` was stale, not single-copy: `rl.md` and `05-RL/README.md` were byte-identical blobs to main; of 86 touched files only 3 genuinely differed and main was ahead in all 3 (pre-TF2 `tf.Session()` code, missing README book-notes section, deleted a `bayesian.yml` main kept). Issue LAE#30 already closed. Branch is gone as of 08-01; nothing owed. (`LAE-28-docs-integration` still exists as a branch — worktree pruned, branch fully merged, safe to delete.)
 
-**Unpushed local work**: `~/.claude` `CLA-67-quick-pr-issue-linking` (quick-pr derives closing-issue links; PR #68 merged but the global-side change is separate), job-system `bug/stale-quick-pr-override`.
+**ai-project-template** — three fixes staged/committed for #40, #42, #43 (#43 shipped as `de75e98`). PRs #46/#47/#48 all MERGEABLE. Durable patch exports at `.claude/docs/patches/*.patch` (git-ignored) back the `/tmp` worktrees for #40/#42.
+  => Next: Ramsey `make ship` from the workspace, merge, close #40/#42/#43. Open DoD question: close now or after merge? Also check whether #42's work already closes #41.
 
-**librarian stale branches (LIB #73)** — `GUA-21-dashboard-consolidation` (1/16), `GUA-43-dashboard-segmentation` (1/17, local-only), `GUA-44-context-overhead-audit` (2/17, local-only). guacamayo#43/#44 are already closed COMPLETED while this code is unmerged. Note the prefix violation: these should be `LIB-`.
-  => Next: push the two local-only branches first (single-copy work), then land or discard. Correct `GUA-43-plan.md` / `GUA-44-plan.md` `Status: EXECUTED`.
+**guacamayo GUA-73** — checkout is on `GUA-73-status-enum-design` with `.claude/docs/specs/plan-doc-status-enum.md` staged. Another session started the Status-enum design; #74/#75 are blocked behind it.
 
-**Open board counts** (07-31 19:20): guacamayo 8, librarian 9, ai-project-template 4, job-system 3, learn-ai-engineering 1, listen-wiseer 1, playground 1. Clean: atlas, lebanese-blonde.
+**librarian#73 — CLOSED.** GUA-43/GUA-44/GUA-21/LIB-68 all landed via `-v2` rebuild branches (PRs librarian#77, #78), not the originals — verified by content on main, not by commit message. Plan docs GUA-43/GUA-44/GUA-62 marked COMPLETE. The prefix violation (`GUA-` on librarian branches) is still an open FRICTION row.
 
-**Root-cause issues filed today**: guacamayo#67 (PRs merging without closing-issue links — 5 instances), playground#88 (#81's EXEMPT broadening disabled the issue-linked-branch rule), librarian#73 (stale branches).
+**Open board counts** (08-01): guacamayo 10, librarian 8, ai-project-template 5, job-system 3, learn-ai-engineering 1, listen-wiseer 1. Clean: atlas, lebanese-blonde.
 
-**guacamayo** — Retro R6 current (07-30). Growth at 7 entries → synthesis due at next /dream. Retro-worthy: yes (4 named FRICTION items + red-main-accepts-merges across 3 repos).
+**guacamayo** — Retro R6 (07-30) is the last. Growth at 11 entries (threshold 5) → synthesis due at next /dream. **Retro-worthy: yes** — R7 warranted: 4 named FRICTION items from 07-31, red-main-accepts-merges across 3 repos, CLA-71's third recurrence, 29 open hypotheses.
 
 ---
 

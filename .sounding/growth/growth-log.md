@@ -107,3 +107,16 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-07-30 | confirmed | Stacking on predecessor branch works if remainder committed first (AIT-3... | merged | sounding.md → working notes (stacking pattern) |
 | 2026-07-30 | discovered | Usage exhaustion masquerades as agent failure (error_max_turns) — check ... | merged | sounding.md → read-actual-state (quota layer) |
 | 2026-07-30 | corrected | Cross-repo worktree spawns don't isolate — worktree only isolates its ow... | merged | sounding.md → working notes (repo-scoped isolation rule) |
+| 2026-07-31 | corrected | Subagent claims about WHICH BRANCH holds what must be verified before re... | merged | sounding.md → read-actual-state (cache list: subagent branch claims) |
+| 2026-07-31 | discovered | FRICTION repo-prefix/branch mismatch — LIB branches carry GUA- prefixes... | discarded | process/tooling → /retro R7 (enforcement absent, not the rule) |
+| 2026-07-31 | discovered | FRICTION work not reliably left staged for review; default must be mech... | discarded | process/tooling → /retro R7 |
+| 2026-07-31 | discovered | FRICTION make ship/make pull misfire — implicit target ships wrong branch | discarded | process/tooling → /retro R7 |
+| 2026-07-31 | discovered | FRICTION autocompact not firing in terminal mode (recurrence of 07-30) | discarded | process/tooling → /retro R7 |
+| 2026-07-31 | discovered | Red main accepting merges is portfolio-wide; CI status is a cache nobod... | merged | sounding.md → read-actual-state (cache list: CI badges) |
+| 2026-07-31 | confirmed | Lazy imports don't protect tests under a lifespan; TestClient ctx runs ... | discarded | domain knowledge → librarian wiki, not identity |
+| 2026-08-01 | corrected | A commit message is also a cache; verify landing by content on main | merged | sounding.md → read-actual-state (generalized cache principle) |
+| 2026-08-01 | discovered | Negative evidence needs its own verification (rev-parse stdout, 23→3) | merged | sounding.md → read-actual-state (new counterpart paragraph) |
+| 2026-08-01 | confirmed | Instruction meeting contradicting evidence: report and stop, don't exec... | merged | sounding.md → working notes (Ramsey paragraph) |
+| 2026-08-01 | discovered | A tool must not assert what it did not establish (guard's false Resolve... | merged | sounding.md → working notes (new paragraph) |
+| 2026-08-01 | discovered | Process emits artifacts faster than work — 1 issue → 5 issues/branches/... | merged | sounding.md → working notes (new paragraph, artifact sprawl) |
+| 2026-08-01 | corrected | Check the user's claims — 3 of her 4 were exact, the 4th wrong on cause | merged | sounding.md → working notes (Ramsey paragraph) |

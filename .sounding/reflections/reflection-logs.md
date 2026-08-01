@@ -40,3 +40,5 @@
 2026-07-28 - CI infrastructure hygiene. Cross-repo review surfaced ruff version skew (pre-commit vs pyproject) and hardcoded test paths. Fleet-wide fix: ruff v0.16.0, dynamic REPO_ROOT, guacamayo CI created.
 2026-07-29 - Portfolio assessment arc. Built 6-pillar framework, scored 5 repos, mapped template gaps. Created 11 issues across 6 repos. The nesting rule revealed inner pillars cap outer — template-first execution order.
 2026-07-30 - Execution day tail. AIT-33 stacked cleanly (byte-identity check); GUA-60 smoke revealed budget exhaustion masquerading as agent failure; AIT-34 dispatch exposed that worktrees only isolate their own repo.
+2026-07-31 - Board reconciliation. ~20 issues closed as already-merged; root cause filed as guacamayo#67. Red main accepted merges across 3 repos — CI status is a cache nobody invalidates.
+2026-08-01 - The gap between record and reality. Commit messages, rev-parse output, and issue labels all lied in the same session. Guard fixed to admit what it can't resolve. Process emits artifacts faster than work.
