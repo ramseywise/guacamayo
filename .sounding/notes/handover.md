@@ -6,6 +6,21 @@ label, commit message, or plan `Status:` line.
 
 ## Shipped this session
 
+**GUA-75 phases 2-3 COMPLETE** — all 7 remaining repos migrated in one pass.
+**Hook-verified 123/123 across all 8 repos, zero warnings** (`plan_status_validate.sh`
+invoked directly on every doc). 28 values migrated, 14 unstamped backfilled with `Evidence:`
+lines, 6 excluded by kind, **41 docs given a missing `Review:` line**. Results + the five
+spec corrections are in the #75 comment. Four of those corrections matter beyond this issue:
+
+1. **Phase 1's "43/43" was wrong.** Enum-token conformance is not hook conformance — the
+   hook also requires `EXECUTED`→`Review:` and `SUPERSEDED`→`Superseded-by:`. 41 docs
+   failed it, **16 in guacamayo**. Produce conformance claims by *invoking* the hook.
+2. **Plan docs are git-ignored in all 8 repos** (`git ls-files` returns 0). Phases 2-3
+   needed no branches/commits/PRs; the per-repo-session framing was never applicable.
+3. **Mechanics #2 was false** — `**Status:**` (colon inside) matches 5 docs, not zero.
+4. **The metric measured a directory, not a doc kind** — 4 review-verdict outputs and 2
+   frontmatter wiki docs are not plan docs.
+
 **GUA-75 phase 1** — guacamayo plan-doc Status corpus migrated **32/43 → 43/43 conforming**.
 11 docs edited under `.claude/docs/plans/`. Two were *corrected*, not mechanically migrated:
 `2026-07-31-CLA-69-*.md` went `IN PROGRESS → COMPLETE` with an `Evidence:` line citing
@@ -147,11 +162,17 @@ real end-to-end run produced a 63,916-byte report with all nine section IDs.
 5. `~/.claude`: reconcile `CLA-78-lint-parity` (`92649ba`) — its content is on main under
    `36be12e`; delete or rebase, don't leave it as a third sprawl artifact.
 6. Fast-forward guacamayo `main` (behind 12); delete `GUA-63-session-id-findings` (upstream gone).
-7. Phases 2-3 of the status arc are the **per-repo checklist in #75** — one session per repo,
-   mechanics block in #75's body. **Do not** tighten the transitional dual-separator grep
-   (`IN[ _-]PROGRESS`) in workflow-execute/workflow-review/code-review until the corpus is
-   migrated; that tightening is #79.
-8. Next `/dream` **must synthesize** — accumulator is at **23**, threshold is 5.
+7. **#79 is unblocked but must not start until #74 is committed.** The corpus is migrated
+   (123/123) and tightening the dual-separator grep is verified safe — the only remaining
+   space-form `IN PROGRESS` is prose at
+   `ai-project-template/2026-07-18-template-full-mirror-redesign.md:882`, a mechanics #9
+   false positive the hook already ignores. But #79 edits the **exact files #74 has staged
+   and uncommitted** (`hooks/plan_status_validate.sh`, `skills/{code-review,workflow-execute,
+   workflow-review}/SKILL.md`, `settings.json`). Starting it now blends two issues into one
+   blob — the artifact-sprawl shape logged three times already.
+8. **#75 is done pending your call to close it.** No PR exists (plan docs are git-ignored),
+   so there is no merge event to close it on.
+9. Next `/dream` **must synthesize** — accumulator is at **27**, threshold is 5.
 
 ## Key Files
 
