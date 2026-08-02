@@ -1,3 +1,68 @@
+## 2026-08-01 (323 sessions, 2026-07-15 to 2026-08-01) [Fresh Run]
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Sessions analyzed | 323 | +7 from previous run |
+| Messages | 3,572 | +45 from previous run |
+| >150k context share | 21% | ↓1pp |
+| Cache hit rate | 96% | 84% savings |
+| Subagent transcripts | 648 | 40% of usage, +12 from previous |
+| Compacts deployed | 211 invocations, 86 sessions | +5 invocations |
+| Bash antipatterns | 9,363 | 28.99 per session |
+| Interruptions | 50 | Hook blocks: 41 |
+
+### Context distribution
+<50k: 21%, 50-100k: 38%, 100-150k: 20%, >150k: 21%
+
+### Cache performance
+- Hit rate: 96%
+- Cost savings: 84%
+- Cache read tokens: 4.21B
+- Cache write tokens: 135M
+- Read / Write ratio: 31.1×
+
+### Tool breakdown
+Bash: 12,755 uses (49.8%), Edit: 5,096 (19.8%), Read: 4,500 (17.5%), Write: 1,049 (4.1%), Agent: 650 (2.5%)
+
+### Response time
+- Median: 2.8m
+- Average: 6.0m
+- Modal bucket: 2–5m distribution
+- 68% of responses over 1 minute
+
+### Model distribution
+(Cost-weighted distribution data in insights-report-2026-08-01.html)
+Primary: claude-opus-4-6, claude-fable-5, claude-opus-4-8
+
+### Parallelism
+- Session parallelism: 1× (21%), 2–3× (66%), 4+ (13%)
+- Overlap events: 564 across 309 sessions
+- 99% of messages ran with parallelism
+
+### Read/Edit patterns
+- Sessions with read/edit ratio <1: 145
+- Average ratio: 1.18
+- Output median: 479 tokens, p75: 781, p90: 1,250
+
+### Error breakdown
+| Type | Count | % |
+|------|-------|---|
+| command_failed | 348+ | ~44% |
+| other | 323+ | ~41% |
+| file_not_found | 95+ | ~12% |
+| permission_denied | 41+ | ~5% |
+| user_rejected | 41+ | ~5% |
+| edit_failed | 2 | ~0.3% |
+
+### Hook telemetry
+- Pre-push hook blocks: 41 user_rejected signals (risky_git_guard)
+- docs_drift_warn: monitoring enabled across multiple repos
+- docs_hygiene: advisories across 9 repos
+- task_complete_check: 4 blocks
+
+---
+
 ## 2026-08-01 (316 sessions, 2026-07-15 to 2026-08-01)
 
 ### Key metrics
