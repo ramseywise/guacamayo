@@ -1,108 +1,85 @@
-# Handover — 2026-08-01 Guard fix, landing verification, branch triage
+# Handover — 2026-08-01 (late) Ingest-only /grow — landing verification sweep
 
-**Context**: Meta/dispatch session across guacamayo, `~/.claude` (dotclaude), librarian,
-learn-ai-engineering, and ai-project-template. Three arcs: fix the `risky_git_guard.sh`
-recurrence, verify what actually landed on librarian main, and triage two unpushed branches.
+**Context**: No work was performed this session. `/grow` was the first and only invocation,
+so this handover carries **cross-session ingest findings**, not task progress. Everything
+below was verified against git and `gh`, not read off labels.
 
 ## Current State
 
-**Done and committed**
-- `risky_git_guard.sh` CLA-71 third recurrence — fixed, Ramsey committed as `2863fb4` on
-  `bug/risky-guard-variable-cd` in `~/.claude` (**not pushed yet**). Two sub-defects:
-  (a) the `cd` pattern was anchored at `^`, so `git clone … && cd <wt> && git commit` fell
-  through to the session cwd — now matches a `cd` segment anywhere and takes the LAST one;
-  (b) a target containing `$`/backtick now blocks *without* printing a `Resolved target:`
-  line. Test suite 20 → 26 cases, all green.
-- librarian#73 — verified and closed. GUA-43/GUA-44/GUA-21/LIB-68 all landed via `-v2`
-  rebuild branches (PRs librarian#77, #78), not the originals. guacamayo#43/#44 annotated
-  with the true landing PR; their plan docs marked COMPLETE.
-- AIT #43 ruff-format fix shipped (`de75e98`).
-- Cleanups: stale LAE-28 worktree pruned, atlas fast-forwarded 3 commits.
+**The previous handover's four "awaiting Ramsey" items — resolved, except one**
 
-**Verified, awaiting Ramsey**
-- `guacamayo/GUA-63-session-id-findings` — 2 commits, no remote. `git merge-tree` clean
-  against origin/main; rebased in a probe worktree and `uv run pytest tests/review -q`
-  → 302 passed. Ready to push + PR (`Closes #63`).
-- `~/.claude` `bug/risky-guard-variable-cd` — committed, unpushed.
-- AIT #40/#42/#43 — Ramsey said she'd `make ship` from the workspace herself. Durable
-  patch exports live at `ai-project-template/.claude/docs/patches/*.patch` (git-ignored)
-  in case the `/tmp` worktrees for #40/#42 are lost.
+| Item | Verdict |
+|---|---|
+| guacamayo GUA-63 | **LANDED.** PR #76 merged; tip is an ancestor of origin/main |
+| guacamayo GUA-73 | **LANDED.** PR #77 merged; tip is an ancestor of origin/main |
+| AIT #40/#41/#42/#43/#44 | **ALL CLOSED** 2026-08-01 21:17 |
+| `~/.claude` guard fix `2863fb4` | **STILL UNLANDED** — not an ancestor of origin/main |
 
-**Resolved this session**
-- `learn-ai-engineering/LAE-30-rl-depth-content` — was stale, not single-copy. `rl.md`
-  and `05-RL/README.md` were byte-identical blobs to main; of 86 touched files only 3
-  genuinely differed and **main was ahead in all 3** (pre-TF2 `tf.Session()` code, no
-  README book-notes section, deleted a `bayesian.yml` main kept). Issue LAE#30 already
-  closed. Ramsey confirmed discard; the branch is gone. Nothing owed.
-  (`LAE-28-docs-integration` still exists as a branch — worktree already pruned, branch
-  fully merged, safe to delete whenever.)
+**The one thing actually owed**: `~/.claude` CLA-71 guard fix. It sits on **two branches
+with an identical tree** — `bug/risky-guard-variable-cd` and `CLA-8-insights-computed-columns`,
+both at `2863fb4`, `git diff` between them empty, neither with an upstream. The checkout is
+on the CLA-8 one. `~/.claude` main is behind 40. Pick one branch, delete the other, ship.
 
-**In flight elsewhere**
-- guacamayo checkout is on `GUA-73-status-enum-design` with
-  `.claude/docs/specs/plan-doc-status-enum.md` staged — another session started GUA-73.
-  The `gua-73-wt` worktree is gone.
+**New this ingest**
+- guacamayo local `main` is behind 4; both feature branches are safe to delete (fully landed).
+- AIT opened #49 (60-min LLM starter kit, plan doc written), #50 (security/guards called by
+  nothing), #51 (extend unimported-module guard to Python render).
+- learn-ai-engineering has an **empty live worktree** at `/private/tmp/.../wt-lae-115` holding
+  `LAE-115-case-study-code-test` under a `+` lock, zero commits ahead of origin/main.
+- librarian is the deepest queue: 8 open, four `ready` with 07-31 plan docs.
 
 ## Decisions Made
-- **Landing is verified by content, never by message.** `git log --grep` returns nothing
-  for rebuilt branches; a commit message is a cache like any other. Grep the symbol on
-  main, compare blob SHAs.
-- **Use `git rev-parse --verify --quiet`.** Bare `rev-parse` echoes unresolvable args to
-  *stdout*, so `2>/dev/null` doesn't suppress them — that produced 23 false "differs"
-  on LAE-30 before the flag cut it to the true 3.
-- **A guard's block message must not assert what it didn't resolve.** Honest uncertainty
-  plus a named escape hatch (`git -C <worktree> commit …`) beats a confident wrong path.
-- **Instruction vs. evidence**: Ramsey asked to push LAE-30; the blobs contradicted it.
-  Reported and stopped rather than executing or deleting.
 
-## Session close (/dream ran 2026-08-01 16:11)
-- Reflection: `.sounding/reflections/2026-08-01_16-11.md`
-- **Synthesis RAN** — 13 entries, 7 merged into `sounding.md`, 4 discarded to R7,
-  1 to librarian wiki as domain knowledge. All dispositions in `growth-log.md`.
-  Accumulator cleared to 0.
-- **R7 spawned in background** (sonnet) with 5 pre-verified root causes so it doesn't
-  re-derive them, plus a mandate to *retire* stale hypothesis rows rather than only add.
-  Results land staged in `.sounding/tooling-ledger.md` + `tooling-ledger-log.md`.
+- **Verified by ancestry and content, never by label.** `gh issue list` said #63 `ready` and
+  #73 `in-review`; `git merge-base --is-ancestor` said both were already on main. The board
+  was wrong in the safe direction, but it was wrong.
+- **Did not close #63/#73.** Both are genuinely complete, but closing issues is a
+  shared-state action and Ramsey owns the DoD call. Flagged instead.
+- **Did not prune the LAE-115 worktree or delete any duplicate branch.** A live worktree may
+  hold an active session; unfamiliar state gets investigated, not deleted.
+- **Told the background insights agent to pass a bare `insights-report.html`** — and it did not.
+  It wrote `insights-report-2026-08-01-2026-08-01.html` anyway and reported success without
+  flagging the conflict. SKILL.md's literal step beat the dispatch instruction. Conclusion:
+  hand a subagent a workaround and you get the defect; fix the skill text instead.
+- **Confirmed R7 P4's diagnosis by reading the source**, not by trusting the agent:
+  `librarian/tools/cartographer/parser.py:1253` appends `date.today()` to the stem
+  unconditionally, so any dated `--output` double-dates. The one-line fix is sound, unapplied.
 
-## Open Threads — the consolidation question Ramsey raised
-She named four problems at session close. I verified all four rather than agreeing:
+## Open Threads
 
-| Claim | Verdict |
-|---|---|
-| Subagent surface should be review / design / code | Open design question — see below |
-| Agents need to self-select skills; too much correction | Real, downstream of the surface question |
-| Claude commits showing on GitHub | **Symptom right, cause wrong** — the no-commit gate held. 46 commits carry a `Co-Authored-By: Claude` trailer, author is `ramseywise` every time. The one Claude-authored commit (`1e3c816`) is a third-party "Claude Companion" app. Trailer comes from the harness's built-in commit guidance, not from any skill. |
-| 1 issue → 5 issues / 5 branches / 5 PRs for 1 commit | **Exact.** `workflow-refine/SKILL.md:152` says "create the sub-issues" but creates flat *siblings* — GUA-65 has zero sub-issues via GraphQL while #73/#74/#75 are its children in substance. The `addSubIssue` template already exists at `github-projects/SKILL.md:93` and nothing calls it. `Makefile.common:96-99` already harvests every `#N` into `Closes`, so one PR on the parent branch would close them all today. |
-
-**The larger question, unresolved**: 23 skills across 4 prefixes is a surface I navigate
-fine and Ramsey has to correct — the cost lands on her, not me. That asymmetry is the
-argument for shrinking it. Candidate shape: three agent-facing verbs (**design** for
-initiative-scale, **code** for one issue on one branch, **review** as the gate), with
-research/plan/refine demoted to *phases inside* those rather than user-driven slash
-commands. Not decided; needs its own session.
-- **AIT #41** may already be closed by #42's work — needs a check before triage.
-  **AIT #44** is unstarted `backlog`.
-- **Unanswered DoD question**: close AIT #40/#42/#43 now, or after PR merge? Asked twice.
-- The "red main accepts merges" condition (librarian, AIT, playground) is a portfolio-wide
-  cache-invalidation problem, same shape as the label-cache drift — still unaddressed.
-- **Bash antipatterns are the one metric moving the wrong way**: 9,021 total = 28.55/session
-  on 08-01, up from 27.8 on 07-31, while every other signal held or improved. Worth a
-  root-cause pass at R7 — which Bash calls should have been Read/Grep/Glob/Edit?
-- **`/workflow-insights` writes double-dated reports.** `SKILL.md:29` passes
-  `insights-report-$(date +%F).html`, but `parser.py:1253` already appends the date and
-  makes the symlink itself (see its comment at :1250) — output lands as
-  `insights-report-2026-08-01-2026-08-01.html`. Fix is one line: pass a plain
-  `insights-report.html` and drop the now-redundant `ln -sf` at `SKILL.md:34`. Not done
-  here — `~/.claude` is mid-branch on `bug/risky-guard-variable-cd` and this is unrelated.
+- **CLA-67's hypothesis failed twice in one day.** `absence:merged-PRs-without-closing-links`
+  — PRs #76 and #77 both merged with empty bodies and zero `closingIssuesReferences`. The
+  cause is already filed as **guacamayo#69** (`quick-pr` exits 0 on an existing PR, so any
+  PR created outside `make ship` escapes issue-linking) and is sitting at `ready`. Until #69
+  lands, every externally-opened PR re-opens the hole. This is the highest-leverage open fix
+  on the board — it is the mechanism behind the label drift, not a separate problem.
+- **R7 F3 confirmed in permanent history.** Merged PR titles are de-hyphenated branch slugs:
+  "Gua 63 session id findings", "Gua 73 status enum design". The slug is what the repo shows
+  forever, not just in the PR list.
+- **Artifact sprawl has a stable signature**: N branches, one tree, no upstream. Seen at AIT
+  #40/#42 (three branches each) and now in `~/.claude`. Worth a detector — `git diff` between
+  same-tip branches is cheap and unambiguous.
+- **Unchanged from last session, still unaddressed**: the 23-skills-across-4-prefixes
+  consolidation question (candidate shape: design / code / review as the three agent-facing
+  verbs, with research/plan/refine demoted to phases); red-main-accepts-merges portfolio-wide;
+  Bash antipatterns at 28.55/session, the one metric moving the wrong way.
 
 ## Immediate Next Steps
-1. Ramsey: push `GUA-63-session-id-findings` + open PR (`Closes #63`).
-2. Ramsey: push `bug/risky-guard-variable-cd` in `~/.claude`.
-3. Ramsey: `make ship` the AIT branches, then merge #46/#47/#48 and close #40/#42/#43.
-4. Next opus session: run `/workflow-insights` → `/workflow-retro` (R7).
+
+1. Ramsey: close guacamayo **#63** and **#73** — work is on main, issues drifted open.
+2. Ramsey: in `~/.claude`, pick one of the two identical guard-fix branches, delete the other,
+   push + ship `2863fb4`. It is the only genuinely unlanded work in the portfolio.
+3. Prioritize **guacamayo#69** — it is the root cause of items 1 and of the CLA-67 metric miss.
+4. Decide on the LAE-115 worktree (empty, holding a branch lock) — prune or claim.
+5. Apply R7 P4 (one line): `/workflow-insights` SKILL.md step 3 passes bare
+   `insights-report.html`, drop the redundant `ln -sf` at step 34. Verified correct against
+   `parser.py:1253`. Cheapest open fix on the list.
+6. Next /dream will synthesize: accumulator is at 9, well over the threshold of 5.
 
 ## Key Files
-- `~/.claude/hooks/risky_git_guard.sh`
-- `~/.claude/hooks/tests/test_risky_git_guard.sh`
+
+- `~/workspace/guacamayo/.sounding/queue.md`
+- `~/workspace/guacamayo/.sounding/growth/growth.md`
 - `~/workspace/guacamayo/.sounding/tooling-ledger.md`
-- `~/workspace/ai-project-template/.claude/docs/patches/*.patch`
-- `~/workspace/guacamayo/.claude/docs/plans/GUA-43-plan.md`, `GUA-44-plan.md`, `GUA-62-plan.md`
+- `~/workspace/ai-project-template/.claude/docs/plans/2026-08-01-49-llm-starter-kit.md`
+- `~/.claude/hooks/risky_git_guard.sh`
