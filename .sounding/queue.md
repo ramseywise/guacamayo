@@ -16,26 +16,29 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-08-01)
+## Live pick-up points (as of 2026-08-02)
 
-*Refreshed 2026-08-01 late (/grow, post-R7). GUA-63, GUA-73 and the whole AIT #40–#44 arc are gone from this list — all landed and closed.*
+*Refreshed 2026-08-02 (/grow, ingest-only). GUA-63/#73 and guacamayo #69/#78 are gone from this list — closed, and #69/#78 verified on main by SHA ancestry. Five librarian issues closed overnight.*
 
-**`~/.claude` (dotclaude) — THE ONE REAL OWED ITEM.** CLA-71 guard fix `2863fb4` is **still not on origin/main** (verified `merge-base --is-ancestor`). It sits on **two identical branches** — `bug/risky-guard-variable-cd` and `CLA-8-insights-computed-columns` — with an empty diff between them and no upstream on either; the checkout is currently on the CLA-8 one. `main` is behind 40. `risky_git_guard.sh` resolves a mid-chain `cd` (takes the LAST) and blocks `$VAR` targets without asserting a path it never resolved; suite 20 → 26 green.
+**`~/.claude` (dotclaude) — STILL THE ONE REAL OWED ITEM (24h unchanged).** CLA-71 guard fix `2863fb4` is **still not on origin/main** (re-verified `merge-base --is-ancestor` on 08-02). It sits on **two identical branches** — `bug/risky-guard-variable-cd` and `CLA-8-insights-computed-columns` — with an empty diff between them and no upstream on either. `main` is behind 42. `risky_git_guard.sh` resolves a mid-chain `cd` (takes the LAST) and blocks `$VAR` targets without asserting a path it never resolved; suite 20 → 26 green.
   => Next: Ramsey picks ONE branch, deletes the duplicate, pushes + ships.
 
-**guacamayo GUA-63 / GUA-73 — LANDED, ISSUES STILL OPEN.** PRs #76 and #77 are MERGED and both tips are ancestors of origin/main. But both PRs have **empty bodies and zero closing-issue references**, so #63 still reads `ready` and #73 `in-review`. Cause is the filed-but-unfixed guacamayo#69 (`quick-pr` exits 0 on an existing PR → externally-created PRs escape issue-linking).
-  => Next: close #63 and #73 by hand; #69 is the durable fix. GUA-65/#74/#75 unblock once #73 closes.
+**`~/.claude` — new sprawl artifact.** `CLA-78-lint-parity` tip `92649ba` is **unlanded**, but a byte-equivalent commit `36be12e` reached origin/main from the `CLA-74-status-writers` branch. Third instance of the pattern (after AIT #40/#42 and the guard fix) — first one that is cross-issue.
+  => Next: delete or rebase `CLA-78-lint-parity`; its content is already on main.
+
+**guacamayo status-enum arc — the live workstream.** #74 `in-review` (Status writers + PostToolUse validation hook), #75 `ready` (migrate plan-doc Status corpus, guacamayo first then 7 repos), #65 `ready` (canonical Status enum), #79 `backlog` (flip hook warn→reject, explicitly gated on #75). Local `main` is behind 12; checkout on `GUA-73-status-enum-design` (PR #80 merged); `GUA-63-session-id-findings` has a gone upstream.
+  => Next: order the arc. Note the drift that proves it: plan docs for #69 and #78 still read `IN PROGRESS` / `EXECUTED` while both issues are **closed** — left uncorrected on purpose as a test case for #74's hook.
 
 **ai-project-template — ARC COMPLETE.** #40, #41, #42, #43, #44 all closed 2026-08-01 21:17. The standing DoD question ("close now or after merge?") is resolved by action. New backlog since: **#49** (60-min LLM starter kit — plan doc exists at `.claude/docs/plans/2026-08-01-49-llm-starter-kit.md`), **#50** (security/guards called by nothing, both languages), **#51** (extend unimported-module guard to the Python render).
 
 **learn-ai-engineering** — LAE-30 resolved/discarded 08-01. Live now: an **empty worktree** at `/private/tmp/.../wt-lae-115` holding `LAE-115-case-study-code-test` under a `+` branch lock while zero commits ahead of origin/main. `LAE-28-docs-integration` is fully merged, remote gone, safe to delete.
   => Next: prune the LAE-115 worktree unless a session is actively in it.
 
-**librarian — the big open queue, 8 issues.** #57/#58/#59/#75 all `ready` with 07-31 plan docs (factstore failure-attribution, experiment verdicts as data, ledger chart annotations, region renderers); #65 initiative "Dashboard as a contract", #68 region injection, #61 insights section contract, #64 eval tab, #60 backlog. librarian#73 closed — GUA-43/44/21/LIB-68 landed via `-v2` rebuild branches, verified by content.
+**librarian — queue drained 8 → 3.** #57, #58, #59, #61, #75 all closed 2026-08-02 ~11:04. Remaining: #65 initiative "Dashboard as a contract" (`ready`), #85 (`/workflow-insights` reads computed factstore values, `backlog`), #60 (weekly friction cron emits empty analyses — fix or retire, `backlog`).
 
-**Open board counts** (08-01 late): guacamayo 10, librarian 8, ai-project-template 3, job-system 3, learn-ai-engineering 2, listen-wiseer 1, playground 1. Clean: atlas, lebanese-blonde.
+**Open board counts** (08-02): guacamayo 8, job-system 3, ai-project-template 3, librarian 3, learn-ai-engineering 2, listen-wiseer 1, playground 1. Clean: atlas, lebanese-blonde.
 
-**guacamayo** — R7 ran 2026-08-01; not overdue. Growth accumulator at 9 (threshold 5) → **synthesis due at next /dream**. 33 hypothesis rows, none stale (>2wk); a cluster comes due 08-17. Insights refreshed 08-01 23:24 (323 sessions): cache 96%/84% savings, subagents 648 transcripts = 40% of spend, >150k share 21%. **Bash antipatterns 28.99/session, up again from 28.55** — still the only metric moving the wrong way.
+**guacamayo** — R7 ran 2026-08-01; not overdue. Growth accumulator at **15** (threshold 5) → **synthesis due at next /dream**. Insights last refreshed 08-01 23:24 (323 sessions); a fresh background run was spawned 08-02. **Bash antipatterns 28.99/session** — still the only metric moving the wrong way, and I added one to it this session (`grep ... scripts/quick-pr*`, zsh nomatch).
 
 ---
 

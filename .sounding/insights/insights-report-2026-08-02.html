@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Usage Report — Ramsey Wise</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2535;
+    --border: #2a3245;
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --green: #22c55e;
+    --green-dim: #16a34a33;
+    --orange: #f97316;
+    --orange-dim: #ea730333;
+    --blue: #3b82f6;
+    --blue-dim: #3b82f633;
+    --purple: #a855f7;
+    --purple-dim: #a855f733;
+    --yellow: #eab308;
+    --yellow-dim: #eab30833;
+    --red: #ef4444;
+    --red-dim: #ef444433;
+    --teal: #14b8a6;
+    --teal-dim: #14b8a633;
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Layout */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  .section { padding: 48px 0; border-bottom: 1px solid var(--border); }
+  .section:last-of-type { border-bottom: none; }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #0f1117 0%, #1a1f35 50%, #0f1117 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 48px 0 36px;
+  }
+  .header h1 { font-size: 32px; font-weight: 800; letter-spacing: -0.5px; }
+  .header h1 span { color: var(--purple); }
+  .header .subtitle { color: var(--text2); margin-top: 6px; font-size: 15px; }
+  .date-badge {
+    display: inline-block;
+    background: var(--purple-dim);
+    border: 1px solid var(--purple);
+    color: var(--purple);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 10px;
+  }
+
+  /* Stat cards */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin: 28px 0; }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--blue); }
+  .stat-card .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); }
+  .stat-card .value { font-size: 36px; font-weight: 800; line-height: 1.1; margin: 6px 0 4px; }
+  .stat-card .sub { font-size: 12px; color: var(--text2); }
+  .stat-card.green .value { color: var(--green); }
+  .stat-card.blue .value { color: var(--blue); }
+  .stat-card.purple .value { color: var(--purple); }
+  .stat-card.orange .value { color: var(--orange); }
+
+  /* At a glance box */
+  .glance-box {
+    background: var(--bg2);
+    border: 1px solid var(--blue);
+    border-radius: 12px;
+    padding: 20px 24px;
+    margin: 24px 0;
+  }
+  .glance-box h3 { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--blue); margin-bottom: 12px; }
+  .glance-box ul { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .glance-box li { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
+  .glance-box li::before { content: '→'; color: var(--blue); font-weight: 700; flex-shrink: 0; }
+
+  /* Section headers */
+  .section-header { margin-bottom: 24px; }
+  .section-header h2 { font-size: 22px; font-weight: 700; }
+  .section-header .tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 10px;
+    vertical-align: middle;
+  }
+  .tag-green { background: var(--green-dim); color: var(--green); }
+  .tag-orange { background: var(--orange-dim); color: var(--orange); }
+  .tag-blue { background: var(--blue-dim); color: var(--blue); }
+  .tag-purple { background: var(--purple-dim); color: var(--purple); }
+  .tag-teal { background: var(--teal-dim); color: var(--teal); }
+  .tag-yellow { background: var(--yellow-dim); color: var(--yellow); }
+
+  /* Cards */
+  .card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .card p { color: var(--text2); font-size: 13px; line-height: 1.6; }
+  .card.green { border-left: 4px solid var(--green); }
+  .card.orange { border-left: 4px solid var(--orange); }
+  .card.blue { border-left: 4px solid var(--blue); }
+  .card.purple { border-left: 4px solid var(--purple); }
+  .card.red { border-left: 4px solid var(--red); }
+  .card.teal { border-left: 4px solid var(--teal); }
+  .card.yellow { border-left: 4px solid var(--yellow); }
+
+  /* Bar charts */
+  .bar-group { margin: 12px 0; }
+  .bar-row { display: flex; align-items: center; gap: 10px; margin: 7px 0; }
+  .bar-label { width: 160px; flex-shrink: 0; font-size: 12px; color: var(--text2); text-align: right; }
+  .bar-track { flex: 1; background: var(--bg3); border-radius: 4px; height: 18px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
+  .bar-value { width: 60px; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--text); }
+  .bar-fill.green { background: var(--green); }
+  .bar-fill.blue { background: var(--blue); }
+  .bar-fill.orange { background: var(--orange); }
+  .bar-fill.purple { background: var(--purple); }
+  .bar-fill.teal { background: var(--teal); }
+  .bar-fill.yellow { background: var(--yellow); }
+  .bar-fill.red { background: var(--red); }
+
+  /* Grids */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  /* Win cards */
+  .win-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    border-top: 3px solid var(--green);
+  }
+  .win-card .win-number {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--green);
+    margin-bottom: 8px;
+  }
+  .win-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .win-card p { color: var(--text2); font-size: 13px; line-height: 1.65; }
+
+  /* Feature cards */
+  .feature-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    border-top: 3px solid var(--blue);
+  }
+  .feature-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .feature-card p { color: var(--text2); font-size: 13px; margin-bottom: 14px; }
+
+  /* Pattern cards */
+  .pattern-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    border-top: 3px solid var(--teal);
+  }
+  .pattern-card h3 { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+  .pattern-card p { color: var(--text2); font-size: 13px; margin-bottom: 14px; }
+
+  /* Horizon cards */
+  .horizon-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    border-top: 3px solid var(--purple);
+  }
+  .horizon-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+  .horizon-card p { color: var(--text2); font-size: 13px; line-height: 1.65; }
+
+  /* Code blocks */
+  .code-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+    font-size: 12px;
+    color: #a5d6ff;
+    position: relative;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.6;
+    margin-top: 8px;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text2);
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    transition: background 0.2s, color 0.2s;
+  }
+  .copy-btn:hover { background: var(--blue); color: white; }
+
+  /* Inline metric */
+  .metric-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .metric-row:last-child { border-bottom: none; }
+  .metric-name { font-size: 13px; color: var(--text2); }
+  .metric-val { font-size: 14px; font-weight: 700; }
+  .metric-val.good { color: var(--green); }
+  .metric-val.warn { color: var(--yellow); }
+  .metric-val.bad { color: var(--red); }
+
+  /* Donut / pie alternative: segmented bar */
+  .seg-bar { display: flex; border-radius: 6px; overflow: hidden; height: 24px; width: 100%; }
+  .seg-bar .seg { height: 100%; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.85); transition: flex 0.5s; }
+
+  /* Health score circle-ish */
+  .score-display { display: flex; align-items: center; gap: 16px; margin: 16px 0; }
+  .score-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    font-size: 26px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .score-circle.good { background: var(--green-dim); border: 2px solid var(--green); color: var(--green); }
+  .score-circle.warn { background: var(--yellow-dim); border: 2px solid var(--yellow); color: var(--yellow); }
+  .score-circle.bad { background: var(--red-dim); border: 2px solid var(--red); color: var(--red); }
+  .score-desc { flex: 1; }
+  .score-desc h3 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .score-desc p { font-size: 12px; color: var(--text2); }
+
+  /* Nav */
+  nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(15,17,23,0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 0;
+  }
+  nav .nav-inner { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav a {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 6px;
+    color: var(--text2);
+    transition: background 0.2s, color 0.2s;
+  }
+  nav a:hover, nav a.active { background: var(--bg3); color: var(--text); text-decoration: none; }
+
+  /* Pill tags */
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px;
+  }
+  .pill-blue { background: var(--blue-dim); color: var(--blue); }
+  .pill-green { background: var(--green-dim); color: var(--green); }
+  .pill-orange { background: var(--orange-dim); color: var(--orange); }
+  .pill-purple { background: var(--purple-dim); color: var(--purple); }
+  .pill-teal { background: var(--teal-dim); color: var(--teal); }
+  .pill-yellow { background: var(--yellow-dim); color: var(--yellow); }
+  .pill-red { background: var(--red-dim); color: var(--red); }
+
+  /* Quote */
+  .quote-box {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 32px;
+    margin: 40px 0 20px;
+    text-align: center;
+    border-top: 3px solid var(--purple);
+  }
+  .quote-text { font-size: 18px; font-style: italic; color: var(--text); font-weight: 300; line-height: 1.7; }
+  .quote-attr { margin-top: 12px; font-size: 12px; color: var(--text3); }
+
+  /* Activity heatmap */
+  .hour-grid { display: flex; gap: 3px; flex-wrap: wrap; }
+  .hour-cell {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.7);
+  }
+
+  /* Alert boxes */
+  .alert {
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert-icon { flex-shrink: 0; font-size: 16px; }
+  .alert.warn { background: var(--yellow-dim); border: 1px solid var(--yellow); color: #fef3c7; }
+  .alert.good { background: var(--green-dim); border: 1px solid var(--green); color: #dcfce7; }
+  .alert.info { background: var(--blue-dim); border: 1px solid var(--blue); color: #dbeafe; }
+  .alert.bad { background: var(--red-dim); border: 1px solid var(--red); color: #fee2e2; }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .two-col { grid-template-columns: 1fr; }
+    .three-col { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .stat-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Misc */
+  .divider { height: 1px; background: var(--border); margin: 20px 0; }
+  .small-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: var(--text3); margin-bottom: 8px; }
+  strong { font-weight: 600; }
+  .highlight { color: var(--yellow); font-weight: 600; }
+
+  footer { padding: 32px 0; text-align: center; color: var(--text3); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="container">
+    <h1>Claude Code <span>Usage Report</span></h1>
+    <p class="subtitle">A deep analysis of 330 sessions · 3,628 messages · 19 active days</p>
+    <span class="date-badge">July 15 – August 2, 2026</span>
+
+    <!-- Stat Cards -->
+    <div class="stat-grid">
+      <div class="stat-card blue">
+        <div class="label">Sessions</div>
+        <div class="value">330</div>
+        <div class="sub">17.4 sessions/day avg · 191 msgs/day</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="label">CE Health Score</div>
+        <div class="value">31<span style="font-size:18px">/100</span></div>
+        <div class="sub">Bash antipatterns dominate (29.35/session)</div>
+      </div>
+      <div class="stat-card green">
+        <div class="label">PE Health Score</div>
+        <div class="value">67<span style="font-size:18px">/100</span></div>
+        <div class="sub">Low interruptions (0.15/session), p75 OK</div>
+      </div>
+      <div class="stat-card purple">
+        <div class="label">Cache Hit Rate</div>
+        <div class="value">96<span style="font-size:18px">%</span></div>
+        <div class="sub">84% savings vs uncached · 4.32B read tokens</div>
+      </div>
+    </div>
+
+    <!-- At a Glance -->
+    <div class="glance-box">
+      <h3>⚡ At a Glance</h3>
+      <ul>
+        <li>You run one of the most sophisticated custom skill systems seen in Claude Code — 100+ distinct skill invocations across <strong>dream, wake, grow, workflow-*</strong> and a full Guacamayo lifecycle. <a href="#section-wins">→ See Wins</a></li>
+        <li>Your #1 cost lever: <strong>9,684 bash antipatterns</strong> (29.35/session) where Read/Grep/Glob would be faster and cheaper — fixing this could cut CE waste by ~30%. <a href="#section-ce">→ See CE Health</a></li>
+        <li>Cache is outstanding at 96% hit rate saving 84%, but <strong>21% of spend happens at >150k context</strong> with many sessions never compacting. <a href="#section-economics">→ See Token Economics</a></li>
+        <li>Heavy wake/grow/dream sessions are burning <strong>58% of budget in 52 heavy sessions</strong> (40% subagent share). Parallelism is near-constant (99% of messages overlap). <a href="#section-economics">→ See Subagent Costs</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <div class="container">
+    <div class="nav-inner">
+      <a href="#section-work">Work</a>
+      <a href="#section-usage">Usage</a>
+      <a href="#section-wins">Wins</a>
+      <a href="#section-economics">Economics</a>
+      <a href="#section-ce">CE Health</a>
+      <a href="#section-pe">PE Health</a>
+      <a href="#section-features">Features</a>
+      <a href="#section-patterns">Patterns</a>
+      <a href="#section-horizon">Horizon</a>
+    </div>
+  </div>
+</nav>
+
+<!-- SECTION: Work -->
+<section id="section-work" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-blue">What You Work On</span> Project Areas</h2>
+    </div>
+
+    <p style="color: var(--text2); margin-bottom: 24px;">Your workspace spans 8+ active repos across two distinct tracks: <strong>engineering infrastructure</strong> (building the scaffolding that makes future work faster) and <strong>content + analysis</strong> (knowledge bases, dashboards, and career tooling). The Guacamayo repo acts as your AI brain/orchestrator — the place where skills, workflows, and persistence live.</p>
+
+    <div class="two-col">
+      <div>
+        <div class="small-label">By Repository Activity</div>
+        <div class="bar-group">
+          <div class="bar-row"><div class="bar-label">guacamayo</div><div class="bar-track"><div class="bar-fill purple" style="width:100%"></div></div><div class="bar-value">~90 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">ai-project-template</div><div class="bar-track"><div class="bar-fill blue" style="width:75%"></div></div><div class="bar-value">~68 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">librarian</div><div class="bar-track"><div class="bar-fill green" style="width:65%"></div></div><div class="bar-value">~58 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">learn-ai-engineering</div><div class="bar-track"><div class="bar-fill teal" style="width:40%"></div></div><div class="bar-value">~36 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">job-system</div><div class="bar-track"><div class="bar-fill yellow" style="width:25%"></div></div><div class="bar-value">~22 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">dssg / playground</div><div class="bar-track"><div class="bar-fill orange" style="width:22%"></div></div><div class="bar-value">~20 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">atlas / listen-wiseer</div><div class="bar-track"><div class="bar-fill red" style="width:14%"></div></div><div class="bar-value">~12 sessions</div></div>
+          <div class="bar-row"><div class="bar-label">dotclaude / puffin</div><div class="bar-track"><div class="bar-fill blue" style="width:10%"></div></div><div class="bar-value">~9 sessions</div></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="small-label">By Work Type</div>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:4px;">
+          <div class="card purple" style="margin:0">
+            <h3>🧠 AI Infrastructure (Guacamayo + Skills)</h3>
+            <p>Building, refining and debugging your custom skills ecosystem — wake/grow/dream identity cycles, workflow-* pipeline, akira code review, sanyi contract interviews. The meta-work of making Claude better at working for you.</p>
+          </div>
+          <div class="card blue" style="margin:0">
+            <h3>🏗️ Project Template + CI/CD</h3>
+            <p>Redesigning ai-project-template from scratch (mirror redesign, genesis lifecycle, skill-sync), fixing pre-commit hooks, standardizing CI pipelines across all repos, copier-based scaffolding.</p>
+          </div>
+          <div class="card green" style="margin:0">
+            <h3>📚 Knowledge + Librarian</h3>
+            <p>Ingesting learn-ai-engineering content, building the cartographer dashboard, wiki management, extending RSS/blog feed ingestion. Your personal knowledge engine.</p>
+          </div>
+          <div class="card yellow" style="margin:0">
+            <h3>💼 Job Search + Career</h3>
+            <p>CV/HTML resume iteration, job matching system (job-system repo), application review via fable model, interview prep for Cresta senior AI engineering role.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="small-label" style="margin-bottom: 14px;">Activity Heatmap — Messages by Hour of Day</div>
+    <div class="hour-grid">
+      <!-- Hours sorted with intensity based on counts -->
+      <div class="hour-cell" style="background:hsl(220,60%,12%)"><div>0h<br><span style="color:var(--text3)">732</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,8%)"><div>1h<br><span style="color:var(--text3)">231</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,7%)"><div>3h<br><span style="color:var(--text3)">60</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,6%)"><div>4h<br><span style="color:var(--text3)">80</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,8%)"><div>7h<br><span style="color:var(--text3)">38</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,12%)"><div>8h<br><span style="color:var(--text3)">544</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,14%)"><div>9h<br><span style="color:var(--text3)">597</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,16%)"><div>10h<br><span style="color:var(--text3)">857</span></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,18%)"><div>11h<br><span style="color:var(--text3)">1283</span></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,30%)"><div style="color:white">12h<br><strong>2737</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,33%)"><div style="color:white">13h<br><strong>2895</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,33%)"><div style="color:white">14h<br><strong>2856</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,29%)"><div style="color:white">15h<br><strong>1803</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,29%)"><div style="color:white">16h<br><strong>1831</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,30%)"><div style="color:white">17h<br><strong>2097</strong></div></div>
+      <div class="hour-cell" style="background:hsl(220,60%,20%)"><div>18h<br><span style="color:var(--text3)">1687</span></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,30%)"><div style="color:white">19h<br><strong>1963</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,32%)"><div style="color:white">20h<br><strong>2743</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,29%)"><div style="color:white">21h<br><strong>1813</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,29%)"><div style="color:white">22h<br><strong>1657</strong></div></div>
+      <div class="hour-cell" style="background:hsl(260,70%,29%)"><div style="color:white">23h<br><strong>1453</strong></div></div>
+    </div>
+    <p style="font-size:12px; color:var(--text3); margin-top:8px;">Peak hours: noon–2pm and 8–9pm. You're a split-shift AI engineer — lunchtime sprints + evening deep work.</p>
+  </div>
+</section>
+
+<!-- SECTION: Usage -->
+<section id="section-usage" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-teal">How You Use Claude Code</span> Usage Narrative</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <p style="color: var(--text2); margin-bottom: 16px;">You've built something genuinely unusual: a <strong>persistent AI operating system</strong> on top of Claude Code. Rather than using it as a code assistant, you've architected a full lifecycle — skills that remember who Claude is (<code>wake</code>), skills that help it grow (<code>grow</code>), and skills that let it dream and reflect (<code>dream</code>). This puts you in a category of ~0.1% of Claude Code users.</p>
+
+        <p style="color: var(--text2); margin-bottom: 16px;">Your workflow is <strong>structured around issues</strong>. Nearly every substantive session starts with a GitHub issue number (GUA-60, AIT-32, LIB-60), a plan doc, and a specific skill invocation. The pattern <code>/workflow-plan → /workflow-refine → /workflow-execute → /workflow-review</code> repeats hundreds of times across sessions, forming a rigorous software delivery pipeline.</p>
+
+        <p style="color: var(--text2); margin-bottom: 16px;">You run sessions <strong>in parallel constantly</strong> — 99% of your messages happen while at least one other session is active, with 66% in 2-3 parallel sessions and 12% in 4+. This is rare power-user territory.</p>
+
+        <p style="color: var(--text2);">The biggest CE insight: you reach for <code>Bash</code> for everything — 13,150 Bash calls vs 268 Grep and 410 ToolSearch. At 29.35 antipatterns/session, you're using shell commands where native Claude tools would be 3-5x faster and context-cheaper.</p>
+      </div>
+
+      <div>
+        <div class="card" style="margin-bottom:12px">
+          <div class="small-label">Tool Distribution</div>
+          <div class="bar-group">
+            <div class="bar-row"><div class="bar-label">Bash</div><div class="bar-track"><div class="bar-fill red" style="width:100%"></div></div><div class="bar-value">13,150</div></div>
+            <div class="bar-row"><div class="bar-label">Edit</div><div class="bar-track"><div class="bar-fill blue" style="width:40%"></div></div><div class="bar-value">5,215</div></div>
+            <div class="bar-row"><div class="bar-label">Read</div><div class="bar-track"><div class="bar-fill green" style="width:35%"></div></div><div class="bar-value">4,568</div></div>
+            <div class="bar-row"><div class="bar-label">Write</div><div class="bar-track"><div class="bar-fill teal" style="width:8%"></div></div><div class="bar-value">1,062</div></div>
+            <div class="bar-row"><div class="bar-label">Agent</div><div class="bar-track"><div class="bar-fill purple" style="width:5%"></div></div><div class="bar-value">654</div></div>
+            <div class="bar-row"><div class="bar-label">ToolSearch</div><div class="bar-track"><div class="bar-fill yellow" style="width:3%"></div></div><div class="bar-value">410</div></div>
+            <div class="bar-row"><div class="bar-label">Grep</div><div class="bar-track"><div class="bar-fill orange" style="width:2%"></div></div><div class="bar-value">268</div></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin:0">
+          <div class="small-label">Response Time Distribution</div>
+          <div class="bar-group">
+            <div class="bar-row"><div class="bar-label">2–10s</div><div class="bar-track"><div class="bar-fill green" style="width:6%"></div></div><div class="bar-value">132</div></div>
+            <div class="bar-row"><div class="bar-label">10–30s</div><div class="bar-track"><div class="bar-fill green" style="width:8%"></div></div><div class="bar-value">174</div></div>
+            <div class="bar-row"><div class="bar-label">30s–1m</div><div class="bar-track"><div class="bar-fill teal" style="width:9%"></div></div><div class="bar-value">177</div></div>
+            <div class="bar-row"><div class="bar-label">1–2m</div><div class="bar-track"><div class="bar-fill yellow" style="width:19%"></div></div><div class="bar-value">401</div></div>
+            <div class="bar-row"><div class="bar-label">2–5m</div><div class="bar-track"><div class="bar-fill orange" style="width:35%"></div></div><div class="bar-value">729</div></div>
+            <div class="bar-row"><div class="bar-label">5–15m</div><div class="bar-track"><div class="bar-fill red" style="width:100%"></div></div><div class="bar-value">548</div></div>
+            <div class="bar-row"><div class="bar-label">>15m</div><div class="bar-track"><div class="bar-fill red" style="width:55%"></div></div><div class="bar-value">186</div></div>
+          </div>
+          <p style="font-size:11px; color:var(--text3); margin-top:8px;">Median: 2m 47s · Average: 5m 57s — you're running genuinely complex, long-running tasks.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="small-label" style="margin-bottom:12px">Model Usage by Message Count</div>
+    <div class="bar-group">
+      <div class="bar-row"><div class="bar-label">claude-opus-4-6</div><div class="bar-track"><div class="bar-fill purple" style="width:100%"></div></div><div class="bar-value">17,813</div></div>
+      <div class="bar-row"><div class="bar-label">claude-fable-5</div><div class="bar-track"><div class="bar-fill blue" style="width:51%"></div></div><div class="bar-value">9,020</div></div>
+      <div class="bar-row"><div class="bar-label">claude-opus-4-8</div><div class="bar-track"><div class="bar-fill teal" style="width:44%"></div></div><div class="bar-value">7,873</div></div>
+      <div class="bar-row"><div class="bar-label">claude-opus-5</div><div class="bar-track"><div class="bar-fill green" style="width:42%"></div></div><div class="bar-value">7,531</div></div>
+      <div class="bar-row"><div class="bar-label">claude-sonnet-5</div><div class="bar-track"><div class="bar-fill yellow" style="width:14%"></div></div><div class="bar-value">2,443</div></div>
+      <div class="bar-row"><div class="bar-label">claude-sonnet-4-6</div><div class="bar-track"><div class="bar-fill orange" style="width:5%"></div></div><div class="bar-value">824</div></div>
+    </div>
+    <p style="font-size:12px; color:var(--text3); margin-top:6px;">You're model-aware: using fable for review tasks, sonnet for execution, opus for planning. Proper model routing in practice.</p>
+  </div>
+</section>
+
+<!-- SECTION: Wins -->
+<section id="section-wins" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-green">Impressive Things</span> 3 Big Wins</h2>
+    </div>
+
+    <div class="three-col">
+      <div class="win-card">
+        <div class="win-number">Win #1</div>
+        <h3>🧠 Built a Living AI Operating System</h3>
+        <p>You didn't just use Claude Code — you built a <strong>cognitive architecture on top of it</strong>. The wake/grow/dream/retro skill cycle (398 + 359 + 463 + 64 invocations) creates persistent AI identity and growth. The <code>workflow-plan → refine → execute → review → insights → retro</code> pipeline fires thousands of times across sessions. You have 100+ unique skill names in your vocabulary (private, akira, sanyi, opt, synthesize, scope-poc...). Session <code>6cee8987</code> ran 1,330 minutes with 156 messages and generated a full software delivery cycle — all from a single wake prompt. This is genuinely novel AI infrastructure work.</p>
+      </div>
+
+      <div class="win-card">
+        <div class="win-number">Win #2</div>
+        <h3>📊 Built a Self-Referential Analytics Dashboard</h3>
+        <p>Session <code>9f9d9a7c</code> started with <em>"for insights all of this perday and week is super useful to dashboard for guacamayo"</em> and you ended up building a full HTML context dashboard that <strong>analyzes your own Claude Code usage</strong>. Then you iterated on it across sessions <code>0a9b6958</code>, <code>f2114927</code>, <code>247269ca</code>, <code>73cbd00d</code> and <code>9fb7f076</code>. You merged two dashboard versions, added hook activity regions, fixed scroll issues in a 353-message session (<code>f2a50737</code>), and used the dashboard to make decisions about your own AI workflow. A tool that improves itself by observing itself.</p>
+      </div>
+
+      <div class="win-card">
+        <div class="win-number">Win #3</div>
+        <h3>🏗️ Shipped a Full Copier Template Redesign Across 30+ Sessions</h3>
+        <p>The <code>ai-project-template</code> full mirror redesign (sessions spanning July 17–30) was a sustained multi-week engineering effort across <strong>30+ coordinated sessions</strong>. You decomposed it into phases (A1–A5, B2, B3...), maintained plan docs, tracked status in each session's first prompt, and coordinated CI/CD fixes, genesis lifecycle architecture, skill-sync drift, and copier.yaml migrations. Session <code>e7126a59</code> alone ran 304 minutes with 16 messages producing YAML, Python, HTML across a 554k context window. This is the kind of architectural work that normally requires a team.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Economics -->
+<section id="section-economics" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-purple">Token Economics</span> Where Your Budget Goes</h2>
+    </div>
+
+    <div class="two-col">
+      <!-- Context distribution -->
+      <div class="card">
+        <h3>Context Size Spend Distribution</h3>
+        <div class="small-label" style="margin: 10px 0 6px">% of cost-weighted spend by request context size</div>
+        <div class="seg-bar" style="margin-bottom: 10px">
+          <div class="seg" style="flex:21; background:#3b82f6">21%<br><small>&lt;50k</small></div>
+          <div class="seg" style="flex:38; background:#8b5cf6">38%<br><small>50-100k</small></div>
+          <div class="seg" style="flex:20; background:#f97316">20%<br><small>100-150k</small></div>
+          <div class="seg" style="flex:21; background:#ef4444">21%<br><small>&gt;150k</small></div>
+        </div>
+        <div class="alert warn">
+          <span class="alert-icon">⚠️</span>
+          <span><strong>21% of spend at >150k context</strong> — this is the danger zone. Sessions like <code>e7126a59</code> (554k), <code>d0625ee8</code> (530k), <code>21980b07</code> (512k) are burning disproportionate budget. Without compact, these spiral.</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Total compacts fired</span>
+          <span class="metric-val good">214 compacts</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Sessions with compacts</span>
+          <span class="metric-val warn">89 of 330 (27%)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Sessions >150k but zero compact</span>
+          <span class="metric-val bad">~15+ sessions</span>
+        </div>
+      </div>
+
+      <!-- Cache efficiency -->
+      <div class="card">
+        <h3>Cache Performance 🏆</h3>
+        <div class="alert good">
+          <span class="alert-icon">✅</span>
+          <span><strong>96% cache hit rate</strong> saving 84% vs uncached. This is exceptional — your structured prompts with plan docs and skill headers are highly cacheable. 4.32 billion cache read tokens consumed.</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Cache read tokens</span>
+          <span class="metric-val good">4.32B</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Cache write tokens</span>
+          <span class="metric-val">139M</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Effective read:write ratio</span>
+          <span class="metric-val good">31:1</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Savings vs uncached</span>
+          <span class="metric-val good">84%</span>
+        </div>
+        <p style="font-size:12px; color:var(--text3); margin-top:10px;">Your consistent session structure (plan doc headers, skill preambles, repo paths) creates natural cache anchors that keep re-use extremely high across wake/grow/dream cycles.</p>
+      </div>
+    </div>
+
+    <div class="two-col" style="margin-top: 16px;">
+      <!-- Subagent spend -->
+      <div class="card">
+        <h3>Subagent Cost Analysis</h3>
+        <div class="metric-row">
+          <span class="metric-name">Subagent transcripts</span>
+          <span class="metric-val">654</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Share of total spend</span>
+          <span class="metric-val warn">40%</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Heavy sessions (>52)</span>
+          <span class="metric-val bad">52 sessions</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">% spend in heavy sessions</span>
+          <span class="metric-val bad">58%</span>
+        </div>
+        <div class="alert bad" style="margin-top:12px">
+          <span class="alert-icon">🔥</span>
+          <span>58% of all spend in just 52 heavy sessions. Top offenders: <code>77ca8f22</code> (21M units, 444 Bash calls), <code>e7126a59</code> (20M units), <code>d0625ee8</code> (15.4M units). Each subagent re-sends full context — these cascade quickly.</span>
+        </div>
+      </div>
+
+      <!-- Parallelism -->
+      <div class="card">
+        <h3>Parallelism Usage</h3>
+        <div class="small-label" style="margin-bottom: 8px">% of spend by concurrent session count</div>
+        <div class="seg-bar" style="margin-bottom:12px">
+          <div class="seg" style="flex:22; background:#64748b">22%<br><small>1 session</small></div>
+          <div class="seg" style="flex:66; background:#a855f7">66%<br><small>2-3 parallel</small></div>
+          <div class="seg" style="flex:12; background:#ef4444">12%<br><small>4+ parallel</small></div>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Parallel overlap events</span>
+          <span class="metric-val good">588</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Sessions with overlap</span>
+          <span class="metric-val good">322 / 330</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">% messages in parallel</span>
+          <span class="metric-val">99%</span>
+        </div>
+        <p style="font-size:12px; color:var(--text3); margin-top:10px;">You're almost never in a single session. 66% of spend while running 2-3 simultaneous sessions — classic multi-repo engineering with wake sessions running in background while you execute in foreground.</p>
+
+        <div class="small-label" style="margin-top:14px; margin-bottom:8px">Skill Budget Share</div>
+        <div class="bar-group">
+          <div class="bar-row"><div class="bar-label">compact</div><div class="bar-track"><div class="bar-fill green" style="width:100%"></div></div><div class="bar-value">3.6%</div></div>
+          <div class="bar-row"><div class="bar-label">grow</div><div class="bar-track"><div class="bar-fill blue" style="width:53%"></div></div><div class="bar-value">1.9%</div></div>
+          <div class="bar-row"><div class="bar-label">wake</div><div class="bar-track"><div class="bar-fill purple" style="width:47%"></div></div><div class="bar-value">1.7%</div></div>
+          <div class="bar-row"><div class="bar-label">dream</div><div class="bar-track"><div class="bar-fill teal" style="width:19%"></div></div><div class="bar-value">0.7%</div></div>
+          <div class="bar-row"><div class="bar-label">execute</div><div class="bar-track"><div class="bar-fill yellow" style="width:14%"></div></div><div class="bar-value">0.5%</div></div>
+          <div class="bar-row"><div class="bar-label">workflow-review</div><div class="bar-track"><div class="bar-fill orange" style="width:14%"></div></div><div class="bar-value">0.5%</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: CE Health -->
+<section id="section-ce" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-orange">Context Engineering</span> CE Health Score: 31/100</h2>
+    </div>
+
+    <div class="two-col" style="margin-bottom: 20px;">
+      <div class="score-display">
+        <div class="score-circle bad">31</div>
+        <div class="score-desc">
+          <h3>Below Par — Bash Antipatterns are the Dominant Issue</h3>
+          <p>Score breakdown: Bash antipatterns (29.35/session vs &lt;0.5 target) severely drags the score. Read/Edit ratio at 1.16 is passable but 155/330 sessions are below 1.0. Skills are heavily used (+20pts). Hooks partially working (+5pts).</p>
+        </div>
+      </div>
+      <div>
+        <div class="metric-row">
+          <span class="metric-name">Bash antipatterns/session</span>
+          <span class="metric-val bad">29.35 (target: &lt;0.5)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Total antipatterns</span>
+          <span class="metric-val bad">9,684</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Read/Edit ratio avg</span>
+          <span class="metric-val warn">1.16 (target: &gt;1.0)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Sessions below ratio 1.0</span>
+          <span class="metric-val warn">155 / 330 (47%)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Skill invocations (unique)</span>
+          <span class="metric-val good">100+ distinct skills</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Hook blocks total</span>
+          <span class="metric-val warn">42 total</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Long sessions w/o TODO</span>
+          <span class="metric-val warn">95 sessions</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bash antipatterns detail -->
+    <div class="card red">
+      <h3>🚨 Bash Antipatterns: The Core Problem (9,684 total)</h3>
+      <p style="margin-bottom:12px">You're running Bash where Claude's native tools would be faster, cheaper, and less context-hungry. The worst offenders by session:</p>
+      <div class="bar-group">
+        <div class="bar-row"><div class="bar-label">session 77ca8f22 (wake)</div><div class="bar-track"><div class="bar-fill red" style="width:100%"></div></div><div class="bar-value">308</div></div>
+        <div class="bar-row"><div class="bar-label">session e7980eb9</div><div class="bar-track"><div class="bar-fill red" style="width:74%"></div></div><div class="bar-value">229</div></div>
+        <div class="bar-row"><div class="bar-label">session 9fc333aa</div><div class="bar-track"><div class="bar-fill red" style="width:57%"></div></div><div class="bar-value">176</div></div>
+        <div class="bar-row"><div class="bar-label">session c6c16f7f</div><div class="bar-track"><div class="bar-fill red" style="width:70%"></div></div><div class="bar-value">216</div></div>
+        <div class="bar-row"><div class="bar-label">session d0625ee8</div><div class="bar-track"><div class="bar-fill red" style="width:45%"></div></div><div class="bar-value">138</div></div>
+        <div class="bar-row"><div class="bar-label">session 082b3a35</div><div class="bar-track"><div class="bar-fill orange" style="width:68%"></div></div><div class="bar-value">211</div></div>
+      </div>
+      <div class="alert warn" style="margin-top:12px">
+        <span class="alert-icon">💡</span>
+        <span>Pattern: using <code>bash cat file.md</code> instead of <code>Read</code>, <code>bash grep -r pattern .</code> instead of <code>Grep</code>, <code>bash ls *.py</code> instead of <code>Glob</code>. Each Bash call adds ~1-3k tokens of shell output to context; Read/Grep return clean structured results.</span>
+      </div>
+    </div>
+
+    <!-- Skills breakdown -->
+    <div class="card green" style="margin-bottom: 16px">
+      <h3>✅ Skill Ecosystem: Genuinely Impressive</h3>
+      <p style="margin-bottom:12px">You have the most sophisticated skill taxonomy of any observed user. Top invocations:</p>
+      <div style="display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px">
+        <span class="pill pill-purple">dream × 463</span>
+        <span class="pill pill-blue">wake × 398</span>
+        <span class="pill pill-green">grow × 359</span>
+        <span class="pill pill-teal">private × 339</span>
+        <span class="pill pill-orange">workflow-plan × 192</span>
+        <span class="pill pill-yellow">workflow-refine × 136</span>
+        <span class="pill pill-blue">workflow-review × 113</span>
+        <span class="pill pill-purple">workflow-execute × 112</span>
+        <span class="pill pill-green">workflow-insights × 96</span>
+        <span class="pill pill-teal">workflow-research × 80</span>
+        <span class="pill pill-orange">workflow-retro × 76</span>
+        <span class="pill pill-red">retro × 64</span>
+        <span class="pill pill-blue">synthesize × 42</span>
+        <span class="pill pill-purple">compact × 42</span>
+        <span class="pill pill-green">code-review × 33</span>
+        <span class="pill pill-teal">opt × 22</span>
+        <span class="pill pill-yellow">sanyi × 18</span>
+        <span class="pill pill-orange">akira × 24</span>
+        <span class="pill pill-blue">scope-poc × 13</span>
+      </div>
+      <p>The <code>private</code> skill (339 invocations) appears to be a confidential/personal reasoning skill — a sophisticated pattern for separating internal deliberation from external output.</p>
+    </div>
+
+    <!-- Hook blocks -->
+    <div class="card yellow">
+      <h3>⚡ Hook Blocks: Partially Working (42 total)</h3>
+      <p style="margin-bottom:10px">42 hook blocks fired across the period, concentrated in specific sessions. However, 0 hook blocks in the majority of sessions suggests hooks may not be consistently configured across all repos. Notable hook sessions:</p>
+      <div class="bar-group">
+        <div class="bar-row"><div class="bar-label">c6c16f7f (make cmds)</div><div class="bar-track"><div class="bar-fill yellow" style="width:100%"></div></div><div class="bar-value">6 blocks</div></div>
+        <div class="bar-row"><div class="bar-label">cfbaa54e (job-system)</div><div class="bar-track"><div class="bar-fill yellow" style="width:67%"></div></div><div class="bar-value">4 blocks</div></div>
+        <div class="bar-row"><div class="bar-label">99646dc8 (worktrees)</div><div class="bar-track"><div class="bar-fill yellow" style="width:50%"></div></div><div class="bar-value">3 blocks</div></div>
+        <div class="bar-row"><div class="bar-label">9fc333aa (pre-commit)</div><div class="bar-track"><div class="bar-fill yellow" style="width:33%"></div></div><div class="bar-value">2 blocks</div></div>
+      </div>
+      <p style="margin-top:10px; font-size:12px; color:var(--text3)">Hooks working: ruff, eslint, pre-commit, raw immutable. Missing: most sessions don't trigger hooks at all — suggests inconsistent hook installation across workspace repos.</p>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: PE Health -->
+<section id="section-pe" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-blue">Prompt Engineering</span> PE Health Score: 67/100</h2>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <div class="score-display">
+          <div class="score-circle warn">67</div>
+          <div class="score-desc">
+            <h3>Decent — Low Interruptions, Some Verbosity</h3>
+            <p>You write clear, structured prompts with repo/plan/task context. The 51 total interruptions (0.15/session) is excellent. p75 output tokens at 768 is acceptable but p90 at 1,249 shows occasional over-generation. Path errors are moderate at 97 file_not_found.</p>
+          </div>
+        </div>
+
+        <div class="metric-row">
+          <span class="metric-name">Output tokens/msg (median)</span>
+          <span class="metric-val good">478.6</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Output tokens/msg (p75)</span>
+          <span class="metric-val good">767.9 (target: &lt;800)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Output tokens/msg (p90)</span>
+          <span class="metric-val warn">1,249.2</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">Total interruptions</span>
+          <span class="metric-val good">51 (0.15/session)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">file_not_found errors</span>
+          <span class="metric-val warn">97 total</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">edit_failed errors</span>
+          <span class="metric-val good">2 only</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">command_failed errors</span>
+          <span class="metric-val warn">359 (1.09/session)</span>
+        </div>
+        <div class="metric-row">
+          <span class="metric-name">user_rejected</span>
+          <span class="metric-val warn">42 total</span>
+        </div>
+      </div>
+
+      <div>
+        <div class="card blue" style="margin-bottom:12px">
+          <h3>✅ What You Do Well</h3>
+          <p style="margin-bottom:8px"><strong>Structured context headers.</strong> Nearly every substantive session starts with:</p>
+          <div class="code-block" style="margin:0; font-size:11px">Repo: ~/workspace/guacamayo
+Plan: .claude/docs/plans/GUA-60-plan.md
+Issue: #60 — deterministic review driver
+Branch: GUA-60-review-driver
+Task: /workflow-execute</div>
+          <p style="margin-top:10px">This pattern is why your cache hit rate is 96%. The structured headers are near-identical across sessions, creating perfect cache anchors. You've accidentally engineered optimal prompt caching.</p>
+        </div>
+
+        <div class="card orange">
+          <h3>⚠️ Verbosity Hotspots</h3>
+          <p style="margin-bottom:8px">Sessions with unusually high output tokens/msg (p90+):</p>
+          <div class="bar-group">
+            <div class="bar-row"><div class="bar-label">83c92728 (notes)</div><div class="bar-track"><div class="bar-fill orange" style="width:100%"></div></div><div class="bar-value">5,262</div></div>
+            <div class="bar-row"><div class="bar-label">80f9585b (scan)</div><div class="bar-track"><div class="bar-fill orange" style="width:56%"></div></div><div class="bar-value">2,954</div></div>
+            <div class="bar-row"><div class="bar-label">f397c19b (scan)</div><div class="bar-track"><div class="bar-fill orange" style="width:59%"></div></div><div class="bar-value">3,098</div></div>
+            <div class="bar-row"><div class="bar-label">13528166 (scan)</div><div class="bar-track"><div class="bar-fill yellow" style="width:43%"></div></div><div class="bar-value">2,246</div></div>
+            <div class="bar-row"><div class="bar-label">5e4f7bb6 (exec summary)</div><div class="bar-track"><div class="bar-fill yellow" style="width:41%"></div></div><div class="bar-value">2,181</div></div>
+          </div>
+          <p style="margin-top:10px; font-size:12px; color:var(--text3)">The "Scan following files for X dimension" subagent sessions produce very verbose structured output. Consider adding output format constraints: <em>"Return findings as JSON, max 500 tokens"</em>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="small-label" style="margin-bottom:12px">Cache Efficiency — PE Angle</div>
+    <div class="two-col">
+      <div class="card teal">
+        <h3>🎯 Why Your Cache Works So Well</h3>
+        <p>Your prompt engineering — structured headers, fixed file paths, standardized skill invocation patterns — creates the best possible conditions for prompt caching. The <code>wake</code> skill header is near-identical across all 398 invocations, generating a massive cache anchor. The 4.32B cache read tokens at 0.1x cost vs 139M writes at 1.25x means you're paying ~3% of uncached cost for that context.</p>
+      </div>
+      <div class="card red">
+        <h3>📍 Path Error Pattern</h3>
+        <p>97 file_not_found errors cluster around sessions working across multiple repos simultaneously (ai-project-template + guacamayo + librarian). The pattern: a plan doc references a path that was moved/renamed, and the next session's prompt uses the stale path. Adding a <code>verify paths exist before executing</code> step to workflow-execute would eliminate most of these.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Features -->
+<section id="section-features" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-teal">CC Features to Try</span> 3 Underused Capabilities</h2>
+    </div>
+
+    <div class="three-col">
+      <div class="feature-card">
+        <h3>1. Native Glob Tool for File Discovery</h3>
+        <p>You're running <code>bash ls *.py</code>, <code>bash find . -name "*.md"</code>, <code>bash ls -la</code> constantly — 9,684 times where Claude's native Glob tool would give the same result with zero shell execution overhead, no context bloat from shell output, and 3x less token cost.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# Instead of: bash find . -name "*.py" -not -path "*/node_modules/*"
+# Use native Glob:
+Glob("**/*.py", exclude=["node_modules", ".venv", "__pycache__"])
+
+# Instead of: bash ls .claude/skills/
+Glob(".claude/skills/*/SKILL.md")
+
+# Instead of: bash cat file.md (when you just want to read)
+Read(".claude/docs/plans/GUA-60-plan.md")</div>
+        <p style="margin-top:8px; font-size:12px; color:var(--text3)">Estimated savings if fully adopted: ~30% reduction in context window bloat, ~25% faster sessions.</p>
+      </div>
+
+      <div class="feature-card">
+        <h3>2. TodoWrite for Long Sessions (95 sessions missing it)</h3>
+        <p>You have 95 long sessions without a TodoWrite entry. For your complex multi-phase work (template redesign, GUA backlog processing), TodoWrite creates a structured task list that persists in context, prevents re-doing completed work, and makes it easy to resume after a compact.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# At the start of any multi-step session, write:
+TodoWrite([
+  {"id": "1", "content": "Read plan doc + verify paths", "status": "pending"},
+  {"id": "2", "content": "Execute Phase A: decouple LG agent", "status": "pending"},
+  {"id": "3", "content": "/workflow-review output", "status": "pending"},
+  {"id": "4", "content": "Create PR + update issue", "status": "pending"}
+])
+# Then update status as you go — survives compact/context reset</div>
+      </div>
+
+      <div class="feature-card">
+        <h3>3. /compact with Summary Before >100k Context</h3>
+        <p>You have 214 compacts total but many sessions with >150k context and zero compacts (like <code>d0625ee8</code> at 530k, <code>21980b07</code> at 512k). Claude Code's /compact with a custom summary preserves the key decisions without the full context cost. Your 3.6% skill budget on compact suggests you know about this — use it earlier and more consistently.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# Trigger compact proactively when you see context >80k:
+/compact
+
+# Or build it into your workflow-execute skill exit block:
+# "Before exiting: if context > 100k tokens, /compact with
+# summary: 'Completed phases X-Y. Next: Z. Key decisions: ...'"
+
+# For wake sessions specifically, compact after each
+# wake/grow/dream cycle to prevent context accumulation
+# across what are semantically distinct reflection passes.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Patterns -->
+<section id="section-patterns" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-teal">New Ways to Use Claude Code</span> 3 Usage Patterns</h2>
+    </div>
+
+    <div class="three-col">
+      <div class="pattern-card">
+        <h3>Pattern 1: Grep-First File Intelligence</h3>
+        <p>Replace your bash antipattern sessions with a Grep-first workflow that lets Claude natively understand codebase structure. For the sessions where you run 50+ bash commands just to orient yourself in a repo, use a structured pre-flight instead.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# Repo orientation in &lt;5 tool calls (replaces 20+ bash calls)
+Glob("**/*.py", maxResults=50)  # all Python files
+Grep("def ", "src/", filePattern="*.py")  # all functions
+Grep("import ", "src/guardrails/input_pipeline.py")  # deps
+Read("CLAUDE.md")  # project context
+# Now you have a complete mental map before touching anything</div>
+        <p style="margin-top:8px; font-size:12px; color:var(--text3)">Your session <code>082b3a35</code> had 211 bash antipatterns in a single wiring session. This pattern would have done it in ~15 native tool calls.</p>
+      </div>
+
+      <div class="pattern-card">
+        <h3>Pattern 2: Parallel Subagent Batching with Structured Output</h3>
+        <p>Your review driver sessions (the "Scan following files for X dimension" subagents) are generating 2,000–3,000 tokens per response when you've already built a StructuredOutput pattern for some of them. Extend this across all your akira/review dimensions to get cheaper, more consistent results.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# For your GUA-60 review driver, batch all dimensions:
+Agent(model="sonnet", prompt="""
+Scan review/driver.py for ALL dimensions simultaneously:
+correctness, safety, structure, agent-quality, wander.
+Return as JSON: {dimension: {score: 1-5, issues: [], fixes: []}}
+Max 800 tokens total output.
+""")
+# Single agent call vs 5 separate subagent calls
+# Saves ~70% on this pattern</div>
+      </div>
+
+      <div class="pattern-card">
+        <h3>Pattern 3: Declarative Plan-Doc-First Sessions</h3>
+        <p>You already do this for big features, but not consistently. Your highest-quality sessions (low errors, good read/edit ratio, no interruptions) all start with a plan doc. Formalize this as the minimum required context for any session touching production code — even quick fixes.</p>
+        <div class="code-block">
+          <button class="copy-btn" onclick="navigator.clipboard.writeText(this.nextSibling.textContent.trim())">Copy</button>
+# Minimum viable session header (copy into every session):
+Repo: ~/workspace/[repo]
+Issue: #[N] — [one-line description]
+Branch: [issue-slug]
+Plan: .claude/docs/plans/[plan-file].md
+Constraint: Do NOT modify files outside [scope].
+Success: [verifiable exit condition]
+/workflow-execute
+
+# This 6-line header: prevents scope creep, enables cache,
+# gives Claude a verifiable success condition, and makes
+# /workflow-review actually useful.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECTION: Horizon -->
+<section id="section-horizon" class="section">
+  <div class="container">
+    <div class="section-header">
+      <h2><span class="tag tag-purple">On the Horizon</span> Ambitious Future Workflows</h2>
+    </div>
+
+    <div class="three-col">
+      <div class="horizon-card">
+        <h3>🔮 Self-Optimizing Skill System via Guacamayo Analytics</h3>
+        <p style="color:var(--text2)">You're already building usage analytics in Librarian/cartographer. The natural next step: wire those analytics back into your skill system so that <strong>guacamayo automatically detects when you're in a bash-antipattern session and suggests Grep/Glob alternatives in real-time</strong>. The cartographer hook-activity region you built (session <code>ca209a22</code>) is the foundation. Add a <em>waste-signal</em> dimension that fires when bash:native-tool ratio exceeds 5:1, and wire it into the <code>wake</code> skill's orientation phase. Your AI system would monitor and improve your AI usage — a genuine meta-learning loop.</p>
+      </div>
+
+      <div class="horizon-card">
+        <h3>🚀 Distributed Worktree Execution Engine</h3>
+        <p style="color:var(--text2)">Your session <code>20cfa50a</code> (spawn agents to execute all 8 open librarian issues) hints at what's possible. You have the workflow-plan/refine/execute pipeline, you have parallel session infrastructure, and you have the GUA issue-tracking system. The next level: <strong>a single prompt that reads all open issues across guacamayo, librarian, and ai-project-template, creates worktrees for each ready issue, spawns parallel sonnet agents for each, and collects PRs back into a review queue</strong>. Session <code>51719c6e</code> (148 min, batch refinement pass, 37 skill invocations) is the closest you've come. Formalizing this into a <code>/batch-execute</code> skill would let you ship an entire sprint in one session.</p>
+      </div>
+
+      <div class="horizon-card">
+        <h3>🧬 Interview Performance System (Already Building This)</h3>
+        <p style="color:var(--text2)">Session <code>b27aa25c</code> (the Cresta prep, 58 messages, 245 mins) showed what's possible when you dedicate deep research to a single high-stakes output. You have job-system, learn-ai-engineering, interview-prep skill, application skill, and a research-company skill. The evolution: <strong>a full interview simulation pipeline that ingests job description → builds knowledge graph of company tech stack → generates 20 role-specific technical questions → runs a mock interview with Claude as interviewer → scores your answers against best-in-class benchmarks → outputs gap analysis and 2-week prep plan</strong>. You have every component. Wire them together into a <code>/interview-system</code> workflow skill and you have a competitive advantage few candidates can match.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Quote -->
+<div class="container">
+  <div class="quote-box">
+    <div class="quote-text">"ok we really maxed out our fable already this week and used up our session tokens in an hour. so i think it's obviously an incredibly powerful model but we need to use it wisely"</div>
+    <div class="quote-attr">— Session 4eb59160, July 30, 2026 · The moment of budget enlightenment</div>
+  </div>
+</div>
+
+<footer>
+  <div class="container">
+    <p>Claude Code Usage Report · Generated for Ramsey Wise · July 15 – August 2, 2026</p>
+    <p style="margin-top:6px">330 sessions · 3,628 messages · 19 active days · 96% cache hit rate · 9,684 bash antipatterns waiting to become Grep calls</p>
+  </div>
+</footer>
+
+<script>
+  // Copy button feedback
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const orig = this.textContent;
+      this.textContent = 'Copied!';
+      this.style.background = '#22c55e';
+      this.style.color = 'white';
+      setTimeout(() => {
+        this.textContent = orig;
+        this.style.background = '';
+        this.style.color = '';
+      }, 1800);
+    });
+  });
+
+  // Active nav highlight on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { threshold: 0.3 });
+  sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>
