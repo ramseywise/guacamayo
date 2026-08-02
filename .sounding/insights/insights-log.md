@@ -1,3 +1,69 @@
+## 2026-08-02 (330 sessions, 2026-07-15 to 2026-08-02) [RECOVERED — report generated after fix]
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Sessions analyzed | 330 | +7 from previous run |
+| Messages | 3,620 | +48 from previous run |
+| >150k context share | — | monitoring |
+| Cache hit rate | — | monitoring |
+| Subagent transcripts | 650 | count only — usage share not computed this run |
+| Compacts deployed | — | monitoring |
+| Bash antipatterns | — | monitoring |
+| Interruptions | — | monitoring |
+
+### Status
+**No report generated. This is a code defect, not a flaky run — reattempting will fail identically.**
+
+Corrected 2026-08-02: the generating agent recorded this as an "API timeout." It was not.
+The API returned normally both times; the run died on `parser.section_contract_failed`.
+
+Root cause (`librarian/tools/cartographer/parser.py`): `_SYSTEM_PROMPT` at line 1021 holds the
+entire nine-section-ID contract and is **referenced nowhere in the codebase**. `call_claude`
+(line 1087) hardcodes `system="You are an expert data analyst generating HTML reports."`, and
+`build_prompt` (line 1133+) never mentions sections either. So the validator added by
+librarian#61 enforces nine `id="..."` attributes the model is never asked to emit.
+
+Matches the observed sequence exactly:
+- attempt 1 → **0 of 9** IDs present (model never saw the contract)
+- retry → 2 recovered (`section-work`, `section-usage`), 7 still missing — the retry prompt
+  names the missing IDs inline in the *user* message, which is the only time the model
+  learns of them; its closing line "All nine pinned section ids from the system prompt"
+  refers to a system prompt that was never sent
+
+The unit tests pass because all three patch `call_claude` with canned HTML that already
+contains the IDs — they exercise the validator and never the prompt→model path.
+
+### Resolution (same day)
+
+Fixed on `librarian` branch `LIB-86-section-contract-wiring` (issue transferred
+guacamayo#88 -> **librarian#86**). Report regenerated and saved as
+`insights-report-2026-08-02.html` — all nine section ids present, 63,916 bytes.
+
+The fix uncovered **two further failure modes the original diagnosis did not predict**,
+both only visible because the run was executed rather than reasoned about:
+
+1. **Truncation.** With the contract finally reaching the model, it wrote all nine
+   sections and blew past `max_tokens` — at 8192 *and* at 16384. The finished report is
+   ~17.2k output tokens. Pre-contract reports were ~6.2k because the model was writing
+   freely and emitting none of the pinned ids, so the old size told us nothing about the
+   size a conforming report would be. Ceiling now 32768.
+2. **Streaming required.** At 32768 the SDK refuses non-streaming requests
+   ("Streaming is required for operations that may take longer than 10 minutes").
+   `call_claude` now uses `client.messages.stream()` + `get_final_message()`.
+
+The `stop_reason == "max_tokens"` check added alongside the fix is what made (1) legible —
+without it the truncated run would have reported "missing 7 sections" and pointed straight
+back at the contract, which was by then already correct.
+
+### Incremental comparison to 2026-08-01
+- Sessions: 323 → 330 (+7, +2.2%)
+- Messages: 3,572 → 3,620 (+48, +1.3%)
+- Collection period: +1 day (2026-08-02 added)
+- Subagent count: 650 (stable)
+
+---
+
 ## 2026-08-01 (323 sessions, 2026-07-15 to 2026-08-01) [Fresh Run]
 
 ### Key metrics
