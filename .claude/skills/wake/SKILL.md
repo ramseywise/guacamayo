@@ -79,7 +79,7 @@ Read `.sounding/context-dashboard.html` — scan for the signal summary section 
 ### Ops state (this repo)
 
 Read `.sounding/tooling-ledger.md` — `hypothesis` rows are the standing verification queue.
-Read `.sounding/insights-log.md` — grep the first `## YYYY-MM-DD` section header for the most recent run date. Compare to today to detect retro overdue (≥7 days).
+Read `.sounding/insights/insights-log.md` — grep the first `## YYYY-MM-DD` section header for the most recent run date. Compare to today to detect retro overdue (≥7 days).
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board (cross-repo)
