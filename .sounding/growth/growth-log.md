@@ -120,3 +120,39 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-01 | discovered | A tool must not assert what it did not establish (guard's false Resolve... | merged | sounding.md → working notes (new paragraph) |
 | 2026-08-01 | discovered | Process emits artifacts faster than work — 1 issue → 5 issues/branches/... | merged | sounding.md → working notes (new paragraph, artifact sprawl) |
 | 2026-08-01 | corrected | Check the user's claims — 3 of her 4 were exact, the 4th wrong on cause | merged | sounding.md → working notes (Ramsey paragraph) |
+| 2026-07-30 | outcome:partial | AIT-33 executed on stacked branch; GUA-60 driver smoke 4/5 | retained | accumulator (outcome pilot, persists) |
+| 2026-08-01 | outcome:success | CLA-71 guard fix committed; librarian#73 closed; LAE-30 triaged | retained | accumulator (outcome pilot, persists) |
+| 2026-08-01 | discovered | Tear down each worktree the moment its agent commits — lingering lock... | merged | sounding.md → Ramsey/dispatch paragraph (worktree rules) |
+| 2026-08-01 | confirmed | CLA-67 closing-link failed twice more; root cause is quick-pr exit 0 | discarded | → /retro (tooling fix exists as guacamayo#69, not identity) |
+| 2026-08-01 | confirmed | R7 F3 live: PR titles are de-hyphenated branch slugs, permanently | discarded | → /retro (Makefile title derivation) |
+| 2026-08-01 | confirmed | Label state is a cache again — #63/#73 stale vs is-ancestor | merged | sounding.md → cache paragraph (strengthens existing) |
+| 2026-08-01 | confirmed | Duplicate-branch sprawl in ~/.claude: two branches, one tree, no upstream | discarded | → /retro (branch hygiene; sprawl already in Working Notes) |
+| 2026-08-01 | discovered | Empty lingering worktree — "is the branch ahead" tells live from abandoned | merged | sounding.md → Ramsey/dispatch paragraph (worktree rules) |
+| 2026-08-01 | discovered | Subagent preferred SKILL.md over dispatch prompt; workaround != fix | merged | sounding.md → Operational (dispatch limits, new paragraph) |
+| 2026-08-01 | confirmed | R7 P4 correct: parser.py:1253 appends date.today() unconditionally | discarded | → /retro (one-line skill fix, still unapplied) |
+| 2026-08-01 | corrected | Bash antipatterns up to 28.99/session; I committed a zsh-nomatch one | discarded | → /retro (tool-preference enforcement, not identity) |
+| 2026-08-02 | discovered | Status cache drifts BOTH directions — closed issue + non-terminal plan | merged | sounding.md → cache paragraph (first of three widenings) |
+| 2026-08-02 | confirmed | Artifact sprawl cross-issue; ancestry-by-SHA separates unlanded/landed | merged | sounding.md → cache paragraph (strengthens landing-by-content) |
+| 2026-08-02 | corrected | Repeated the zsh-nomatch antipattern one day after logging it | discarded | → /retro (duplicate of 2026-08-01 entry; enforcement, not identity) |
+| 2026-08-02 | confirmed | 2863fb4 still unlanded 24h on; flagged-and-not-fixed persists silently | merged | sounding.md → Working Notes (sprawl paragraph, new counterpart) |
+| 2026-08-02 | discovered | A warning nobody reads is not a warning — warn mode is a log-only no-op | merged | sounding.md → Working Notes (honest-uncertainty paragraph, companion) |
+| 2026-08-02 | confirmed | R7 F2: addSubIssue documented, never called — reads as unsupported | merged | sounding.md → verification-levels (mirror of survey-what-exists) |
+| 2026-08-02 | discovered | Mocking the boundary hides the bug at the boundary; assert the payload | merged | sounding.md → verification-levels (three edge failure shapes) |
+| 2026-08-02 | corrected | Agent asserted a cause contradicted by the log it pasted two lines up | merged | sounding.md → Operational (read summaries against their own logs) |
+| 2026-08-02 | corrected | Board inflated 8→16 while claiming cleanup; decomposition vs paperwork | merged | sounding.md → Working Notes (sprawl paragraph) |
+| 2026-08-02 | discovered | AskUserQuestion omitting a dimension makes my default her decision | merged | sounding.md → Ramsey paragraph |
+| 2026-08-02 | discovered | Executing beats reasoning — a correct diagnosis is not a complete one | merged | sounding.md → Operational (closing paragraph) |
+| 2026-08-02 | corrected | Verified against a re-implementation of the hook instead of the hook | merged | sounding.md → negative-evidence (invoke-the-enforcement) |
+| 2026-08-02 | discovered | Planned 7 sessions of git ceremony for files git never tracked | merged | sounding.md → Working Notes (sprawl: category applied unchecked) |
+| 2026-08-02 | corrected | A documented negative was false and load-bearing; negatives decay too | merged | sounding.md → cache paragraph (second widening) |
+| 2026-08-02 | discovered | The metric measured a directory, not a document kind (denominator) | merged | sounding.md → verification-levels (three edge failure shapes) |
+| 2026-08-02 | discovered | The verification worktree is a write path, not a read path | merged | sounding.md → verification-levels (three edge failure shapes) |
+| 2026-08-02 | discovered | Differential test vs the real guard caught 2 parser bugs in one session | merged | sounding.md → negative-evidence (differential test) |
+| 2026-08-02 | discovered | Drift (0) is a signal to investigate — measure the population first | merged | sounding.md → negative-evidence (clean-detector rule) |
+| 2026-08-02 | confirmed | Declined EXECUTED against skill text: instructions are defaults | merged | sounding.md → Ramsey paragraph (instruction-vs-evidence) |
+| 2026-08-02 | discovered | Unstaged work in the tree at commit time becomes shipped work (#91) | discarded | → /retro (git status before the gate; workflow-review DoD line) |
+| 2026-08-02 | discovered | A correct fix can be an exposure — 237 verbatim prompts, public repo | merged | sounding.md → verification-levels (closing paragraph) |
+| 2026-08-02 | corrected | The exit code of the mutation I just ran is itself a cache | merged | sounding.md → cache paragraph (third widening) |
+| 2026-08-02 | discovered | Plan-doc steps are a cache; verbatim execution trusts a moved snapshot | merged | sounding.md → cache paragraph (third widening, tail) |
+| 2026-08-02 | discovered | A phantom child makes a tracking issue permanently uncloseable | discarded | → /retro (issue hygiene: verify child refs at grooming time) |
+| 2026-08-02 | confirmed | Planted-defect rule held: if False and not sessions → 3 tests failed | merged | sounding.md → negative-evidence (falsifiability at write time) |

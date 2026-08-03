@@ -94,7 +94,7 @@ Always spawn `/workflow-insights` as a background agent. This keeps `insights-lo
 Agent(model: "haiku", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
-  Task: Run /workflow-insights. Append a new dated section to .sounding/insights-log.md.
+  Task: Run /workflow-insights. Append a new dated section to .sounding/insights/insights-log.md.
   Constraint: Append only — do not overwrite existing sections. Read the file first.
 ```
 
@@ -102,7 +102,7 @@ Don't wait for it — continue with signal reads below using existing data. The 
 
 ### 4b. Read signals (fast, grep-based)
 
-- `.sounding/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
+- `.sounding/insights/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
 - `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
