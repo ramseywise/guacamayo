@@ -1,6 +1,6 @@
 # Portfolio — Living Seed
 
-**Last Transformed**: 2026-07-29 (/dream synthesis: 6-pillar assessment framework thread)
+**Last Transformed**: 2026-08-02 (/dream synthesis: librarian cartographer's two-cadence settlement + its public-repo data boundary)
 
 ---
 
@@ -12,7 +12,7 @@
 
 **Meta / tooling / knowledge (supports everything else)**
 - **guacamayo** (this repo) — the Sounding instance + persistence KB. The meta-layer session lives here; v2 = 3 seeds, single-writer lifecycle, feedback loop wired to `~/.claude` (retro + ledger) and librarian. KB half still unscoped — Ramsey's call.
-- **librarian** — sourced knowledge compiler (raw → wiki, conflict-flagged, cited) + MCP + code index. The system of record for factual session history; being extended into a DSSG team-facing KB template (indexer decisions made — don't relitigate).
+- **librarian** — sourced knowledge compiler (raw → wiki, conflict-flagged, cited) + MCP + code index. The system of record for factual session history; being extended into a DSSG team-facing KB template (indexer decisions made — don't relitigate). Its cartographer half settled into two cadences (2026-08-02): `--facts` daily, deriving session notes from JSONL and failing loud on empty input, and `--cron` weekly, deterministic and key-free — the LLM analysis stage was retired rather than repaired, because the report nobody read was also what made an empty pipeline look healthy. **librarian is a public repo**, and its derived session material (`raw/`, the wiki session log) carries verbatim prompts; both are gitignored, and that boundary is load-bearing, not hygiene.
 - **playground** — the R&D lab: three parallel agent implementations over a shared KB; patterns prove out here before migrating to flagships.
 - **ai-project-template** — Copier template extracting the tooling layer; owns its own discovery stack (scope-poc, project-discovery, project-genesis) by design — kept its own thing, not globalized.
 

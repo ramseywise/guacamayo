@@ -158,7 +158,7 @@ The retro is heavy (reads transcripts, proposes config changes). Spawn it rather
 Agent(model: "sonnet", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
-  Task: Run /workflow-retro. Read .sounding/insights-log.md for latest insights data,
+  Task: Run /workflow-retro. Read .sounding/insights/insights-log.md for latest insights data,
   then propose config changes. Update .sounding/tooling-ledger.md (active hypotheses)
   and .sounding/tooling-ledger-log.md (graduated experiments). Increment retro number
   from the latest R# header in tooling-ledger-log.md.

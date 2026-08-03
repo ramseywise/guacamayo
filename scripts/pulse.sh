@@ -23,8 +23,10 @@ else
 fi
 
 # Retro status
-INSIGHTS_DATE=$(head -5 .sounding/insights-log.md 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1 || echo "unknown")
-if [ "$INSIGHTS_DATE" != "unknown" ]; then
+# Test emptiness, not a sentinel: the `|| echo` never fires because the trailing
+# `head -1` exits 0 even when grep matched nothing.
+INSIGHTS_DATE=$(head -5 .sounding/insights/insights-log.md 2>/dev/null | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | head -1)
+if [ -n "$INSIGHTS_DATE" ]; then
   INSIGHTS_EPOCH=$(date -j -f '%Y-%m-%d' "$INSIGHTS_DATE" '+%s' 2>/dev/null || echo "0")
   NOW_EPOCH=$(date '+%s')
   DAYS_AGO=$(( (NOW_EPOCH - INSIGHTS_EPOCH) / 86400 ))

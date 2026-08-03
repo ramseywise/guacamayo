@@ -1,184 +1,110 @@
-# Handover — 2026-08-02 Status-enum arc phase 1 + three librarian branches + insights outage
+# Handover — 2026-08-02 (late) LIB-60 executed and closed; LIB-65 initiative closed
 
-**Context**: Started as an ingest-only `/grow`; became a close-out session on the guacamayo
-board. All landing claims below were verified by SHA ancestry against `origin/main`, not by
-label, commit message, or plan `Status:` line.
-
-## Shipped this session
-
-**GUA-75 phases 2-3 COMPLETE** — all 7 remaining repos migrated in one pass.
-**Hook-verified 123/123 across all 8 repos, zero warnings** (`plan_status_validate.sh`
-invoked directly on every doc). 28 values migrated, 14 unstamped backfilled with `Evidence:`
-lines, 6 excluded by kind, **41 docs given a missing `Review:` line**. Results + the five
-spec corrections are in the #75 comment. Four of those corrections matter beyond this issue:
-
-1. **Phase 1's "43/43" was wrong.** Enum-token conformance is not hook conformance — the
-   hook also requires `EXECUTED`→`Review:` and `SUPERSEDED`→`Superseded-by:`. 41 docs
-   failed it, **16 in guacamayo**. Produce conformance claims by *invoking* the hook.
-2. **Plan docs are git-ignored in all 8 repos** (`git ls-files` returns 0). Phases 2-3
-   needed no branches/commits/PRs; the per-repo-session framing was never applicable.
-3. **Mechanics #2 was false** — `**Status:**` (colon inside) matches 5 docs, not zero.
-4. **The metric measured a directory, not a doc kind** — 4 review-verdict outputs and 2
-   frontmatter wiki docs are not plan docs.
-
-**GUA-75 phase 1** — guacamayo plan-doc Status corpus migrated **32/43 → 43/43 conforming**.
-11 docs edited under `.claude/docs/plans/`. Two were *corrected*, not mechanically migrated:
-`2026-07-31-CLA-69-*.md` went `IN PROGRESS → COMPLETE` with an `Evidence:` line citing
-`19e2c39`'s verified ancestry. Phases 2-3 are a **per-repo checklist inside #75** — the
-12-point mechanics block lives once in #75's body.
-
-**Board made hierarchical** — `addSubIssue` called for the first time (R7 F2 said the template
-existed at `github-projects/SKILL.md:93` and nothing called it; confirmed). #65 now has 4
-sub-issues (#73/#74/#75/#79). The durable fix — `workflow-refine` calling it on split — is
-still **not** wired.
-
-**Board hygiene correction (Ramsey's, mid-session).** I had taken the board 8 → 16 while
-calling it a cleanup: filed #81-#87 (one flat sibling per repo) plus #88, closed zero.
-Collapsed #81-#87 back into a checklist in #75 and transferred #88 to **librarian#86**
-(cross-repo issues belong in the target repo, not on the guacamayo board). **Back to 8 open.**
-Standing correction: decomposition and paperwork look identical at the moment you do them —
-the test is whether each piece gets *worked*, not whether each piece is well-formed.
-
-**librarian#86 (ex-#88) FIXED and verified** — see "insights outage" below. Branch
-`LIB-86-section-contract-wiring`, **uncommitted**, 2 files. 471 pass / 2 skip, ruff clean,
-real end-to-end run produced a 63,916-byte report with all nine section IDs.
-
-**Three librarian branches**, one commit each, base `5a67d71`, worktrees torn down:
-
-| Issue | Branch / commit | Result |
-|---|---|---|
-| #41 | `LIB-41-error-taxonomy` `acd9a65` | `other` bucket 42.0% → **3.1%**; 480 tests pass |
-| #50 | `LIB-50-findings-table` `5019e52` | findings SQLite projection, 3/3 gates, `parse_findings()` byte-identical |
-| #64 | `LIB-64-eval-tab` `1579df8` | `SKILL-EVALS` region; **363 pass / 0 fail / 3 skip** verified end-to-end |
-
-#64's guacamayo half is done here too (nav + `#evals` section + markers in
-`context-dashboard.html`, uncommitted). Safe to land before librarian merges — main's
-`inject_regions` skips unknown markers with a warning rather than crashing.
+**Context**: librarian cartographer. All six steps of the LIB-60 plan executed and merged;
+issues #60 and #65 closed. **librarian's open-issue count is 0.** A privacy exposure was
+found and closed mid-session. Guacamayo identity synthesis ran (36 entries → seeds).
 
 ## Current State
 
-### What moved since the last handover (2026-08-01 late)
+**Merged to librarian `main` (verified by content on `origin/main`, not by message):**
+- `tools/cartographer/__main__.py` — `--no-derive` / `--since` flags; derivation block runs
+  before `from_notes`; fails loud via `EmptyInputError` when the JSONL source yields nothing.
+- `tools/cartographer/migrate.py` — `derive_notes()`, `_derive_project()`, `_note_stem()`
+  (appends `-<sid8>` so same-day sessions cannot collide), `_render_skeleton()`.
+- `tools/cartographer/cron.py` — −400 lines. Entire LLM analysis stage retired
+  (`build_analysis_prompt`, `run_analysis`, `save_report`, `extract_and_write_commands`,
+  pricing tables, facet loaders). `EmptyInputError` **kept** and re-documented. `--cron` is
+  now deterministic and key-free.
+- `tools/cartographer/cartographer-cron.sh` — one log per mode
+  (`cartographer-facts.log` / `cartographer-cron.log`); `REPO_DIR` fixed to `../..`.
+- `tests/unit/test_cron_empty_input.py` — rewritten, 10 tests, both directions.
+- `tests/unit/test_migrate_derivation.py` — new, 6 tests.
+- `.gitignore` — `raw/`, `data/raw/`, `data/db`, and `data/wiki/meta/session-log.md`.
 
-| Item | Then | Now |
-|---|---|---|
-| guacamayo **#69** (`quick-pr` escapes issue-linking) | `ready`, called "highest-leverage open fix" | **CLOSED + LANDED** — `19e2c39` is an ancestor of `~/.claude` origin/main |
-| guacamayo **#78** (lint parity) | not yet filed | **CLOSED + LANDED** — `36be12e` on origin/main |
-| librarian #57/#58/#59/#61/#75 | 8 open, deepest queue | **all closed** — librarian down to 3 open |
-| guacamayo #63 / #73 | drifted open after merge | **closed** |
-| `~/.claude` **`2863fb4`** guard fix | unlanded, two identical branches | **STILL UNLANDED**, still two identical branches |
+**Verification captured**: 343 notes derived; second run derives 0; empty `--projects-dir`
+→ `FATAL: no JSONL sessions found ... refusing to run on empty input`, exit 1; `--cron`
+with `ANTHROPIC_API_KEY` unset → exit 0, 348 files tagged, 14 new wiki dates. Suite:
+**539 passed / 2 skipped**, `ruff check .` clean. Guard proven falsifiable by planting
+`if False and not sessions:` → 3 tests failed.
 
-### The one thing still owed (unchanged, 24h)
-
-`~/.claude` `2863fb4` — the CLA-71 guard fix. Sits on `bug/risky-guard-variable-cd` **and**
-`CLA-8-insights-computed-columns`, empty diff between them, neither with an upstream.
-`~/.claude` local main is behind 42. Pick one branch, delete the other, ship.
-
-### New drift found this ingest
-
-1. **Cache drift, inverse direction.** Yesterday: issues open while work was on main.
-   Today: `#69` and `#78` are **closed** while their plan docs still read
-   `Status: IN PROGRESS` and `Status: EXECUTED`. Neither artifact is authoritative — the
-   pair disagreeing is the signal. This is exactly what the GUA-65/74/75 status-enum
-   workstream exists to fix, which makes it that workstream's own best test case.
-2. **Artifact sprawl, third sighting, now cross-issue.** `CLA-78-lint-parity` tip
-   `92649ba` is **unlanded**, but a byte-equivalent commit `36be12e` reached origin/main
-   from the `CLA-74-status-writers` branch. Same shape as `2863fb4`-on-two-branches: a
-   branch named for one issue carries another issue's landed copy. `CLA-74-status-writers`
-   is locally ahead 2 of its own remote while both those commits are already on main.
-3. guacamayo local `main` is **behind 12**; checkout is on `GUA-73-status-enum-design`
-   (PR #80 merged). `GUA-63-session-id-findings` has a `gone` upstream — safe to delete.
-4. **`/workflow-insights` was totally down since librarian#61 landed** — **now FIXED**
-   (librarian#86, branch `LIB-86-section-contract-wiring`, uncommitted).
-   Not flaky, not a timeout: `_SYSTEM_PROMPT` in `librarian/tools/cartographer/parser.py`
-   held the entire nine-section-ID contract and was **referenced nowhere**; `call_claude`
-   hardcoded a one-line system string; `build_prompt` never mentioned sections. The
-   validator enforced IDs the model was never asked for. Attempt 1 got 0/9; the retry
-   recovered exactly 2 because it names the missing IDs inline in the *user* message. All 3
-   tests passed because they patch `call_claude` with canned HTML that already has the IDs.
-   **Two further failures only executing could reveal**: a conforming report is ~17.2k
-   tokens, so it truncated at `max_tokens=8192` **and** at `16384` (the old ~6.2k reports
-   were the model writing freely — never evidence about a *conforming* report's size); then
-   at `32768` the SDK refused non-streaming ("Streaming is required for operations that may
-   take longer than 10 minutes"). Fix is: wire `system=_SYSTEM_PROMPT`, `_MAX_REPORT_TOKENS
-   = 32768`, `client.messages.stream()` + `get_final_message()`, and a distinct
-   `ReportTruncatedError` so truncation never again reads as a contract failure.
-   New tests patch `anthropic.Anthropic`, not `call_claude`, and assert the section IDs
-   reach the **outgoing payload** — including on the retry. Negative test executed: reverting
-   `system=` fails exactly those 2 tests.
-5. **Warn-mode hooks are invisible.** `plan_status_validate.sh` surfaces nothing in the tool
-   result; the text exists only in `~/.claude/.hook-log.jsonl`. Every phase-1 "verified
-   conforming" claim was checked against a hook that could have been disagreeing silently.
-   This reframes **#79** from a strictness preference to fixing a no-op.
+**Uncommitted (guacamayo — hers to commit):**
+- `.sounding/context-dashboard.html`
+- `.sounding/growth/growth.md` (accumulator cleared by this synthesis)
+- `.sounding/growth/growth-log.md`, `.sounding/sounding.md`, `.sounding/portfolio.md`
+- `.sounding/reflections/2026-08-02_22-13.md` + index line
+- `.sounding/notes/handover.md`
 
 ## Decisions Made
 
-- **Verified landing by SHA ancestry, not by any summary artifact.** `git merge-base
-  --is-ancestor` for each of `19e2c39`, `36be12e`, `2863fb4`, `92649ba`. Two landed, two not.
-  The "ahead 2" branch status was misleading — those commits were already on main.
-- **Did not delete any branch, prune any worktree, or close any issue.** Shared/destructive
-  state is Ramsey's call; flagged instead.
-- **Did not fix the stale plan `Status:` lines.** They are evidence for the GUA-74/75
-  workstream; correcting them by hand would erase the test case before the validation hook
-  is proven against it.
-- **Spawned `/workflow-insights` in background** with an explicit bare-filename instruction.
-  Noted from yesterday: that instruction alone did **not** hold — SKILL.md's literal step
-  wins. R7 P4 (the one-line skill fix) is still unapplied and is still the cheapest open fix.
+- **`raw/` and `data/wiki/meta/session-log.md` are now gitignored, and the session log was
+  untracked (`git rm --cached`).** librarian is a **PUBLIC** repo. LIB-60's gap-3 fix (real
+  topics in the wiki session log) put 237 rows of **verbatim first prompts** into a tracked
+  file — a change in kind from the curated summaries in earlier revisions. Earlier history
+  is safe; the new rows were not. Do not re-track either path.
+- **The amended Step 4 was followed, not the original.** The original said to delete
+  `EmptyInputError`; that class shipped via PR #92 the day before and is the fix. The plan
+  doc was a snapshot of a repo that had moved.
+- **`guacamayo#66` is a phantom** — cited 4× in LIB-65's body as a Phase 3 child, has never
+  existed. References **struck in place with a correction note**, not deleted: a parent whose
+  AC is "closes when all children close" can never close against an imaginary child, and a
+  silently-removed phantom teaches no future grooming pass.
+- **LIB-75 was already shipped** — confirmed by content on `origin/main`
+  (`git grep -cE "def patch_(input_tokens|skill_economics|tool_trends|friction_regroup)_card"`
+  → 4), not by its stale `ready` label.
+- **Plan doc stamped `Status: EXECUTED` + `Review: pending`** with a full execution record
+  (per-step table, AC table 4/4, two unanticipated findings).
 
 ## Open Threads
 
-- **CLA-67's hypothesis now has a real fix in code**, not just an issue. `absence:merged-PRs-without-closing-links`
-  should be re-measured at the next retro — this is the first cycle where the mechanism is
-  actually closed. If it fails again post-`19e2c39`, the diagnosis was wrong.
-- **Nothing escalates a flagged-and-unfixed item.** `2863fb4` was called "the only genuinely
-  unlanded work in the portfolio" 24h ago and is unchanged. Flagging is not a mechanism.
-- **Duplicate-branch detector is still worth building.** The signature is stable and cheap:
-  N branches, one tree, no upstream, or a tip whose content is already on main under a
-  different SHA. Three confirmed instances now (AIT #40/#42, `~/.claude` guard, CLA-78).
-- **Bash antipatterns — I contributed another one this session** (`grep ... scripts/quick-pr*`,
-  zsh nomatch, mid-compound-command). One day after logging it as the metric moving the
-  wrong way. Knowing the rule and holding the tool preference are different things.
-- **Nothing on the board distinguishes decomposition from paperwork.** Filing #81-#87 passed
-  every convention check (parented, literal AC, one per repo) and still added six rows and
-  zero work. A candidate guardrail: a close-out session may not end with more open issues
-  than it started with, unless the new ones are being worked *this* session.
-- **AskUserQuestion needs a location dimension for cross-repo work.** I offered granularity
-  (seven vs two) and never placement; the guacamayo-vs-target-repo call was my silent
-  default surfacing as her decision. Cross-repo issues go in the **target repo**.
-- **Unchanged, still unaddressed**: the 23-skills-across-4-prefixes consolidation question;
-  red-main-accepts-merges portfolio-wide.
+- **`2863fb4` LANDED** (2026-08-03). Rebased to `f58dba4` in a throwaway worktree, then
+  `git branch -f main` — a fast-forward ref update, no authored commit. Verified by content
+  (`git grep -cE "unexpandable|cannot expand|could not expand" main -- hooks/risky_git_guard.sh`
+  → 3). `main` is `[origin/main: ahead 1]` — **hers to push**; that closes dotclaude#13.
+  Leftover duplicate pointer `bug/risky-guard-variable-cd` = `f58dba4`; `risky_git_guard.sh`
+  blocks me from `branch -D`, so deletion needs her hand.
+- **`~/.claude` uncommitted work is now on `CLA-8-config-batch`** (off main, not on it).
+  Three unrelated items batched at her direction: workflow-insights (#8), the
+  "issues live in the repo they change" convention change (no issue),
+  `skills/workflow-plan/references/golden-set-authoring.md` (no issue). Hers to commit.
+- **Runtime files untracked** (`git rm --cached`, all intact on disk): `.hook-log.jsonl`,
+  `.hook-pass-log.jsonl`, `tasks/`, and the whole `docs/` dir. `.gitignore:33` is now
+  `docs/` rather than a single file.
+- **`~/.claude/docs/` keeps getting recreated, and LIB-60 did not stop it.** Only the LLM
+  *report* stage was deleted; `cron.py:34` still points `INSIGHTS_DIR` at
+  `~/.claude/docs/insights`, and `cron.py:337-339` still writes `latest.json` there every
+  `--cron` run (last: `2026-08-03T07:40:29Z`). Gitignoring `docs/` fixes the git symptom
+  only. Real fix = repoint that writer at `guacamayo/.sounding/insights/`, where insights
+  output already lives. Same run reported `sessions_synced: 0` without complaint — `--cron`
+  doesn't fail loud on empty the way `--facts` does. **Filed: librarian#94** (`backlog`),
+  both defects, with acceptance criteria. Needs `/workflow-plan` in a librarian session.
+- **Insights-log path fixed in 5 skill files** — the real file is
+  `.sounding/insights/insights-log.md`; five places said `.sounding/insights-log.md`, so
+  every reader (`/wake`, `/grow`, `/dream`'s retro spawn, `/workflow-retro`) was pointed at
+  a nonexistent file and would have silently reported "no insights data." Fixed in
+  `~/.claude/skills/workflow-insights/SKILL.md:242`, `~/.claude/skills/workflow-retro/SKILL.md:60`,
+  and guacamayo's `wake/SKILL.md:82`, `grow/SKILL.md:97,105`, `dream/SKILL.md:161`.
+  Still stale: `ai-project-template/template/.claude/skills/workflow-insights/SKILL.md:242`
+  — vendored payload, never hand-edited; picks the fix up on the next
+  `scripts/sync-global-skills.sh` run.
+- **AIT#49** — decide: run the 60-minute dry-run, or close accepting the unvalidated AC.
+- **Temp renders on disk**: `/tmp/ait58verify`, `/tmp/aitfull{,2,3}`, `/tmp/aitdef{2,3}`,
+  `/tmp/ait56render`, `/tmp/ait56ts`, `/tmp/lib60-empty`. Cleanup blocked by
+  `destructive_cmd_guard.sh`.
+- **No verification step asks "what did this change make newly visible?"** The privacy leak
+  came from a fix working correctly. Candidate for a `/workflow-review` DoD line.
 
 ## Immediate Next Steps
 
-1. **Commit + push librarian `LIB-86-section-contract-wiring`** — the insights fix is
-   uncommitted (2 modified files). Closes librarian#86 and unblocks `/workflow-insights`.
-2. **Ramsey pushes the three librarian branches** (`acd9a65`, `5019e52`, `1579df8`) — all
-   commits are provisional; nothing was pushed. Then commit guacamayo's `#evals` dashboard
-   half plus the `.sounding/` changes on `GUA-75-migrate-status-corpus`. #41/#50/#64 close
-   on merge.
-3. **Commit `#74`'s staged work in `~/.claude`** (branch `CLA-74-status-writers`: hook + 41
-   tests + `settings.json` + 3 SKILL.md files). It is the last thing blocking #74.
-4. `~/.claude`: pick one of the two identical `2863fb4` branches, delete the other, ship.
-   Still the only genuinely unlanded work — flagged 48h now.
-5. `~/.claude`: reconcile `CLA-78-lint-parity` (`92649ba`) — its content is on main under
-   `36be12e`; delete or rebase, don't leave it as a third sprawl artifact.
-6. Fast-forward guacamayo `main` (behind 12); delete `GUA-63-session-id-findings` (upstream gone).
-7. **#79 is unblocked but must not start until #74 is committed.** The corpus is migrated
-   (123/123) and tightening the dual-separator grep is verified safe — the only remaining
-   space-form `IN PROGRESS` is prose at
-   `ai-project-template/2026-07-18-template-full-mirror-redesign.md:882`, a mechanics #9
-   false positive the hook already ignores. But #79 edits the **exact files #74 has staged
-   and uncommitted** (`hooks/plan_status_validate.sh`, `skills/{code-review,workflow-execute,
-   workflow-review}/SKILL.md`, `settings.json`). Starting it now blends two issues into one
-   blob — the artifact-sprawl shape logged three times already.
-8. **#75 is done pending your call to close it.** No PR exists (plan docs are git-ignored),
-   so there is no merge event to close it on.
-9. Next `/dream` **must synthesize** — accumulator is at **27**, threshold is 5.
+1. Commit the guacamayo working tree (reflection + synthesis + dashboard + handover).
+2. Land or delete `2863fb4` in `~/.claude` — it needs her hand either way.
+3. Triage the uncommitted `~/.claude` tooling diff.
+4. Pick the next work item: librarian is empty; guacamayo and AIT hold the open board.
 
 ## Key Files
 
-- `~/workspace/guacamayo/.sounding/growth/growth.md`
-- `~/workspace/guacamayo/.sounding/tooling-ledger.md`
-- `~/workspace/guacamayo/.claude/docs/plans/2026-08-01-CLA-74-status-writers-validation.md`
-- `~/workspace/guacamayo/.claude/docs/plans/2026-08-02-CLA-78-lint-parity.md`
-- `~/.claude/hooks/risky_git_guard.sh`
-- `~/.claude/scripts/lint-parity.sh`
+- `~/workspace/librarian/tools/cartographer/__main__.py`
+- `~/workspace/librarian/tools/cartographer/migrate.py`
+- `~/workspace/librarian/tools/cartographer/cron.py`
+- `~/workspace/librarian/.gitignore`
+- `~/workspace/librarian/.claude/docs/plans/2026-07-31-LIB-60-session-note-derivation.md`
+- `~/workspace/guacamayo/.sounding/reflections/2026-08-02_22-13.md`
