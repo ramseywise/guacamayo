@@ -52,3 +52,13 @@ repos:
         language: fail
         entry: ".claude/docs/reviews/ files are local-only and must not be committed"
         files: ^\.claude/docs/reviews/
+
+      # Ported from librarian .pre-commit-config.yaml @ aa3166e (GUA-93, F10 drift
+      # class). Machine-global ~/.claude/... defaults are naturally exempt — they
+      # are written as ~-relative, never literal /Users/.
+      - id: no-hardcoded-paths
+        name: no hardcoded /Users/ paths
+        language: pygrep
+        entry: "/Users/"
+        files: ^telemetry/
+        types: [python]
