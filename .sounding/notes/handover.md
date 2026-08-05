@@ -1,5 +1,12 @@
 # Handover — 2026-08-04 Subagent destroyed data while reporting success; LIB-94 landed after all
 
+> Updated at /dream 2026-08-05 16:48 (GUA-93 branch session, spanned midnight): fable→opus settings
+> fix landed; insights-log refreshed CLEAN on third protocol run (1450 lines, +120/−0, verified by
+> git diff) — the new `## 2026-08-05` section sits at file END, breaking newest-first order; fix
+> only after the file is committed. NOTE: I briefly re-dated that header to 08-04 using my session's
+> stale "today" and reverted — the agent's date was correct. Synthesis ran at this dream; retro
+> spawned in background (settings.json change = tooling trigger).
+
 **Context**: Meta/dispatch session, continued from 08-03. No code shipped. Three verification
 findings and two small fixes. The through-line: **the report of a mutation is a cache of the
 mutation**, now confirmed at the subagent boundary.
@@ -15,6 +22,11 @@ mutation**, now confirmed at the subagent boundary.
   This is R7 P4, which had been sitting proposed-but-unapplied for two retros.
 - `~/Library/Application Support/Code/User/settings.json:39-41` — added
   `"git.scanRepositories": ["/Users/wiseer/.claude"]`. Needs a window reload.
+- `~/.claude/settings.json:269` — `"model"` changed `claude-fable-5[1m]` → `claude-opus-5` (later
+  08-04 session, which itself started on fable — proof the setting, not the IDE picker, drove it).
+  The Jul 30 opus-default decision had landed in CLAUDE.md/memory/models.md but never in the file
+  that executes it; 5 days of sessions defaulted to the judgment-tier budget. Takes effect on new
+  sessions. Rides the uncommitted dotclaude working set.
 - **guacamayo#92 filed** (`bug`, `backlog`) — `pulse.sh:219` greps for a `id="pulse"` section that
   `context-dashboard.html` does not have (tabs are cost/context/friction/review/experiments/evals/loop).
   `/grow` Step 5 and `make pulse` have been no-ops. Three options in the body, leaning retire.
@@ -41,7 +53,7 @@ Also collapsed the double-dated report: `insights-report-2026-08-03.html` is the
 `insights-report.html` symlinked to it.
 
 **Uncommitted in guacamayo**, still on the dead `bug/insights-log-path` branch (merged, remote
-`[gone]`): `growth/growth.md` (9 entries), `insights/insights-log.md`, `notes/handover.md`,
+`[gone]`): `growth/growth.md` (12 entries), `insights/insights-log.md`, `notes/handover.md`,
 `context-dashboard.html`, plus the report files. **Needs a fresh branch off `main`.**
 
 **`~/.claude` — two separate unlanded items, neither is a PR:**
@@ -80,11 +92,11 @@ Also collapsed the double-dated report: `insights-report-2026-08-03.html` is the
   #108 (extract `core/wiki_common.py`).
 - **Issue/work drift, both directions**: librarian **#96 is still OPEN** though PR #97 merged;
   **#94 still reads `ready`** though its work is on main. Close both after confirming by content.
-- **Config drift worth a retro row**: `~/.claude/settings.json:269` declares
-  `"model": "claude-fable-5[1m]"` while both CLAUDE.md copies say the default is `claude-opus-5`.
-  This session reports as opus-5, so the IDE picker is overriding settings.json. That asymmetry —
-  spawns inherit the settings model, the interactive session doesn't — is the likely cause of
-  "auto-compact works for spawns but not this branch," since the two have different context windows.
+- **Config drift RESOLVED but retro-worthy**: `settings.json:269` fable→opus fixed later 08-04.
+  The earlier "IDE picker overrides settings" hypothesis was wrong — the later session started on
+  fable straight from settings.json. Retro row candidate: a decision documented in three doc files
+  landed in zero config files for 5 days; the config audit should diff CLAUDE.md model claims
+  against settings.json.
 - **Two live-looking OpenAI keys in plaintext** at VS Code `settings.json:6` (`metabob.chatgptToken`)
   and `:9` (`alva.apiKey`). Should be revoked.
 - **`pulse.sh` is the second defect in the same 30-line script in two sessions**, both sharing the

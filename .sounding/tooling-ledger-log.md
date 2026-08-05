@@ -31,6 +31,72 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R8 — 2026-08-05
+
+### Graduated rows (2 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-31 | Insights-report double-date path drift (R7 P4 fix) | workflow | partial-verified | Fix applied: `workflow-insights/SKILL.md:29` now passes bare `insights-report.html` (confirmed by grep). No new double-dated files since fix. Historical artifacts remain: `.sounding/insights-report-2026-08-01-2026-08-01.html` (historical), `.sounding/insights-report.html` + `.sounding/insights-report-2026-07-31.html` at root (pre-fix era). Metric `absence:writes-to-sounding-root-reports` partially failing (root artifacts not cleaned up). Graduating as partial-verified; cleanup is a one-time file operation, not a config lever. |
+| 2026-08-05 | task_complete_check.sh e2e false-block fix | quality | fixed-pending-commit | Hook edited in `~/.claude/hooks/task_complete_check.sh` (new `elif [ -d tests/e2e ]` branch). Fix latent since hook was written; triggered by LIB-110 Phase C1 `tests/unit/` deletion. Uncommitted — Ramsey commits. Graduating from active ledger; metric `absence:stop-hook-e2e-false-blocks` starts now. |
+
+### R8 findings
+
+- F1: Config drift — model default documented but not applied to settings.json for 5 days → config-audit diff proposed
+- F2: `~/.claude/` unversioned source → sync churn; fix-at-source requires design decision (dotclaude git repo)
+- F3: dotclaude ref-without-commit push failure, third sighting → pre-push guard proposed
+- F4: Insights-agent spawn protocol proven safe on third attempt → encode protocol in `/grow` skill
+- F5: Fable leaking into non-verdict skills (17.74% vs 5% target, metric failed) → subagent model-pin audit
+- Carry-forward: R7 P1 (Co-Authored-By ban) and R7 P2 (sub-issue linking) still unapplied — restate proposals
+
+### R8 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F1): Add model-claim vs settings.json diff to retro config-health Step 0.5**
+Add to `~/.claude/skills/workflow-retro/SKILL.md` Step 0.5 Check B:
+```
+(5) CLAUDE.md model default claim (`Default session model:` line) matches `model` key in `~/.claude/settings.json`.
+    Mismatch = BLOCKER (config drift can go undetected for days — see R8 F1: 5-day gap 2026-07-30→2026-08-04).
+```
+Eval sketch: before = Check B has 4 sub-items ending at "(4) no secrets"; after = Check B has 5 sub-items; judgement = run the check against a settings.json with `model: claude-fable-5` and CLAUDE.md claiming opus — should surface BLOCKER.
+
+**P2 (F2): dotclaude versioning — design decision needed**
+No config diff proposed. Options: (a) `git init ~/.claude` and track skills/ hooks/ explicitly, (b) keep unversioned but add a `git status`-equivalent to sync-global-skills.sh to warn on unsaved changes before sync. Option (a) is the correct fix but requires Ramsey decision. Filed as `improve` — needs design before actionable.
+
+**P3 (F3): pre-push ref-without-commit guard**
+New check in `~/.claude/hooks/risky_git_guard.sh` (or a new `pre_push_guard.sh`): if `git push` fires and `git rev-list origin/{branch}..HEAD` is empty (no commits ahead of remote), block with message:
+```
+[risky-git-guard] Branch has no commits ahead of remote. Did you forget to commit? Aborting push.
+```
+Advisory-safe: only blocks if the branch ref exists at remote AND local HEAD matches it (genuine empty push).
+
+**P4 (F4): Encode insights-agent spawn protocol in `/grow` SKILL.md**
+Add to `~/.claude/skills/grow/SKILL.md` (background-spawn section, currently step describing `/workflow-insights` spawn):
+```
+**Insights-agent spawn protocol** (proven after two data-destruction events):
+- Content invariants: agent must verify output file is *strictly longer* (line count) than input and all prior section headers are present before accepting.
+- Named tool: agent uses Edit tool directly — never shell redirection (`>`) which silently truncates on failure.
+- Dispatcher verification: after agent completes, run `git diff --stat` and reject if net line count is negative.
+```
+Eval sketch: before = grow SKILL.md has no spawn protocol; after = protocol is visible to any session reading /grow before spawning; judgement = a fresh session reading the skill will see the three constraints without needing prior session context.
+
+**P5 (F5): Pin subagent model in workflow-research/plan/refine**
+Audit `~/.claude/skills/workflow-research/SKILL.md`, `workflow-plan/SKILL.md`, `workflow-refine/SKILL.md` for any subagent spawn instructions. Where a model is not explicitly specified, add `--model claude-opus-5` (or `claude-sonnet-5` for fan-out/extraction agents). Fable should appear only in verdict-shaped skills. Metric unchanged from R7: `ratio:fable-tokens-in-non-verdict-skills below 5% by 2026-08-13`.
+
+**P6 (carry-forward R7 P1): Co-Authored-By ban in CLAUDE.md**
+(Reproduced from R7 — still unapplied.)
+Add to `~/.claude/CLAUDE.md` Communication block:
+```
+- Never add a `Co-Authored-By:` trailer to a drafted commit message or PR body.
+  Ramsey commits and does not want Claude named as co-author.
+```
+
+**P7 (carry-forward R7 P2): Sub-issue linking in workflow-refine + CLAUDE.md**
+(Reproduced from R7 — still unapplied.)
+1. `~/.claude/skills/workflow-refine/SKILL.md:152` — replace "offer to create the sub-issues (labeled `backlog`)" with: "For `needs-split` items, offer to create real sub-issues (labeled `backlog`) linked to the parent via `addSubIssue` (template in github-projects SKILL.md:93). Sub-issues ride the parent's branch and PR — do NOT create a separate branch per sub-issue."
+2. `~/.claude/CLAUDE.md` Session hygiene — add after worktree dispatch rules: "**Sub-issues ride the parent branch.** When workflow-refine splits an issue, sub-issues are linked via `addSubIssue`, land on the parent's branch, and close via `Closes #N` in the same PR."
+
+---
+
 ## R7 — 2026-08-01
 
 ### Graduated rows (5 retired this retro)
