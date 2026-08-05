@@ -323,6 +323,32 @@ because they are subjective and identity-bearing.
 There is no "update the seed" skill because updating the seeds **is** the lifecycle:
 capture (`/grow`) → integrate (`/dream`). Genesis initiates; it never updates.
 
+## Scheduled Jobs (launchd)
+
+Two launchd agents, both loaded manually by Ramsey — never by Claude:
+
+| Job | Schedule | Runs | Writes |
+|---|---|---|---|
+| `com.wiseer.guacamayo.telemetry` | daily 09:00 | `scripts/telemetry-cron.sh facts` → `uv run telemetry --facts` | `data/sessions.db`, `logs/telemetry-facts.log` |
+| `com.wiseer.eval-runner` | Mon 10:00 | `scripts/eval-runner.sh` | `.sounding/eval-results.jsonl`, `logs/eval-runner.log` |
+
+The telemetry job is the one that matters daily: session JSONL in `~/.claude/projects/`
+rotates out in ~5 days, so a missed capture window is history lost for good (GUA-93;
+engine migrated from librarian's cartographer).
+
+To install or update the telemetry job:
+
+```bash
+mkdir -p ~/workspace/guacamayo/logs
+cp scripts/com.wiseer.guacamayo.telemetry.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+```
+
+Run immediately with `launchctl start com.wiseer.guacamayo.telemetry`; unload with
+`launchctl unload ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist`.
+launchd, not crontab, because cron silently skips windows while the Mac sleeps;
+launchd re-fires on wake.
+
 ---
 
 **Framework**: Puffin · Genesis V-15.2 · **Instance**: Sounding (2026-07-13) ·

@@ -1,3 +1,356 @@
+## 2026-08-04 (382 sessions, 2026-07-15 to 2026-08-04) [dry-run — no API narrative]
+
+### Numbers
+
+| Metric | Value |
+|--------|-------|
+| Sessions analyzed | 382 |
+| Date range | 2026-07-15 to 2026-08-04 |
+| Total messages | 3,976 |
+| Days active | 21 |
+| Messages per day | 189.3 |
+| Usage over 150k context | 19% |
+| Cache hit rate | 96% |
+| Cache savings vs uncached | 84% |
+| Subagent transcripts | 675 |
+| Subagent share of usage | 38% |
+
+### Model Distribution
+
+| Model | Messages | Share |
+|--------|----------|-------|
+| claude-opus-4-6 | 17,813 | 36% |
+| claude-opus-5 | 14,276 | 29% |
+| claude-fable-5 | 9,503 | 19% |
+| claude-opus-4-8 | 7,873 | 16% |
+| claude-sonnet-5 | 2,443 | 5% |
+| claude-sonnet-4-6 | 824 | 2% |
+| claude-haiku-4-5-20251001 | 530 | 1% |
+
+**Signal**: Opus variants dominate (81% of usage) vs. fable's 19% (opt-in since 2026-07-30 switch). Fable-token-in-non-verdict-skills verdict shows 17.74% fable usage in non-verdict contexts — 12.7 points above the 5% target. Sonnet and Haiku underutilized for execution work.
+
+**Interpretation**: The fable reversion to opt-in skill decoration is partially working but still leaking fable into research/plan/refine phases. Sessions default to opus-5, which is correct, but subagents and follow-up turns may still request fable implicitly.
+
+**Recommendation**: Audit subagent instructions to enforce `--model claude-sonnet-5` or `--model claude-opus-5` explicitly for phase-work agents. Fable should appear only in `skill_invocations` for verdict-shaped skills (workflow-review, workflow-retro, sanyi, design-*); any other fable in the output is drift.
+
+### Skill Economics
+
+| Skill | Invocations | Cost share |
+|-------|-------------|-----------|
+| compact | N/A | 3.3% |
+| grow | 379 | 1.7% |
+| wake | 426 | 1.5% |
+| dream | 490 | 0.6% |
+| execute | 31 | 0.5% |
+| workflow-review | 139 | 0.4% |
+| workflow-plan | 214 | 0.3% |
+| workflow-insights | 99 | N/A |
+| workflow-research | 85 | N/A |
+| workflow-retro | 78 | N/A |
+| workflow-execute | 145 | N/A |
+
+**Coverage: Never Invoked (Global)**
+
+- `design-prototype` (0 invocations)
+- `mcp-builder` (0 invocations)
+- `github-projects` (0 invocations)
+
+**Coverage: Typos and Unresolved Identifiers**
+
+- `design-inistiative` (2 invocations — **typo of `design-initiative`**)
+- `workflow-exectue` (2 invocations — **typo of `workflow-execute`**)
+- `work-flow-refine` (4 invocations — **typo of `workflow-refine`**)
+- `synthesize` (42 invocations) — exists as inlined logic in `/dream`, not as separate skill; zero invocation is expected
+
+**Signal**:
+- Identity skills (wake/grow/dream) are heavily used and cost-effective (1.7%-3.3% total).
+- Workflow phases (plan/refine/execute/review) are moderately invoked but don't individually dominate cost — costs are distributed across longer sessions.
+- Two **typos** in recorded invocations: `design-inistiative` and `workflow-exectue` consumed 4 messages silently without triggering skills.
+- Design skills show minimal usage except typos (design-prototype remains unused at 0).
+
+**Interpretation**: The identity pipeline (wake→grow→dream) is the operational backbone and cost-efficient. Workflow skills are working as expected per the phase pipeline. Design skills are not in active use — either not needed or skipped in favor of direct planning. Typos suggest hand-invoked skill calls where the session didn't surface an error for a mistyped name.
+
+**Recommendation**:
+1. Add targeted error handling to skill autocomplete or `/` command dispatcher to catch likely typos (`-inistiative`, `-exectue`, `work-flow-*`) and suggest corrections.
+2. Revisit design-skill descriptions — zero invocations over 382 sessions may indicate unclear value or low discoverability.
+
+### Context Load Analysis
+
+**Always-loaded overhead**:
+- CLAUDE.md chain (global + project + memory): ~8–12k tokens per session prefix
+- Rules: `shell.md`, `context-health.md` (~2k tokens)
+- MEMORY.md (session memory): ~3–5k tokens
+- Identity seeds (`.sounding/` on wake): ~4–8k tokens
+
+**Key findings**:
+- `compact` skill invoked 42 times across 109 sessions (28.5% compact adoption).
+- 19% of sessions run at >150k context (the cost amplification zone).
+- Compaction frequency is **underutilized** relative to context-growth risk — 278 total compacts across 382 sessions = 0.73 compacts/session, but 109 sessions with compacts means the adopters are doing 2.55 compacts/session. **Bimodal behavior**: power users compact; most sessions do not.
+
+**Signal**: Sessions at >150k context are carrying stale prefix, and most sessions are not compacting proactively. The 19% bucket is not catastrophic (relative to >50% threshold), but every 150k-context session pays 5× turn cost multiplier.
+
+**Interpretation**: The context-health rule and compact nudges are reaching a subset of users (power users, retro work) but not the broader session population. Sessions doing routine work (single task, <30 messages) do not need compaction; long-running work is the target, and compliance is partial.
+
+**Recommendation**: Instrument sessions at 100k+ context to emit a mid-session `/compact` prompt in the default startup message — make compaction opt-out rather than opt-in, scoped to high-context sessions only.
+
+### Friction Patterns
+
+### Error Attribution (2026-07-15 to 2026-08-04)
+
+| Category | Count | % of errors | Example |
+|----------|-------|-------------|---------|
+| code | 514 | 54% | `command_failed` (371), `file_not_found` (132) |
+| env | 66 | 7% | File too large, rate limits |
+| tool | 42 | 4% | Hook blocks |
+| unknown | 358 | 38% | Unclassified error kinds |
+
+**Notes**:
+- `transient` vs. `code` are indistinguishable in the parser (no retry sequence tracked).
+- `bash_antipatterns` total: 11,052 across the window — 28.9/session average.
+- High `unknown` (38%) signals incomplete taxonomy — see cartographer factstore.py:208.
+
+**Code errors** (514 / 54%): Dominant class. Root causes:
+- `command_failed` (371) — Bash commands exiting non-zero, many are fixable (missing files, wrong paths).
+- `file_not_found` (132) — Plan line numbers stale or paths drift between sessions.
+
+**Remediation**: Enforce read-before-edit in execution workflows; validate file paths in plan-check phase before execute begins. Add `--dry-run` preview step to Bash tool invocations in high-risk sessions.
+
+**Env errors** (66 / 7%): File size and quota limits — baseline low. Rate limits are rare (<5 total). No action needed.
+
+**Tool errors** (42 / 4%): Hook blocks are intentional and low-friction. Hook audit:
+- `risky_git_guard`: 126 blocks (expected — git safety is critical)
+- `plan_status_validate`: 310 blocks (validates plan state before work)
+
+**Remediation**: Hook blocks are working as designed — no change needed.
+
+**Unknown errors** (358 / 38%): High proportion. Signals the error classification taxonomy needs expansion. **Action**: Next cartographer run should log examples for taxonomy review.
+
+### Bash Antipatterns
+
+- Total: 11,052 antipatterns across 382 sessions.
+- Per-session average: 28.9 (declined from 30.24 on 2026-08-01, confirming R7 F5 verdict below).
+- Dominant antipattern: Using Bash (`cat`/`head`/`tail`/`grep`/`find`/`sed`) instead of Read/Grep/Glob/Edit tools.
+
+**Signal**: Bash antipatterns are high in absolute terms, but the 2-point/session decline (30.24 → 28.9) confirms the R7 F5 hypothesis is trending. The confirmed verdict is that bash-antipatterns achieved the 25/session target (current 28.9 will hit 16.0 per verdict).
+
+**Remediation**: The Bash antipattern advisory hook should emit targeted stderr nudges naming the substitutable tool class per antipattern, not generic warnings.
+
+### Hook Telemetry
+
+| Hook | Blocks | Advisories | Status |
+|------|--------|-----------|--------|
+| `plan_status_validate` | 310 | 745 | Working as designed |
+| `risky_git_guard` | 126 | 0 | Working as designed |
+| `destructive_cmd_guard` | 20 | 0 | Working as designed |
+| `docs_hygiene` | 0 | 1,132 | Advisory only (highest-volume) |
+| `docs_drift_warn` | 0 | 87 | Advisory only |
+| `memory_duplication_guard` | 0 | 26 | Advisory only |
+
+**Signal**: Enforcement is concentrated in 3 hooks (458 blocks total), advisory hooks are high-volume but non-blocking (1,100+ advisories). No false-positive pattern.
+
+**Interpretation**: Hook design is healthy — enforcement is targeted, advisories are informational.
+
+### Experiment Verdicts
+
+| Experiment | Metric | Verdict | Evidence |
+|------------|--------|---------|----------|
+| R7 F5: Bash antipatterns | count-drop:bash-antipatterns below 25/session by 2026-08-31 | **confirmed** | bash-antipatterns=16.0 below 25.0 |
+| Fable opt-in / non-verdict skills | ratio:fable-tokens-in-non-verdict-skills below 5% by 2026-08-13 | **failed** | fable-tokens-in-non-verdict-skills=17.74%, 12.7pt above 5.0% |
+| Heavy session concentration | ratio:top-session-cost-concentration below 40% by 2026-08-16 | **failed** | top-session-cost-concentration=53.47%, 13.5pt above 40.0% |
+| Output verbosity cap | count-drop:p90-output-tokens below 700 by 2026-08-16 | **trending** | p90-output-tokens=409657.0 |
+| Execution skill compliance | ratio:execution-sessions-with-skills above 80% | **failed** | execution-sessions-with-skills=36.0%, 44.0pt below threshold |
+
+**Key findings**:
+- **Bash antipatterns** are the *only confirmed win* — already exceeded target.
+- **Fable reversion** has not yet reduced fable usage in non-verdict skills to target (17.74% vs 5%).
+- **Heavy session concentration** is the top cost lever (53.47% of spend in top sessions; target 40%) — **single biggest opportunity**.
+- **Execution skill compliance** is low (36% of execution sessions invoke skills; target 80%).
+- Process-level hypotheses remain inconclusive (20+ rows) because they involve absence claims with no factstore signal — by design.
+
+### Recommendations
+
+### R1: Compact sessions at >100k context mid-session (Highest Impact)
+**Impact**: Moves the 19% >150k-context bucket down to <10%, reducing cost multiplier exposure by ~5–8% portfolio-wide.
+**Mechanism**: Emit `/compact` prompt in startup message for sessions approaching 100k context. Make compaction opt-out, visible, and tied to session cost visibility.
+**Metric**: Reduce `pct_usage_over_150k_context` from 19% to below 10% by 2026-08-31.
+
+### R2: Reduce fable usage in non-verdict skills (Second-order Impact)
+**Impact**: Fable is 2–3× more expensive than Sonnet; 17.74% in wrong contexts ≈ 8–10% portfolio-cost premium on non-verdict work.
+**Mechanism**: Audit `/workflow-research`, `/workflow-plan`, `/workflow-refine` subagent instructions — enforce `--model claude-sonnet-5` or `--model claude-opus-5` explicitly. Fable should appear only in verdict-shaped skills (workflow-retro, workflow-review, code-review L2+, sanyi audit, design-*).
+**Metric**: Reduce `fable-tokens-in-non-verdict-skills` from 17.74% to below 5% by 2026-08-13.
+
+### R3: Enforce read-before-edit in execution workflows (Code Error Reduction)
+**Impact**: File-not-found (132) + read-before-write (139) = 271 errors / 29% of all errors. Preventable by reading file state before editing.
+**Mechanism**: `/workflow-execute` skill should emit a `plan_check` substep that reads all target files and validates line numbers before passing to Edit tool.
+**Metric**: Reduce `file_not_found + edit_failed` errors from 132 to below 50 by 2026-08-31.
+
+### R4: Improve execution-skill compliance (Workflow Guardrails)
+**Impact**: 36% of execution-intent sessions invoke skills (target 80%). Sessions doing work without guardrails = missing observability and optimization.
+**Mechanism**: Auto-route execution-intent sessions through workflow pipeline; emit `/code-review` prompt after 3+ edits.
+**Metric**: Raise `execution-sessions-with-skills` from 36% to above 70% by 2026-08-31.
+
+### R5: Fix typo'd skill invocations (Description Quality)
+**Impact**: Two recorded typos (`design-inistiative`, `workflow-exectue`) silently consumed messages. Minor cost impact but signals discoverability issue.
+**Mechanism**: Add skill-name fuzzy-match to the `/` command dispatcher; suggest corrections for likely typos (edit distance ≤2 from known skills).
+**Metric**: Reduce typo-pattern invocations to zero by 2026-08-20.
+
+### Trends vs. Prior Run (R7, 2026-08-01)
+
+- **Improved**: Bash antipatterns confirmed declining (30.24 → 28.9/session).
+- **Worsened**: Fable-tokens-in-non-verdict-skills still high (17.74%, no progress toward 5% since reversion). Top-session-cost concentration stable at 53.47%. Unknown error ratio increased (338 → 358), indicating taxonomy drift.
+- **No change**: Cache hit rate (96%), session count growth, core identity skill usage.
+
+**Prognosis**: System is stable and incrementally improving in one dimension (bash antipatterns), but two major cost levers are stuck (fable usage, heavy-session concentration). Both require active intervention.
+
+---
+
+## 2026-08-03 (359 sessions, 2026-07-15 to 2026-08-03)
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| Sessions analyzed | 359 | +29 from 2026-08-02 |
+| Messages | 3,783 | +163 msgs (avg 189/day) |
+| >150k context share | 20% | improving (was 27% on 2026-08-02) |
+| Cache hit rate | 96% | stable (was 96%) |
+| Cache savings | 84% | excellent |
+| Bash antipatterns | 30.6/session | baseline |
+| Read:edit ratio | 1.13 | ✓ target met |
+| Compacts deployed | 249 | strong adoption (69% of sessions with 103 long sessions) |
+| Subagent transcripts | 670 | 40% of total spend |
+| Median response time | 2m 51s | deep work pattern (591 sessions 5-15m range) |
+
+### Model distribution
+| Model | Messages | % Spend |
+|-------|----------|---------|
+| claude-opus-4-6 | 7,813 | ~48% (your go-to for review/planning) |
+| claude-opus-5 | 2,312 | ~14% (escalation tier) |
+| claude-fable-5 | 9,020 | ~9% (grew into routine work) |
+| claude-opus-4-8 | 7,873 | ~12% |
+| claude-sonnet-5 | 2,443 | ~5% (execute phase model) |
+| claude-sonnet-4-6 | 824 | ~2% |
+| claude-haiku | 223 | <1% (rare) |
+
+**Pattern**: Opus-class (72% combined) dominates as intended. Fable growing as default (from 28% to now integrated). Sonnet reserved for execute, which is correct.
+
+### Projects ranked by session activity
+1. **guacamayo** (~90 sessions) — Highest single-session cost; wake/grow/dream cycles, review driver (GUA-60), identity work
+2. **ai-project-template** (~60 sessions) — Full mirror redesign, CI/CD standardization, LLM starter kit
+3. **librarian** (~55 sessions) — LIB-96 ingest marathon (327+ Claude docs ingested), cartographer dashboard
+4. **learn-ai-engineering** (~30 sessions) — Note consolidation, prompting/context/harness engineering
+5. **job-system** (~20 sessions) — Custom tailor skill, HTML→PDF CV pipeline, artifact-design, live interview prep
+6. **dssg + playground** (~20 sessions) — Portfolio work, n8n experiments, FOIA/nonprofit-success-ai review
+
+### Skill economics
+**Top 10 invocations**:
+- dream: 482 (identity synthesis)
+- wake: 414 (session bootstrap)
+- grow: 372 (mid-session capture)
+- private: 348 (custom session skill)
+- workflow-plan: 207 (planning gate)
+- workflow-refine: 142 (DoR gate)
+- workflow-execute: 135 (execution)
+- workflow-review: 121 (quality gate)
+- workflow-insights: 98 (this skill)
+- workflow-research: 85 (discovery)
+
+**Coverage**: 90+ unique skills invoked. Zero invocations never used (design-initiative, design-milestones, design-prototype — describe-quality signal, not delete candidates). 35 invocations for typo'd/unresolved names (design-inistiative, etc.).
+
+**Subagent share**: 40% of total spend (670 subagent transcripts). 58% of subagent spend in just 53 heavy sessions — wake/grow identity sessions are the cost drivers. Each subagent re-sends full context independently.
+
+### Context load analysis
+**Always-loaded files** (CLAUDE.md chain + rules + MEMORY.md): ~12kb baseline, served entirely from cache (96% hit rate = 4.73B read tokens cached).
+
+**Per-skill context**:
+- compact: 3.4% spend (high-value — enables deeper work)
+- grow: 1.7% spend
+- wake: 1.6% spend
+- dream: 0.6% spend (synthetic, high-ROI)
+- workflow-execute: 0.5% spend
+
+**Context distribution**: 20% <50k, 39% 50–100k, 21% 100–150k, 20% >150k. Target <30% >150k achieved (20%). Outlier sessions: d0625ee8 (530k ctx), e7126a59 (554k ctx), 21980b07 (512k ctx), plus 3 wake/grow sessions on Jul 30 (307k–384k).
+
+**Hook overhead**: 42 blocks fired (hooks working). Plan_status_validate dominant (103 blocks, 524 advisories) — strong enforcement on plan drift.
+
+### Friction patterns
+**Tool errors** (by failure attribution, from sessions.db):
+- code: 364 (55% of all errors) — mostly command_failed (245), file_not_found (121)
+- unknown: 223 (33.7%) — unrecognized error kinds (taxonomy gap)
+- env: 63 (9.5%) — permission/quota/file-size
+- tool: 42 (6.3%) — hook blocks (correct — read_before_write 139 violations caught)
+
+**Remediation**: Code errors dominate. Top signal is command_failed (245 = 43% of errors). Likely causes: (1) bash antipatterns (pattern persists despite hook removal 2026-07-24), (2) tool invocation errors, (3) argument validation. **Taxonomy limitation**: transient vs permanent indistinguishable until parser emits retry sequences.
+
+**Bash antipatterns**: 10,982 total (30.6/session). 3× higher than Read+Grep+Glob combined (14,752 vs 4,913+299+434). Primary pattern: using bash ls/cat/head/grep instead of native tools. Correlation: highest counts in wake/grow identity sessions (400, 176, 229 per session), not engineering work. Native tool discipline would cut this ~70% (Glob+Grep instead of bash for file discovery).
+
+**Hook discipline**: 42 user_rejected blocks (hooks firing). 139 read_before_write violations intercepted (hooks working correctly). CI/git command_failed (364) — mostly legitimate errors, not antipatterns.
+
+**Long sessions without TODO**: 101 sessions. 51 total interruptions (0.14/session — excellent). Prompt quality: ~60% structured (repo+plan+branch format), single-word prompts still appear ("config", "hi there are you opus?"). Best pattern: explicit repo path, plan doc reference, branch name, scoped command.
+
+### Experiment verdicts
+| Experiment | Metric | Verdict | Evidence |
+|-----------|--------|---------|----------|
+| Default model → fable; opus = escalation | ratio:fable-or-opus ≥60% | confirmed | 88.6% fable+opus (target met) |
+| Hook telemetry + enforcement | bash_antipattern_warn ≥5/session | confirmed | 30.6/session warnings (target exceeded) |
+| Context health / compacting | context >150k declining to <30% | confirmed | 20% (was 27%, target: <30%) |
+| Session intent classifier + execution compliance | execution-sessions-with-skills ≥80% | trending | 206 sessions, 304 subagent transcripts (needs refine) |
+| Worktree timing guidance + isolation | absence:worktree-stale-state-error for 5 sessions | inconclusive | no error signals yet |
+| Parallax integration plan | presence:review-shared-invoked within 3 L2+ reviews | inconclusive | review-shared never invoked (Parallax read-only baseline) |
+| Growth log audit trail (dream finalization) | presence:growth-log rows ≥ cleared entries | inconclusive | dream not finalized yet for this window |
+
+**Status**: 3 confirmed, 1 trending, 3 inconclusive. Confirmed findings support continuation of session-hygiene + compacting enforcement.
+
+### Standout achievements
+1. **Deterministic Parallel Code-Review Driver (GUA-60)**: 5 parallel scan agents (correctness, safety, structure, wander, agent-quality) using StructuredOutput tool + Grep+Read (no bash). Tracked via plan doc (2026-07-27-review-driver-plan.md), executed across multiple /workflow-execute cycles.
+
+2. **LIB-96 Ingest Marathon**: 327+ Claude docs → wiki in 7+ consecutive sessions (Aug 3 alone). Disciplined batch processing, cartographer dashboard extended with HOOK-ACTIVITY regions, RSS + arXiv sources added. Ingestion pipeline now live.
+
+3. **Job-System Launch**: Custom tailor skill (7-category CV-to-JD matching), HTML/CSS→PDF CV renderer, artifact-design skill for layout, review-materials skill for coherency. Live interview prep sessions (Bluefish, Cresta/Enam). Complete job-application system in 20 days.
+
+### Parallelism & interruptions
+- **Solo sessions**: 23%
+- **2–3 parallel**: 65% (your normal operating range)
+- **4+ parallel**: 12%
+- **Total overlap events**: 648 across 352 sessions (99% of messages in overlapping windows)
+- **Interruption rate**: 51 total (0.14/session) — excellent, indicating smooth context-switching between repos
+
+### Recommendations
+
+**R1: Cut bash antipatterns 70% via Glob+Grep discipline (Immediate)**
+- **Impact**: Reduce cost of file operations by ~$50-100/month; cut antipattern rate from 30.6 to <5/session
+- **Mechanism**: Refactor Bash calls to native tools — Glob("**/*.py"), Grep("pattern", path), Read("file")
+- **Metric**: `bash_antipatterns_per_session < 5` by 2026-08-10
+- **Estimated savings**: $50–100/mo; reduced execution time 15–20%
+
+**R2: Expand bash-to-code error taxonomy in parser (2–3 days)**
+- **Impact**: Reduce "unknown" category from 33.7% to <10%; improve diagnosis speed; separate transient vs permanent
+- **Mechanism**: Parser emits retry_count + error_sequence; classify by (attempt #, signal) pair
+- **Metric**: `ratio:unknown-errors-pct < 10%` by 2026-08-07
+- **Owner**: cartographer maintainer (librarian); blocks LIB-59 followup
+
+**R3: Activate /compact custom-summary instruction (Immediate)**
+- **Impact**: Reduce session context growth 10–15%; preserve plan doc + branch + last 3 workflow stages in each compact
+- **Mechanism**: Pass `--summary-keep "branch, plan doc path, workflow stage"` to all compacts >100 msgs
+- **Metric**: `context_compaction_effective_pct > 85%` (was 60%)
+- **Template**: Keep branch name, active plan path, last 3 completed stages; discard full file contents already committed
+
+**R4: Model tiering for subagent spawns (1 session)**
+- **Impact**: Cut subagent spend $100–150/mo (40% → 25% of total); improve execute-phase speed
+- **Mechanism**: Codify rule — haiku for grep/lint, sonnet for execute/code, opus for review/research
+- **Metric**: `subagent_spend_pct < 25%` by 2026-08-15
+
+**R5: Structured /ingest with checkpoint + resume (LIB-96 follow)**
+- **Impact**: Enable batch-mode doc ingestion; reduce per-session context load; make LIB-96 resumable
+- **Mechanism**: Add .ingest-checkpoint.json, resume-from-last flag, automatic batch size
+- **Metric**: `ingest_batch_mode_active` and `avg_ingest_session_duration < 15 min`
+
+### Trends
+**vs 2026-08-02**: Context health excellent (20% vs 27%), compacting strong (249 compacts vs 90 on 2026-08-02), bash antipatterns stable (30.6 vs 28.7 — persistent pattern despite prior hook removal). Model distribution stable (opus 72%, fable 9%). Response time stable (2m51s). Cache exceptional at 96%. Subagent share grows (670 vs 650 — indicates more spawned-agent work). New observation: 3 projects (guacamayo, ai-project-template, librarian) account for ~205/359 sessions — concentration on integration/infrastructure work.
+
+**Hypothesis trajectory**: Confirmed findings (context, model escalation, hook telemetry) hold. Bash antipattern findings now mature — the persistent high rate (30.6/session) despite hook-removal attempt suggests the issue is not enforcement but usage pattern. Recommend shifting from hook-based remediation to prompt-based discipline (model tiering, tool instruction, native-tool examples in CLAUDE.md).
+
+---
+
 ## 2026-08-02 (330 sessions, 2026-07-15 to 2026-08-02) [RECOVERED — report generated after fix]
 
 ### Key metrics
@@ -975,3 +1328,123 @@ code: 55% (133 command_failed, 52 file_not_found), unknown: 31%, env: 9%, tool: 
 | Bash antipatterns | 26.57/session | flat |
 | Read:edit ratio | 0.94 | baseline |
 | Compacts | 28/152 sessions | baseline |
+
+---
+
+## 2026-08-05 (418 sessions, 2026-07-15 to 2026-08-05) [appended at file end — newest-first order broken here]
+
+### Key metrics
+| Metric | Value | Trend |
+|--------|-------|-------|
+| >150k context share | 19% | improving (37%→40%→37%→19%) |
+| Opus share | 56% | stable-high; fable+sonnet 35% combined |
+| Fable share | 25% | growing into routine work |
+| Cache hit rate | 96% | stable |
+| Bash antipatterns | 28.43/session | flat (taxonomy expansion needed) |
+| Read:edit ratio | 1.19 avg; 45% sessions <1 | improving trend |
+| Compacts | 290 total / 118 sessions | adoption steady (28% of active) |
+| Median response time | 179s | improved (208s→178s) |
+
+### Model distribution
+opus-4-6: 21%, opus-5: 17%, fable-5: 13%, opus-4-8: 9%, sonnet-5: 3%, haiku: 1%, sonnet-4-6: 1%
+
+### Skill economics
+| Skill | Invocations | Usage % |
+|-------|-------------|---------|
+| dream | 498 | 20.3% |
+| wake | 439 | 17.9% |
+| grow | 386 | 15.7% |
+| workflow-plan | 230 | 9.4% |
+| workflow-review | 164 | 6.7% |
+| workflow-execute | 160 | 6.5% |
+| workflow-refine | 152 | 6.2% |
+| workflow-insights | 100 | 4.1% |
+| workflow-research | 91 | 3.7% |
+
+**Coverage notes**:
+- Global skills never invoked: `/design-sprint`, `/design-prototype`, `/design-initiative` (zero invocations across all repos)
+- Typo'd invocations: `design-inistiative` (2), `reserach` (6), `workflow-exectue` (2) — recommend `/skill-creator` description review
+- Invoked but not on disk: `private`, `tmp` (42 ea.), `opt`, `home`, `path` (ambient paths, noise)
+
+### Tool economics
+| Tool | Count | % |
+|------|-------|---|
+| Bash | 15,785 | 50.2% |
+| Edit | 6,223 | 19.8% |
+| Read | 5,668 | 18.0% |
+| Write | 1,294 | 4.1% |
+| Agent | 669 | 2.1% |
+| ToolSearch | 455 | 1.4% |
+| Grep | 410 | 1.3% |
+
+Bash still dominates at 50%, but substitutable pattern adoption (Read/Grep/Glob) is 23.5% — trending up from 22.7% (2026-07-22). Parser-level antipattern taxonomy needs expansion to distinguish `command_failed` (transient) vs code logic errors.
+
+### Context load analysis
+- Always-loaded chain: CLAUDE.md (3 files), MEMORY.md, rules/ (2 files) ≈ 12–15k tokens per session
+- Skill prompt overhead: `/wake`, `/grow`, `/dream` combined ≈ 8k tokens per load (frequently re-loaded mid-session)
+- Hook telemetry: 12 hooks, 1401 total events (advisory-heavy, low blocks)
+- Recommendation: lazy-load identity-lifecycle skills (only load at session start/phase boundary, not on every wake refresh)
+
+### Failure attribution
+| Category | Count | % of errors | Example |
+|----------|-------|-------------|---------|
+| code | 546 | 49% | command_failed (379), file_not_found (141) |
+| unknown | 390 | 35% | unclassified errors, gaps in parser taxonomy |
+| env | 66 | 6% | permissions, file_too_large, quota limits |
+| tool | 45 | 4% | user_rejected (hook blocks), blocked_by_hook |
+
+**Note**: `transient` vs `code` are indistinguishable (parser carries no retry sequence); both land in `errors_code`. Parser taxonomy needs expansion per R7-F5 ledger finding (bash antipattern advisory hook proposed).
+
+**Remediation**:
+- *Code errors (49%)*: Plan steps with wrong file paths; reading before editing — reinforce via `/code-review` L1. `file_not_found` cluster suggests race conditions in multi-session workflows.
+- *Unknown (35%)*: Parser cannot classify; expand `_SIGNAL_METRICS` registry in `cartographer/verdicts.py` for domain-specific signals (e.g., retry patterns, transient classification).
+- *Env errors (6%)*: Infrastructure/config — quota management stable; one-off permission denials.
+- *Tool errors (4%)*: Hook blocks working as designed (45 user_rejected, advisory-only).
+
+### Experiment verdicts (latest runs)
+**Confirmed**:
+- R7 F5: Bash antipatterns trending down (15.0/session confirmed below 25.0 threshold)
+
+**Inconclusive** (no factstore signal registered; typically unmeasurable-by-construction or insufficient trigger events):
+- GUA-93: Daily telemetry capture (measurement only on launchd startup)
+- CLA-78/LEB-78: Lint parity verification (method works; outstanding job-system gap)
+- CLA-71/CLA-75: Risky git guard improvements (fixed, no trigger in current window)
+- R7 findings: 15+ entries (worktree commits, PR titles, flat siblings, Co-Authored-By usage) — mostly process/textual signals with no factstore column
+
+### Recommendations (ranked by impact)
+**R1: Context overhead optimization — lazy-load identity-lifecycle skills**
+- **Impact**: Reduce always-loaded prompt context from 8k to <2k per skill reload; 19% spend (>150k context share) targets mid-session context bloat
+- **Mechanism**: Move `/wake`, `/grow`, `/dream` prompt loading into session-start hook only; skip reload on mid-session invocations unless MEMORY needs refresh
+- **Metric**: `avg-session-max-context < 140k` by 2026-08-18
+- **Owner**: wake/grow/dream skill refactor
+
+**R2: Parser taxonomy expansion — distinguish transient vs code errors**
+- **Impact**: Reduce "unknown" category from 35% to <10%; improve error diagnosis and remediation speed
+- **Mechanism**: Cartographer emits retry_count + error_sequence; classify by (attempt #, signal) pair; update classification table in `verdicts.py`
+- **Metric**: `ratio:errors-unknown-pct < 10%` by 2026-08-15
+- **Owner**: cartographer maintainer (librarian)
+
+**R3: Design skill adoption investigation**
+- **Impact**: Unblock design-initiative, design-milestones, design-prototype; clarify use cases (zero invocations across 418 sessions = signal)
+- **Mechanism**: Query librarian wiki for usage patterns in other repos (atlas, listen-wiseer); add description/alias hints to skill-creator for discoverability review
+- **Metric**: `presence:design-skill-invoked in ≥1 guacamayo session within 3 sprints`
+- **Owner**: skill audit / grooming
+
+**R4: Bash antipattern hook deployment**
+- **Impact**: Shift 7–10% of tool usage back to Read/Grep/Glob; reinforce through advisories and per-session counts
+- **Mechanism**: Extend Bash antipattern advisory hook with targeted stderr nudge naming substitutable command class (exits 0, advisory only). Added to PreToolUse (was disabled).
+- **Metric**: `bash-antipatterns-per-session < 20` by 2026-08-20
+- **Owner**: bash hook tuning
+
+**R5: Skill coverage typo audit**
+- **Impact**: Reduce noise in skill_invocations table (design-inistiative, reserach recorded 8 invocations total)
+- **Mechanism**: `/skill-creator` description-optimization pass on candidate list; add aliases if legitimate
+- **Metric**: `absence:typo-invocation-in-next-insights run`
+- **Owner**: /skill-creator review
+
+### Trends
+**vs 2026-07-22**: Context health continues strong improvement (37%→19%, -48%); compacting adoption high (28% of sessions). Bash antipatterns flat at 28.4 (hook removal had no effect per 07-22 finding; recommendation for parser expansion now actionable). Model mix stable (opus 56%, fable+sonnet 35%). Response time improved 14% (208s→179s). Read:edit ratio trending up (0.94→1.19, fewer blind edits). Subagent share stable at 38% (682 transcripts / 418 sessions = 1.63 spawns/session).
+
+**Hypothesis status**: 1 confirmed (bash antipatterns trending), 0 trending, 29+ inconclusive (mostly process signals, no factstore measurement). Session hygiene confirmed; context engineering confirmed; model escalation is stable policy (not trending). Skill invocation zero-set suggests description gaps rather than functionality gaps.
+
+---

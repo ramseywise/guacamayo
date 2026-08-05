@@ -95,8 +95,21 @@ Agent(model: "haiku", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
   Task: Run /workflow-insights. Append a new dated section to .sounding/insights/insights-log.md.
-  Constraint: Append only — do not overwrite existing sections. Read the file first.
+  Constraints:
+  - Read the file first. Append only — never overwrite, delete, or restore existing sections.
+  - Use the Edit tool to append. NEVER shell redirection, cat, heredoc, or `git restore`
+    (a quoting bug in `cat "$(cat ...)"` destroyed this file once; `git restore` destroyed
+    it a second time).
+  - Date the new section header from `date +%F` (the system clock), not the conversation.
+  - Before finishing, verify by content invariants: the file must be strictly LONGER than
+    when first read, and every pre-existing `## ` header must still be present. Report
+    before/after line counts.
 ```
+
+**Dispatcher verification (non-negotiable):** when the agent completes, do not trust its
+report — run `git diff --stat` AND `git diff --cached --stat` on insights-log.md and
+confirm 0 deletions and nothing staged. Diff-emptiness is NOT a valid success criterion
+(it is satisfiable by destroying the work); content invariants are.
 
 Don't wait for it — continue with signal reads below using existing data. The background agent updates the file for the next reader (/wake or /dream).
 
