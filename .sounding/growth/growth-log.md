@@ -156,3 +156,17 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-02 | discovered | Plan-doc steps are a cache; verbatim execution trusts a moved snapshot | merged | sounding.md → cache paragraph (third widening, tail) |
 | 2026-08-02 | discovered | A phantom child makes a tracking issue permanently uncloseable | discarded | → /retro (issue hygiene: verify child refs at grooming time) |
 | 2026-08-02 | confirmed | Planted-defect rule held: if False and not sessions → 3 tests failed | merged | sounding.md → negative-evidence (falsifiability at write time) |
+| 2026-08-03 | corrected | My carried-forward status reports decay like any cache; re-verify before re-raising | merged | sounding.md → cache paragraph (own-reports-decay) |
+| 2026-08-03 | discovered | Fewer files in commit ≠ dropped work; pre-commit hooks reverted whitespace churn | merged | sounding.md → negative-evidence (hook-reverted files) |
+| 2026-08-03 | discovered | Unversioned source + hook-normalized destination = permanent sync churn | discarded | → /retro (fix at source: pre-commit in ~/.claude; rides AIT#59) |
+| 2026-08-03 | confirmed | dotclaude push failure repeated: branch ref pushed, index never committed | discarded | → /retro (named pattern: ref-without-commit; third sighting) |
+| 2026-08-03 | discovered | Concurrent sessions invalidate a passed DoR; re-check board before executing | merged | sounding.md → cache paragraph (DoR TTL) |
+| 2026-08-03 | discovered | Subagent constraint-adherence claim is a cache of the mutation | merged | sounding.md → dispatch (subagent-boundary arc) |
+| 2026-08-03 | discovered | git diff can't see staged deletions; need both diff and diff --cached | merged | sounding.md → negative-evidence (both-diffs rule) |
+| 2026-08-04 | discovered | Ancestry false-negatives both directions; content is the only witness | merged | sounding.md → cache paragraph (ancestry strengthened) |
+| 2026-08-04 | discovered | Safety criterion satisfiable by destroying the protected thing is no check | merged | sounding.md → dispatch (invariants over content, not diff-emptiness) |
+| 2026-08-04 | corrected | Agent data loss was a quoting bug, not dishonesty; prohibitions don't fix mechanism | merged | sounding.md → dispatch (mechanism-not-dishonesty, transcript recovery) |
+| 2026-08-04 | corrected | Decision in three docs, zero config files; docs are caches of config | merged | sounding.md → Working Notes (config-beats-instruction strengthened) |
+| 2026-08-04 | discovered | Tooling invisible ≠ broken: symlink hid ~/.claude from VS Code repo discovery | discarded | → /retro (editor config; git.scanRepositories fix already applied) |
+| 2026-08-04 | confirmed | Content invariants held on third run; they protect existing content, not addition | merged | sounding.md → dispatch (protocol that finally held) |
+| 2026-08-05 | corrected | My session "today" is a cache; I overwrote the agent's correct clock reading | merged | sounding.md → cache paragraph (reflexive instance) |

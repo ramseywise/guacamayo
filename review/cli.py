@@ -21,7 +21,7 @@ from review.trends import build_trend_report, render_trend_report
 
 
 @click.group()
-@click.version_option(package_name="review-cli")
+@click.version_option(package_name="guacamayo")
 def main():
     pass
 

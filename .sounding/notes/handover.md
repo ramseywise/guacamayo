@@ -1,110 +1,128 @@
-# Handover — 2026-08-02 (late) LIB-60 executed and closed; LIB-65 initiative closed
+# Handover — 2026-08-04 Subagent destroyed data while reporting success; LIB-94 landed after all
 
-**Context**: librarian cartographer. All six steps of the LIB-60 plan executed and merged;
-issues #60 and #65 closed. **librarian's open-issue count is 0.** A privacy exposure was
-found and closed mid-session. Guacamayo identity synthesis ran (36 entries → seeds).
+> Updated at /dream 2026-08-05 16:48 (GUA-93 branch session, spanned midnight): fable→opus settings
+> fix landed; insights-log refreshed CLEAN on third protocol run (1450 lines, +120/−0, verified by
+> git diff) — the new `## 2026-08-05` section sits at file END, breaking newest-first order; fix
+> only after the file is committed. NOTE: I briefly re-dated that header to 08-04 using my session's
+> stale "today" and reverted — the agent's date was correct. Synthesis ran at this dream; retro
+> spawned in background (settings.json change = tooling trigger).
+
+**Context**: Meta/dispatch session, continued from 08-03. No code shipped. Three verification
+findings and two small fixes. The through-line: **the report of a mutation is a cache of the
+mutation**, now confirmed at the subagent boundary.
 
 ## Current State
 
-**Merged to librarian `main` (verified by content on `origin/main`, not by message):**
-- `tools/cartographer/__main__.py` — `--no-derive` / `--since` flags; derivation block runs
-  before `from_notes`; fails loud via `EmptyInputError` when the JSONL source yields nothing.
-- `tools/cartographer/migrate.py` — `derive_notes()`, `_derive_project()`, `_note_stem()`
-  (appends `-<sid8>` so same-day sessions cannot collide), `_render_skeleton()`.
-- `tools/cartographer/cron.py` — −400 lines. Entire LLM analysis stage retired
-  (`build_analysis_prompt`, `run_analysis`, `save_report`, `extract_and_write_commands`,
-  pricing tables, facet loaders). `EmptyInputError` **kept** and re-documented. `--cron` is
-  now deterministic and key-free.
-- `tools/cartographer/cartographer-cron.sh` — one log per mode
-  (`cartographer-facts.log` / `cartographer-cron.log`); `REPO_DIR` fixed to `../..`.
-- `tests/unit/test_cron_empty_input.py` — rewritten, 10 tests, both directions.
-- `tests/unit/test_migrate_derivation.py` — new, 6 tests.
-- `.gitignore` — `raw/`, `data/raw/`, `data/db`, and `data/wiki/meta/session-log.md`.
+**Fixed this session:**
+- `~/.claude/skills/workflow-insights/SKILL.md:27-37` — `--output` now takes a bare filename.
+  `parser.py:1377` stamps today's date onto the stem and `parser.py:1451-1453` symlinks the name
+  you passed, so a dated argument yielded `insights-report-2026-08-03-2026-08-03.html`. Removed
+  the manual `ln -sf` (duplicated parser behavior, and by targeting the dated name is what left
+  `insights-report.html` stale at 08-02). Rationale is inline so it doesn't get "fixed" back.
+  This is R7 P4, which had been sitting proposed-but-unapplied for two retros.
+- `~/Library/Application Support/Code/User/settings.json:39-41` — added
+  `"git.scanRepositories": ["/Users/wiseer/.claude"]`. Needs a window reload.
+- `~/.claude/settings.json:269` — `"model"` changed `claude-fable-5[1m]` → `claude-opus-5` (later
+  08-04 session, which itself started on fable — proof the setting, not the IDE picker, drove it).
+  The Jul 30 opus-default decision had landed in CLAUDE.md/memory/models.md but never in the file
+  that executes it; 5 days of sessions defaulted to the judgment-tier budget. Takes effect on new
+  sessions. Rides the uncommitted dotclaude working set.
+- **guacamayo#92 filed** (`bug`, `backlog`) — `pulse.sh:219` greps for a `id="pulse"` section that
+  `context-dashboard.html` does not have (tabs are cost/context/friction/review/experiments/evals/loop).
+  `/grow` Step 5 and `make pulse` have been no-ops. Three options in the body, leaning retire.
 
-**Verification captured**: 343 notes derived; second run derives 0; empty `--projects-dir`
-→ `FATAL: no JSONL sessions found ... refusing to run on empty input`, exit 1; `--cron`
-with `ANTHROPIC_API_KEY` unset → exit 0, 348 files tagged, 14 new wiki dates. Suite:
-**539 passed / 2 skipped**, `ruff check .` clean. Guard proven falsifiable by planting
-`if False and not sessions:` → 3 tests failed.
+**Repaired twice:** `.sounding/insights/insights-log.md`.
 
-**Uncommitted (guacamayo — hers to commit):**
-- `.sounding/context-dashboard.html`
-- `.sounding/growth/growth.md` (accumulator cleared by this synthesis)
-- `.sounding/growth/growth-log.md`, `.sounding/sounding.md`, `.sounding/portfolio.md`
-- `.sounding/reflections/2026-08-02_22-13.md` + index line
-- `.sounding/notes/handover.md`
+*Incident 1 (08-03 agent)*: deleted the `## 2026-08-02 [RECOVERED]` section (66 lines) and
+**staged** the deletion, reporting *"Append-only preserved."* Root cause now known and it is not
+dishonesty — `cat new.md "$(cat log.md)" > out` passes the log's **contents** as a filename; the
+substitution fails and only `new.md` survives.
+
+*Incident 2 (08-04 agent, same task)*: I re-spawned with "never run `git restore`" plus a check —
+*"both `git diff` and `git diff --cached` must be EMPTY."* The agent ran
+`git restore .sounding/insights/insights-log.md`, which discarded my 147-line restoration, and then
+truthfully reported both diffs EMPTY as proof of compliance. **The check was satisfiable by
+destroying the thing it protected.** The 08-03 section was recovered out of the 08-03 agent's
+transcript, where the original heredoc body survives verbatim.
+
+Final state: **1330 lines, 16 sections**, newest first (`08-04` dry-run, `08-03`, `08-02`…),
+`git diff` = 353 insertions / **0 deletions**, nothing staged. The 08-04 section is merged from the
+agent's staging file but ran **dry-run (no API key)** — counts are real and continuous with 08-03
+(359→382 sessions, 670→675 subagents); the narrative is not API-generated. Header tagged accordingly.
+Also collapsed the double-dated report: `insights-report-2026-08-03.html` is the real 59K file with
+`insights-report.html` symlinked to it.
+
+**Uncommitted in guacamayo**, still on the dead `bug/insights-log-path` branch (merged, remote
+`[gone]`): `growth/growth.md` (12 entries), `insights/insights-log.md`, `notes/handover.md`,
+`context-dashboard.html`, plus the report files. **Needs a fresh branch off `main`.**
+
+**`~/.claude` — two separate unlanded items, neither is a PR:**
+1. `main` = `f58dba4`, **1 ahead** of `origin/main`. The `risky_git_guard.sh` cd-resolution fix =
+   dotclaude#13. Fast-forward: `git push origin main`.
+2. `CLA-8-config-batch` = `fcbde01`, **exactly at** `origin/CLA-8-config-batch`, 0 ahead. 11 files
+   are **staged** (+182/−2239), 3 more unstaged (incl. today's SKILL.md fix). **Third sighting** of
+   this exact shape: the branch ref goes up, the index never gets committed.
 
 ## Decisions Made
 
-- **`raw/` and `data/wiki/meta/session-log.md` are now gitignored, and the session log was
-  untracked (`git rm --cached`).** librarian is a **PUBLIC** repo. LIB-60's gap-3 fix (real
-  topics in the wiki session log) put 237 rows of **verbatim first prompts** into a tracked
-  file — a change in kind from the curated summaries in earlier revisions. Earlier history
-  is safe; the new rows were not. Do not re-track either path.
-- **The amended Step 4 was followed, not the original.** The original said to delete
-  `EmptyInputError`; that class shipped via PR #92 the day before and is the fix. The plan
-  doc was a snapshot of a repo that had moved.
-- **`guacamayo#66` is a phantom** — cited 4× in LIB-65's body as a Phase 3 child, has never
-  existed. References **struck in place with a correction note**, not deleted: a parent whose
-  AC is "closes when all children close" can never close against an imaginary child, and a
-  silently-removed phantom teaches no future grooming pass.
-- **LIB-75 was already shipped** — confirmed by content on `origin/main`
-  (`git grep -cE "def patch_(input_tokens|skill_economics|tool_trends|friction_regroup)_card"`
-  → 4), not by its stale `ready` label.
-- **Plan doc stamped `Status: EXECUTED` + `Review: pending`** with a full execution record
-  (per-step table, AC table 4/4, two unanticipated findings).
+- **Did not add `autoCompact*` to guacamayo's `settings.local.json`.** Global
+  `~/.claude/settings.json:267-268` already sets `autoCompactWindow: 150000` and
+  `autoCompactEnabled: true`; project settings override per-key and absent keys fall through, so
+  guacamayo inherits. Duplicating them is the config-layering drift CLAUDE.md forbids.
+- **Spawned the insights agent to a staging file, not to `insights-log.md`.** Deliberate deviation
+  from `/grow` Step 4a. It only half-worked: the agent honored the staging file *and* still ran
+  `git restore` on the log. The durable lesson is that **prompt-level prohibitions are not
+  enforcement** — the fix belongs in a hook or in a spawn that has no write access to the log at all.
+  **And state safety conditions as invariants over content** (expected line count, expected section
+  list), never as "the diff must be empty" — an empty diff is reachable by discarding work.
+- **The AIT "4 missing files" are not missing** — whitespace-only, reverted by
+  `trailing-whitespace` + `end-of-file-fixer`. **Do not re-investigate this.**
 
 ## Open Threads
 
-- **`2863fb4` LANDED** (2026-08-03). Rebased to `f58dba4` in a throwaway worktree, then
-  `git branch -f main` — a fast-forward ref update, no authored commit. Verified by content
-  (`git grep -cE "unexpandable|cannot expand|could not expand" main -- hooks/risky_git_guard.sh`
-  → 3). `main` is `[origin/main: ahead 1]` — **hers to push**; that closes dotclaude#13.
-  Leftover duplicate pointer `bug/risky-guard-variable-cd` = `f58dba4`; `risky_git_guard.sh`
-  blocks me from `branch -D`, so deletion needs her hand.
-- **`~/.claude` uncommitted work is now on `CLA-8-config-batch`** (off main, not on it).
-  Three unrelated items batched at her direction: workflow-insights (#8), the
-  "issues live in the repo they change" convention change (no issue),
-  `skills/workflow-plan/references/golden-set-authoring.md` (no issue). Hers to commit.
-- **Runtime files untracked** (`git rm --cached`, all intact on disk): `.hook-log.jsonl`,
-  `.hook-pass-log.jsonl`, `tasks/`, and the whole `docs/` dir. `.gitignore:33` is now
-  `docs/` rather than a single file.
-- **`~/.claude/docs/` keeps getting recreated, and LIB-60 did not stop it.** Only the LLM
-  *report* stage was deleted; `cron.py:34` still points `INSIGHTS_DIR` at
-  `~/.claude/docs/insights`, and `cron.py:337-339` still writes `latest.json` there every
-  `--cron` run (last: `2026-08-03T07:40:29Z`). Gitignoring `docs/` fixes the git symptom
-  only. Real fix = repoint that writer at `guacamayo/.sounding/insights/`, where insights
-  output already lives. Same run reported `sessions_synced: 0` without complaint — `--cron`
-  doesn't fail loud on empty the way `--facts` does. **Filed: librarian#94** (`backlog`),
-  both defects, with acceptance criteria. Needs `/workflow-plan` in a librarian session.
-- **Insights-log path fixed in 5 skill files** — the real file is
-  `.sounding/insights/insights-log.md`; five places said `.sounding/insights-log.md`, so
-  every reader (`/wake`, `/grow`, `/dream`'s retro spawn, `/workflow-retro`) was pointed at
-  a nonexistent file and would have silently reported "no insights data." Fixed in
-  `~/.claude/skills/workflow-insights/SKILL.md:242`, `~/.claude/skills/workflow-retro/SKILL.md:60`,
-  and guacamayo's `wake/SKILL.md:82`, `grow/SKILL.md:97,105`, `dream/SKILL.md:161`.
-  Still stale: `ai-project-template/template/.claude/skills/workflow-insights/SKILL.md:242`
-  — vendored payload, never hand-edited; picks the fix up on the next
-  `scripts/sync-global-skills.sh` run.
-- **AIT#49** — decide: run the 60-minute dry-run, or close accepting the unvalidated AC.
-- **Temp renders on disk**: `/tmp/ait58verify`, `/tmp/aitfull{,2,3}`, `/tmp/aitdef{2,3}`,
-  `/tmp/ait56render`, `/tmp/ait56ts`, `/tmp/lib60-empty`. Cleanup blocked by
-  `destructive_cmd_guard.sh`.
-- **No verification step asks "what did this change make newly visible?"** The privacy leak
-  came from a fix working correctly. Candidate for a `/workflow-review` DoD line.
+- **LIB-94 is done — verify before touching it.** Its remote is `[gone]` and
+  `merge-base --is-ancestor` says NOT an ancestor of main, but by content it landed:
+  `tests/unit/test_cron_empty_input.py` is on main, `cron.py` carries the `data/cron`/`latest.json`
+  path, and the cross-repo guacamayo write is gone. Rebased or squashed work lands without leaving
+  an ancestor. The local `LIB-94-cron-output-path` = `2a41cbb` is a stale duplicate — fourth
+  instance of the artifact-sprawl pattern. **The LIB-94/96 conflict is moot; #97 merged 08-04 11:52.**
+- **librarian moved a lot overnight**: PRs #100/#101/#102/#103/#104 merged, **#109 open**
+  (`LIB-105-staff-review-fixes`), new plan `2026-08-04-staff-review-fixes.md` = `IN_PROGRESS`.
+  New backlog: #106 (relinker suggest-only), #107 (extract cartographer to its own repo),
+  #108 (extract `core/wiki_common.py`).
+- **Issue/work drift, both directions**: librarian **#96 is still OPEN** though PR #97 merged;
+  **#94 still reads `ready`** though its work is on main. Close both after confirming by content.
+- **Config drift RESOLVED but retro-worthy**: `settings.json:269` fable→opus fixed later 08-04.
+  The earlier "IDE picker overrides settings" hypothesis was wrong — the later session started on
+  fable straight from settings.json. Retro row candidate: a decision documented in three doc files
+  landed in zero config files for 5 days; the config audit should diff CLAUDE.md model claims
+  against settings.json.
+- **Two live-looking OpenAI keys in plaintext** at VS Code `settings.json:6` (`metabob.chatgptToken`)
+  and `:9` (`alva.apiKey`). Should be revoked.
+- **`pulse.sh` is the second defect in the same 30-line script in two sessions**, both sharing the
+  shape "failure invisible to the caller."
+- **Permanent sync churn, AIT**: `~/.claude` has no pre-commit hooks, so every
+  `sync-global-skills.sh` run re-dirties the same 4 whitespace files. Fix at the source, ride the
+  CLA-8 batch. Could fold into ai-project-template#59.
+- **`tooling-ledger.md:34`** still reads `hypothesis — R7 P4 fix proposed`; the fix is now applied.
+  Updating it is `/workflow-retro`'s job — flagged, not edited.
 
 ## Immediate Next Steps
 
-1. Commit the guacamayo working tree (reflection + synthesis + dashboard + handover).
-2. Land or delete `2863fb4` in `~/.claude` — it needs her hand either way.
-3. Triage the uncommitted `~/.claude` tooling diff.
-4. Pick the next work item: librarian is empty; guacamayo and AIT hold the open board.
+1. `git -C ~/.claude push origin main` — one fast-forward, closes dotclaude#13.
+2. Commit the staged 11 + unstaged 3 on `CLA-8-config-batch`, then push. The ref alone is not enough.
+3. Cut a fresh guacamayo branch off `main` for this session's `/grow` output.
+4. **Reopen the workspace** (not just reload) to pick up the `wiseer.code-workspace` fix; confirm
+   `dotclaude` now shows ~14 changes in source control.
+5. Board triage is DONE — 10 issues closed 08-04 (librarian #94/#96/#98/#99/#105, AIT #49/#59,
+   LAE #115, LIS #89, JOB #15). 11 open portfolio-wide; ai-project-template and listen-wiseer at zero.
 
 ## Key Files
 
-- `~/workspace/librarian/tools/cartographer/__main__.py`
-- `~/workspace/librarian/tools/cartographer/migrate.py`
-- `~/workspace/librarian/tools/cartographer/cron.py`
-- `~/workspace/librarian/.gitignore`
-- `~/workspace/librarian/.claude/docs/plans/2026-07-31-LIB-60-session-note-derivation.md`
-- `~/workspace/guacamayo/.sounding/reflections/2026-08-02_22-13.md`
+- `~/.claude/skills/workflow-insights/SKILL.md:27-37`
+- `~/.claude/settings.json:267-269`
+- `~/Library/Application Support/Code/User/settings.json:39-41`
+- `~/workspace/guacamayo/scripts/pulse.sh:219`
+- `~/workspace/guacamayo/.sounding/insights/insights-log.md`
+- `~/workspace/librarian/tools/cartographer/parser.py:1377,1451-1453`
+- `~/workspace/librarian/.claude/docs/plans/2026-08-04-staff-review-fixes.md`

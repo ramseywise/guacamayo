@@ -43,3 +43,4 @@
 2026-07-31 - Board reconciliation. ~20 issues closed as already-merged; root cause filed as guacamayo#67. Red main accepted merges across 3 repos — CI status is a cache nobody invalidates.
 2026-08-01 - The gap between record and reality. Commit messages, rev-parse output, and issue labels all lied in the same session. Guard fixed to admit what it can't resolve. Process emits artifacts faster than work.
 2026-08-02 - The feature worked, and that was the problem. LIB-60's correct fix leaked verbatim prompts into a public tracked file; my own successful `git rm --cached` was silently undone. A mutation's own success report is a cache.
+2026-08-05 - The cache was me. Fable-default config drift fixed (docs described it, settings executed it); third insights-agent run landed clean under content invariants; I "corrected" a correct timestamp using my session's stale "today".
