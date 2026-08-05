@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wiseer.guacamayo.telemetry</string>
+
+    <!-- Daily telemetry capture (GUA-93). Runs `uv run telemetry --facts` via
+         telemetry-cron.sh: session JSONL -> data/sessions.db. Daily because local
+         JSONL rotates out in ~5 days — a missed window is history lost for good.
+         09:00 — before eval-runner (Mon 10:00) so logs don't collide. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/wiseer/workspace/guacamayo/scripts/telemetry-cron.sh</string>
+        <string>facts</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/wiseer/workspace/guacamayo</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Hour</key>
+        <integer>9</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/telemetry-launchd.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/telemetry-launchd.err</string>
+
+    <key>RunAtLoad</key>
+    <false/>
+</dict>
+</plist>
+<!-- INSTALL (Ramsey's step — not done by the agent):
+     mkdir -p ~/workspace/guacamayo/logs
+     cp scripts/com.wiseer.guacamayo.telemetry.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+
+     To run immediately after install:
+     launchctl start com.wiseer.guacamayo.telemetry
+
+     To unload:
+     launchctl unload ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+-->

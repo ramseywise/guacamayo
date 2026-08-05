@@ -9,5 +9,5 @@ jobs:
   ci:
     uses: ramseywise/ai-project-template/.github/workflows/python-ci.yml@main
     with:
-      lint-paths: "review tests"
+      lint-paths: "review telemetry tests"
       test-command: "uv run pytest tests/ -q"
