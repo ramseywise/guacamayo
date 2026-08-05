@@ -36,9 +36,11 @@ from review.schemas.models import (
     EvidenceState,
     FileLocation,
     Location,
+    MergeDecision,
     MergeImpact,
     Reporter,
     ReviewFinding,
+    ReviewReport,
     Severity,
 )
 
@@ -551,6 +553,55 @@ class TestRunReview:
 
         result = run_review(config, scan_fn=make_fake_scan(findings_by_dim))
         assert "Open Questions" in result.report_md or len(result.findings) > 0
+
+
+class TestTypedReport:
+    """GUA-96: DriverResult carries a validated ReviewReport + MergeDecision enum."""
+
+    def _run(self, tmp_path: Path, findings_by_dim: dict) -> DriverResult:
+        config = DriverConfig(
+            repo=tmp_path,
+            files=["review/driver.py"],
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+        return run_review(config, scan_fn=make_fake_scan(findings_by_dim))
+
+    def test_result_carries_validated_report(self, tmp_path: Path) -> None:
+        result = self._run(tmp_path, {"correctness": [make_finding_dict("CR-001")]})
+        assert isinstance(result.report, ReviewReport)
+        assert isinstance(result.merge_decision, MergeDecision)
+        assert result.report.merge_decision == result.merge_decision
+        assert len(result.report.findings) == len(result.findings)
+
+    def test_important_finding_yields_comment(self, tmp_path: Path) -> None:
+        result = self._run(
+            tmp_path, {"correctness": [make_finding_dict("CR-001", merge_impact="important")]}
+        )
+        assert result.merge_decision == MergeDecision.COMMENT
+
+    def test_suggestion_only_yields_comment(self, tmp_path: Path) -> None:
+        """Changed behavior (GUA-96): suggestion-only previously auto-approved."""
+        finding = make_finding_dict("CR-001", merge_impact="suggestion")
+        finding["comment_type"] = "suggestion"
+        result = self._run(tmp_path, {"correctness": [finding]})
+        assert result.merge_decision == MergeDecision.COMMENT
+
+    def test_wander_question_only_yields_approve(self, tmp_path: Path) -> None:
+        """Wander is excluded from verdict input — questions never block approve."""
+        wander_finding = make_finding_dict("WD-001", reporter="wander", merge_impact="question")
+        wander_finding["evidence_state"] = "question"
+        wander_finding["comment_type"] = "question"
+        result = self._run(tmp_path, {"wander": [wander_finding], "correctness": []})
+        assert result.merge_decision == MergeDecision.APPROVE
+
+    def test_blocker_yields_request_changes(self, tmp_path: Path) -> None:
+        result = self._run(
+            tmp_path, {"correctness": [make_finding_dict("CR-001", merge_impact="blocker")]}
+        )
+        assert result.merge_decision == MergeDecision.REQUEST_CHANGES
 
 
 # ---------------------------------------------------------------------------

@@ -80,6 +80,37 @@ def render_report_cmd(input):
     click.echo(md)
 
 
+@main.command("verdict")
+@click.argument("input", type=click.File("r"), default="-")
+@click.option(
+    "--dispatch-failed",
+    is_flag=True,
+    default=False,
+    help="A reporter failed — findings may be incomplete; forces insufficient_context.",
+)
+def verdict_cmd(input, dispatch_failed):
+    """Compute the merge decision from a JSON array of ReviewFinding objects.
+
+    The single verdict entry point for skills (workflow-review Stage 6, sanyi
+    review step 5). Rules live in review/verdict.py — do not re-derive them.
+
+    Example:
+        uv run review-cli verdict combined-findings.json
+        echo '[]' | uv run review-cli verdict
+    """
+    from review.verdict import derive_merge_decision
+
+    try:
+        data = json.load(input)
+        if not isinstance(data, list):
+            raise TypeError("input must be a JSON array of ReviewFinding objects")
+        findings = [ReviewFinding.model_validate(f) for f in data]
+    except (ValueError, TypeError, KeyError) as exc:
+        click.echo(f"error: {exc}", err=True)
+        sys.exit(1)
+    click.echo(derive_merge_decision(findings, dispatch_failed=dispatch_failed).value)
+
+
 @main.command("fingerprint")
 @click.argument("input", type=click.File("r"), default="-")
 @click.option("--repo", default=".", help="Repo identifier (used in sweep filenames)")
@@ -237,7 +268,14 @@ def trends_cmd(repo, reviews_dir, output_format, previous_path, current_path):
     default=None,
     help="Claude Code session id (from hook payload). Stamped on each emitted finding row.",
 )
-def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns, session_id):
+@click.option(
+    "--report-json",
+    "report_json",
+    default=None,
+    type=click.Path(),
+    help="Write the validated ReviewReport (findings + merge_decision) as JSON.",
+)
+def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns, session_id, report_json):
     """Run the deterministic review pipeline end-to-end.
 
     Detects active dimensions, spawns dimension agents via the Claude Agent SDK,
@@ -266,6 +304,10 @@ def run_cmd(repo, files, reviews_dir, no_save, out_file, model, max_turns, sessi
         click.echo(f"Report written to {out_file}", err=True)
     else:
         click.echo(result.report_md)
+
+    if report_json and result.report is not None:
+        Path(report_json).write_text(result.report.model_dump_json(indent=2))
+        click.echo(f"Report JSON written to {report_json}", err=True)
 
     if result.sweep_path:
         click.echo(f"Sweep saved: {result.sweep_path}", err=True)
