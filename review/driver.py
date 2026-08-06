@@ -33,10 +33,12 @@ from review.fingerprint import (
 )
 from review.render import render_report
 from review.schemas.models import (
+    MergeDecision,
     MergeImpact,
     Reporter,
     ReporterDispatchEntry,
     ReviewFinding,
+    ReviewReport,
     StaticAnalysisResult,
     SweepRecord,
 )
@@ -44,6 +46,7 @@ from review.signals import active_dimensions, detect_signals
 from review.static_analysis import run_static_analysis
 from review.trends import build_trend_report, render_trend_report
 from review.validation import validate_finding
+from review.verdict import derive_merge_decision
 
 # ---------------------------------------------------------------------------
 # Config + result types
@@ -101,6 +104,8 @@ class DriverResult:
     dispatch: list[ReporterDispatchEntry] = field(default_factory=list)
     exit_code: int = 0
     static_analysis: StaticAnalysisResult | None = None
+    report: ReviewReport | None = None
+    merge_decision: MergeDecision | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -781,32 +786,33 @@ async def _run_review_async(
     wander_questions = [
         f.claim.observation for f in merged_findings if f.reporter == Reporter.WANDER
     ]
-    # Derive merge_decision from findings
-    has_blocker = any(f.severity.merge_impact == MergeImpact.BLOCKER for f in merged_findings)
-    has_important = any(f.severity.merge_impact == MergeImpact.IMPORTANT for f in merged_findings)
-    if errors:
-        merge_decision = "insufficient_context"
-    elif has_blocker:
-        merge_decision = "request_changes"
-    elif has_important:
-        merge_decision = "comment"
-    else:
-        merge_decision = "approve"
-
-    report_data: dict[str, Any] = {
-        "findings": [f.model_dump() for f in merged_findings],
-        "merge_decision": merge_decision,
-        "reporter_dispatch": [e.model_dump() for e in result.dispatch],
-        "overall_understanding": (
+    # Verdict: single implementation in review/verdict.py. Wander is excluded at
+    # this call site — it emits questions by construction, so counting it would
+    # make approve structurally unreachable.
+    merge_decision = derive_merge_decision(
+        [f for f in merged_findings if f.reporter != Reporter.WANDER],
+        dispatch_failed=bool(errors),
+    )
+    report = ReviewReport(
+        findings=merged_findings,
+        merge_decision=merge_decision,
+        reporter_dispatch=result.dispatch,
+        overall_understanding=(
             f"Driver run over {len(files)} file(s), "
             f"{len(dimensions)} dimension(s). "
             f"{len(merged_findings)} finding(s) after dedup."
         ),
-        "dod_assessment": (
+        dod_assessment=(
             "All validation gates passed."
             if not errors
             else f"{len(errors)} dimension(s) failed validation."
         ),
+    )
+    result.report = report
+    result.merge_decision = merge_decision
+
+    report_data: dict[str, Any] = {
+        **report.model_dump(),
         "wander_questions": wander_questions,
         "repo": str(config.repo),
         "diff_scope": f"{len(files)} file(s)",
