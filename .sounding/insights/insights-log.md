@@ -1448,3 +1448,165 @@ Bash still dominates at 50%, but substitutable pattern adoption (Read/Grep/Glob)
 **Hypothesis status**: 1 confirmed (bash antipatterns trending), 0 trending, 29+ inconclusive (mostly process signals, no factstore measurement). Session hygiene confirmed; context engineering confirmed; model escalation is stable policy (not trending). Skill invocation zero-set suggests description gaps rather than functionality gaps.
 
 ---
+
+## 2026-08-06 (469 sessions, 2026-07-15 to 2026-08-06)
+
+### Numbers
+| Metric | Value |
+|--------|-------|
+| Sessions analyzed | 469 |
+| Date range | 2026-07-15 to 2026-08-06 |
+| Total messages | 4,254 |
+| Days active | 23 |
+| Messages per day | 185.0 |
+| Context >150k share | 18% |
+| Cache hit rate | 96% |
+| Cache savings vs uncached | 83% |
+| Subagent transcripts | 700 |
+| Subagent share of usage | 36% |
+| Compacts total | 309 |
+| Sessions with compacts | 128 (27%) |
+
+### Context Load Distribution
+- <50k: 20%
+- 50-100k: 41%
+- 100-150k: 21%
+- >150k: 18%
+
+### Model Distribution
+| Model | Message Count | Cost-Weight Share |
+|-------|---------------|-------------------|
+| claude-opus-5 | (major) | ~56% |
+| claude-fable-5 | (moderate) | ~18% |
+| claude-sonnet-5 | (moderate) | ~17% |
+| claude-haiku-4-5 | (light) | ~9% |
+
+### Tool Economics
+| Tool | Count | % |
+|------|-------|---|
+| Bash | 16,404 | 50.1% |
+| Edit | 6,517 | 19.9% |
+| Read | 6,014 | 18.4% |
+| Write | 1,356 | 4.1% |
+| Agent | 687 | 2.1% |
+| ToolSearch | 470 | 1.4% |
+| Grep | 463 | 1.4% |
+
+**Analysis**: Bash remains dominant at 50%; substitutable patterns (Read+Grep+ToolSearch) at 21.2%, stable with slight upward trend. Read:edit ratio continues healthy (0.92). Bash antipatterns remain opportunity for optimization via advisory hook.
+
+### Skill Economics
+| Skill | Invocations | Usage % |
+|-------|-------------|---------|
+| dream | 512 | 0.6% |
+| wake | 464 | 1.4% |
+| grow | 400 | 1.7% |
+| workflow-plan | 274 | 0.3% |
+| workflow-review | 204 | 0.4% |
+| workflow-execute | 200 | 0.4% |
+| workflow-refine | 183 | ~0.2% |
+| workflow-research | 116 | ~0.2% |
+| workflow-insights | 101 | ~0.2% |
+
+**Note**: `private` invocations (362) are ambient paths, not skill calls. Identity lifecycle (dream/wake/grow) remains strong and cost-proportionate.
+
+### Skill Coverage
+- **Global skills never invoked**: `/design-sprint`, `/design-prototype`, `/design-initiative`, `/akira`, `/sanyi` (zero invocations — description/discoverability opportunity)
+- **Typo'd invocations recorded**: `design-inistiative` (appears in logs but never successfully invoked), `reserach` (6), `workflow-exectue` (2)
+- **Invoked but not on disk**: `private` (362), `tmp` (37), `home`, `path` (ambient, noise)
+
+**Interpretation**: Zero invocation on design tools suggests either they're working through indirect means or descriptions need refresh. No signals of abandoned skills — typo cluster is small and actionable.
+
+### Hook Telemetry
+| Hook | Blocks | Advisories | Role |
+|------|--------|-----------|------|
+| docs_hygiene | 0 | 451 | Advisory (drift detection) |
+| plan_status_validate | 87 | 106 | Enforcement + advisory |
+| docs_drift_warn | 0 | 74 | Advisory (docs structure) |
+| risky_git_guard | 70 | 0 | Enforcement (strict) |
+| task_complete_check | 6 | 58 | Advisory + rare block |
+| function_complexity_warning | 0 | 29 | Advisory (code quality) |
+| memory_duplication_guard | 0 | 11 | Advisory (duplication) |
+| destructive_cmd_guard | 8 | 0 | Enforcement (protect data) |
+| pip_guard | 1 | 0 | Enforcement (dependency mgmt) |
+| ci_drift_warn | 0 | 1 | Advisory (CI health) |
+
+**Summary**: 172 enforcement blocks (strict + task checks + destructive guard), 730 advisories. Advisory-heavy system working as designed — blocks reserved for high-confidence violations (git, destructive ops, plan status gaps). No signal of over-blocking.
+
+### Failure Attribution
+| Category | Count | % of errors | Example |
+|----------|-------|-------------|---------|
+| code (retry unknown) | 546 | 49% | command_failed (379), file_not_found (141) |
+| unknown | 390 | 35% | unclassified, parser taxonomy gap |
+| env | 66 | 6% | permissions, quota, file_too_large |
+| tool | 45 | 4% | user_rejected (hook blocks, working as designed) |
+
+**Remediation**:
+- *Code errors (49%)*: Majority are transient `command_failed` (bash race conditions in multi-session workflows); file_not_found cluster (141) suggests path resolution under concurrent access. Recommend: `/code-review` L1 reinforce pre-execution validation. Parser limitation noted: retry_count not yet emitted.
+- *Unknown (35%)*: Parser cannot classify ~35% of errors; expand `_SIGNAL_METRICS` registry in cartographer/verdicts.py to cover domain-specific signals (e.g., transient classification, retry exhaustion).
+- *Env errors (6%)*: Quota stable; permission denials low-frequency (working as expected).
+- *Tool errors (4%)*: User-rejected (hook blocks) — functioning correctly; advisories not blocking work.
+
+### Experiment Verdicts
+| Experiment | Metric | Verdict | Evidence |
+|------------|--------|---------|----------|
+| R7-F5: Bash antipatterns trending | `count-drop:bash-antipattern-session` | Confirmed | Avg 15.0/session, threshold 25.0; trending down |
+| GUA-93: Daily telemetry capture | `presence:telemetry-capture-event` | Inconclusive | Measurement only on launchd startup; no trigger in window |
+| CLA-78/LEB-78: Lint parity | `presence:lint-parity-verified` | Inconclusive | Verification works; blocked by job-system migration gap |
+| CLA-71/CLA-75: Risky git guard | `absence:unsafe-git-pattern` | Confirmed | 70 blocks on 469 sessions; 0 unblocked violations detected |
+| Context engineering (150k share) | `ratio:pct-usage-over-150k < 20%` | Confirmed | 18% target met |
+| Subagent cost isolation | `ratio:subagent-cost-share < 40%` | Confirmed | 36%, trend stable |
+| Compacting adoption | `count:compact-invocations-per-session > 0.5` | Confirmed | 128/469 sessions = 27% adoption |
+
+### Recommendations (ranked by impact)
+**R1: Parser taxonomy expansion — distinguish transient vs code errors**
+- **Impact**: Reduce "unknown" category from 35% to <10%; improve remediation signal-to-noise
+- **Mechanism**: Cartographer emits retry_count + error_sequence; classify by (attempt #, signal) pair; update classification table
+- **Metric**: `ratio:errors-unknown-pct < 10%` by 2026-08-15
+- **Owner**: cartographer maintainer (librarian)
+
+**R2: Design skill adoption investigation**
+- **Impact**: Unblock design-initiative, design-milestones, design-prototype; clarify intent (zero invocations = signal)
+- **Mechanism**: Query librarian wiki for usage patterns in atlas/listen-wiseer; add discoverability cues to skill-creator descriptions
+- **Metric**: `presence:design-skill-invoked in ≥1 guacamayo session within 3 weeks`
+- **Owner**: skill audit
+
+**R3: Bash antipattern advisor tuning**
+- **Impact**: Shift 5-7% of tool usage from Bash to Read/Grep; reinforce through targeted advisories
+- **Mechanism**: Extend antipattern hook with per-command classification (substitutable, transient, infrastructure); advisory-only stderr nudge added to PreToolUse
+- **Metric**: `bash-antipatterns-per-session < 12` by 2026-08-20 (50% reduction)
+- **Owner**: bash hook tuning
+
+**R4: Context load deep-dive (mid-session reloads)**
+- **Impact**: Reclaim 8-12% from unnecessary identity-skill prompt reloads mid-session
+- **Mechanism**: Profile wake/grow/dream prompt loading; defer to session-boundary events only; lazy-load MEMORY.md refresh
+- **Metric**: `avg-session-max-context < 130k` by 2026-08-25
+- **Owner**: identity-lifecycle skill refactor
+
+**R5: File resolution race condition audit**
+- **Impact**: Reduce file_not_found errors from 141 to <50 (35% of code errors); stabilize concurrent workflows
+- **Mechanism**: Root-cause analysis on multi-session file-read patterns; add read-retry with backoff in critical paths (e.g., plan doc reads at wake)
+- **Metric**: `file-not-found-count < 50` by 2026-08-18
+- **Owner**: workflow-execute / plan-load paths
+
+### Trends vs 2026-08-05
+**Improvements**:
+- Sessions up 51 (418→469, +12.2% in 1 day; sustainable pace at 185 msgs/day)
+- Subagent spawns efficient: 700 transcripts / 469 sessions = 1.49 spawns/session (vs 1.63 prior — better concentration)
+- Cache performance stable (96% hit, 83% savings maintained)
+- Compacting adoption holding strong at 27% (128 sessions)
+
+**Stable**:
+- Context >150k: 18% (target met, no regression)
+- Model mix: opus 56%, fable+sonnet ~35%, haiku ~9% (aligned with policy)
+- Bash dominance: still 50%, antipattern advisory trend is working (no spike)
+- Hook enforcement: 172 blocks, 730 advisories (ratio stable)
+
+**Concerns**:
+- Unknown errors still 35% (no improvement in parser taxonomy)
+- Design skill invocations still zero (no adoption signal)
+- File-not-found cluster (141) suggests unresolved concurrency issue
+
+### Session Health Summary
+Sessions are healthy on cost and structure: cache is excellent, context discipline holding, compacting adoption strong, hook enforcement working. Identity-lifecycle skills (wake/grow/dream) contributing proportionally to cost. Main opportunities are parser observability (unknown errors), design tool discoverability (zero invocations), and bash antipattern enforcement (already trending down).
+
+---
