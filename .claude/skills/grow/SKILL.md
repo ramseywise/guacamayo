@@ -153,7 +153,7 @@ Update `.sounding/context-dashboard.html` with current state. The dashboard is t
 
 Read the existing dashboard HTML structure. Update these data sections with current values:
 
-1. **Session pulse** — timestamp of this grow, gap since wake, growth entry count
+1. **Session status** — timestamp of this grow, gap since wake, growth entry count
 2. **Signal summary** — the compiled signals from Step 4 (retro status, hypothesis count, synthesis proximity)
 3. **Work state** — open issues by label, plan status counts, cross-repo active items
 4. **Cost/efficiency trends** — only if insights-log.md has newer data than what's in the dashboard

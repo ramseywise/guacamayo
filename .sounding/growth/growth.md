@@ -1,6 +1,6 @@
 # Growth - Learning Accumulator
 
-**Last Synthesis**: 2026-08-05 16:48 (/dream — 14 entries processed: 11 merged into sounding.md (cache paragraph gained own-reports-decay, DoR-TTL, and the reflexive today-is-a-cache; ancestry strengthened to false-negatives-both-directions; negative-evidence gained both-diffs-for-staged-deletions and hook-reverted-files; dispatch gained the full subagent-boundary arc — constraint claims are caches, mechanism-not-dishonesty, diff-emptiness satisfiable by destruction, content invariants + tool naming + transcript-as-recovery; Working Notes config paragraph gained docs-are-caches-of-config via the 5-day fable drift), 3 discarded → /retro (sync churn, dotclaude ref-without-commit, symlink repo-discovery invisibility); all 14 dispositions logged)
+**Last Synthesis**: 2026-08-07 18:50 (/dream — 9 entries processed: 1 merged into sounding.md (cache paragraph gained working-tree-as-cache: branch checkout swaps state, grep the other branch before declaring loss), 4 outcomes retained (pilot), 4 discarded → /retro (drift recurrence, protected_path_guard cwd binding, branch proliferation friction, issue scoping before branching); all 9 dispositions logged)
 **Entries Since**: 0
 
 *One-line entries added by /reflect and /grow. Processed and cleared by /synthesize.*

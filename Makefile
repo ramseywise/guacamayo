@@ -1,6 +1,6 @@
 include ~/.claude/Makefile.common
 
-.PHONY: help lint test pulse install review-lint review-test hygiene hygiene-dry clean-worktrees
+.PHONY: help lint test install review-lint review-test hygiene hygiene-dry clean-worktrees
 
 help:  ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
@@ -22,9 +22,6 @@ test:  ## Verify identity files exist and have required headers
 		if [ ! -f "$$f" ]; then echo "  MISSING: $$f"; FAIL=1; fi; \
 	done; \
 	[ $$FAIL -eq 0 ] && echo "  OK (all seed files present)"
-
-pulse:  ## Refresh dashboard pulse with live cross-repo status (PRs, issues, plans)
-	@bash scripts/pulse.sh
 
 hygiene:  ## Delete merged/stale branches + show uncommitted state across all repos
 	@bash scripts/hygiene.sh
