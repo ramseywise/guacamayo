@@ -75,6 +75,17 @@ It runs between scope detection and the concurrent LLM dimension scans.
 
 Tool detection order (first match wins): ruff → biome → eslint → golangci-lint → flake8.
 
+### Verdict contract
+
+`review/verdict.py` (`derive_merge_decision`) is the **sole implementation** of the
+merge-decision rules: blocker → `request_changes`; important/question/suggestion →
+`comment`; nits or nothing → `approve`; `dispatch_failed` → `insufficient_context`.
+The driver carries the result on `DriverResult.report` (a validated `ReviewReport`);
+skills (`/workflow-review` Stage 6, `/sanyi` review step 5) consume it via
+`review-cli verdict <findings.json>` — they never re-derive the rules in prose.
+Wander findings are excluded at the driver call site (wander emits questions by
+construction; counting it would make `approve` structurally unreachable).
+
 Ad-hoc subcommands (still available for standalone use):
 ```
   review-cli detect-signals            # standalone signal detection
