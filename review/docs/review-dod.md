@@ -34,6 +34,7 @@ A repository-specific DoD always wins.
 ## Usage in review
 
 The orchestrator (`/workflow-review`, `/code-review`) assesses each item as:
+
 - **met** — evidence exists (test, code, doc)
 - **not applicable** — doesn't apply to this change
 - **gap** — missing, becomes a finding with appropriate merge_impact

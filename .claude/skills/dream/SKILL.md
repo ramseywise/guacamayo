@@ -102,7 +102,7 @@ For each learning:
    - Process/tooling -> leave flagged for `/retro` graduation, don't place here
 2. **Already captured?** Skip if the seed already says this.
 3. **Pattern strength?** Themes in 3+ reflections are strong. Single mentions are weaker.
-4. **By tag:** `[confirmed]` -> strengthen existing statement. `[corrected]` -> rewrite existing statement. `[discovered]` -> integrate or add.
+4. **By tag:** `[confirmed]` -> strengthen existing statement. `[corrected]` -> rewrite existing statement. `[discovered]` -> integrate or add. `[friction]` -> never a seed edit; route to `/retro` (it is process/tooling by definition, per rule 1) and log the disposition.
 
 ### 7c. Transform
 For each seed file that needs updating:

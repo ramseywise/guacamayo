@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 from pathlib import Path
 from typing import Any
 
@@ -13,6 +14,7 @@ from telemetry.factstore import (
     ERROR_CATEGORY_ENV,
     ERROR_CATEGORY_TOOL,
     ERROR_CATEGORY_UNKNOWN,
+    FINDING_COLUMNS,
     REGIME_UNCLASSIFIED,
     SchemaError,
     _classify_intent,
@@ -928,7 +930,12 @@ def test_findings_round_trip_all_seven_rows(tmp_path: Path) -> None:
 
 
 def test_findings_upsert_is_idempotent_on_id(tmp_path: Path) -> None:
-    """Re-running over same JSONL replaces rows, not appends."""
+    """Re-running over same JSONL replaces rows, not appends.
+
+    Passes both before and after the finding_uid change: this 7-row fixture
+    predates ID reuse, so every id is already distinct. It asserts true
+    idempotency on an unchanged JSONL, which the uid key preserves.
+    """
     jsonl_path = tmp_path / "review-findings.jsonl"
     jsonl_path.write_text(_FINDINGS_JSONL, encoding="utf-8")
     store = tmp_path / "facts.db"
@@ -938,6 +945,119 @@ def test_findings_upsert_is_idempotent_on_id(tmp_path: Path) -> None:
     upsert_findings(rows, store)
 
     assert len(read_findings(store)) == 7
+
+
+def test_findings_ids_reused_across_runs_do_not_collapse(tmp_path: Path) -> None:
+    """Regression gate: reporters restart id counters every review run.
+
+    Fails on the pre-finding_uid schema, where PRIMARY KEY (id) made the second
+    run's "CR-001" overwrite the first's — the bug that collapsed 125 production
+    rows to 44.
+    """
+    jsonl_path = tmp_path / "review-findings.jsonl"
+    jsonl_path.write_text(
+        json.dumps(
+            {
+                "id": "CR-001",
+                "source": "code-review",
+                "date": "2026-08-01",
+                "repo": "guacamayo",
+                "file": "telemetry/loop.py",
+                "title": "Broad except swallows the parse error",
+                "category": "reliability",
+                "merge_impact": "important",
+                "evidence_state": "verified",
+                "review_type": "code-review",
+            }
+        )
+        + "\n"
+        + json.dumps(
+            {
+                "id": "CR-001",
+                "source": "code-review",
+                "date": "2026-08-06",
+                "repo": "librarian",
+                "file": "tools/indexer.py",
+                "title": "Connection is never closed",
+                "category": "reliability",
+                "merge_impact": "blocker",
+                "evidence_state": "verified",
+                "review_type": "code-review",
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    store = tmp_path / "facts.db"
+
+    rows = from_findings_jsonl(jsonl_path)
+    upsert_findings(rows, store)
+
+    stored = read_findings(store)
+    assert len(stored) == 2, "same id across runs must not collapse"
+    assert {r["title"] for r in stored} == {
+        "Broad except swallows the parse error",
+        "Connection is never closed",
+    }
+    assert len({r["finding_uid"] for r in stored}) == 2
+
+
+def test_findings_migration_from_id_pk(tmp_path: Path) -> None:
+    """A legacy table keyed on `id` is rebuilt onto finding_uid without row loss."""
+    store = tmp_path / "facts.db"
+
+    # Build the pre-migration schema by hand: PRIMARY KEY (id), no finding_uid.
+    legacy_cols = [c for c in FINDING_COLUMNS if c != "finding_uid"]
+    conn = sqlite3.connect(store)
+    conn.execute(
+        f"CREATE TABLE findings ({', '.join(f'{c} TEXT' for c in legacy_cols)}, PRIMARY KEY (id))"
+    )
+    conn.execute(
+        f"INSERT INTO findings ({', '.join(legacy_cols)}) "
+        f"VALUES ({', '.join('?' for _ in legacy_cols)})",
+        tuple(
+            {
+                "id": "AK-001",
+                "date": "2026-07-30",
+                "repo": "guacamayo",
+                "file": "telemetry/dashboard.py",
+                "title": "Legacy row",
+            }.get(c, "")
+            for c in legacy_cols
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+    # Opening through the normal path triggers the migration.
+    stored = read_findings(store)
+    assert len(stored) == 1, "migration must not drop existing rows"
+    assert stored[0]["id"] == "AK-001"
+    assert stored[0]["title"] == "Legacy row"
+    assert stored[0]["finding_uid"], "migrated row must carry a computed uid"
+
+    conn = sqlite3.connect(store)
+    try:
+        pk_cols = [r[1] for r in conn.execute("PRAGMA table_info(findings)") if r[5]]
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    finally:
+        conn.close()
+    assert pk_cols == ["finding_uid"]
+    assert "findings_old" not in tables, "scratch table must be dropped"
+
+
+def test_findings_migration_is_idempotent(tmp_path: Path) -> None:
+    """Re-opening an already-migrated store is a no-op, not a second rebuild."""
+    jsonl_path = tmp_path / "review-findings.jsonl"
+    jsonl_path.write_text(_FINDINGS_JSONL, encoding="utf-8")
+    store = tmp_path / "facts.db"
+
+    upsert_findings(from_findings_jsonl(jsonl_path), store)
+    first = read_findings(store)
+    second = read_findings(store)
+
+    assert len(first) == len(second) == 7
+    assert [r["finding_uid"] for r in first] == [r["finding_uid"] for r in second]
 
 
 def test_findings_session_id_nullable(tmp_path: Path) -> None:
