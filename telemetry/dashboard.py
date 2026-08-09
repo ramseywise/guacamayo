@@ -44,6 +44,7 @@ from telemetry.loop import (
     non_conforming,
     status_counts,
 )
+from telemetry.recurrence import compute_recurrence
 from telemetry.verdicts import parse_metric
 
 log = structlog.get_logger(__name__)
@@ -1503,9 +1504,11 @@ def parse_findings(path: Path) -> list[dict]:
 def _render_review_findings(findings: list[dict] | None) -> str:
     """Render the Code Review Findings subtab section.
 
-    Four panels: severity distribution over time, findings by source, top
-    recurring categories, and per-repo finding density. Renders an empty-state
-    placeholder when no findings exist yet.
+    Five panels: severity distribution over time, findings by source, recurring
+    friction (named signature groups, GUA-100), top categories (reporter-native
+    tag distribution -- kept as a separate view, not a recurrence signal), and
+    per-repo finding density. Renders an empty-state placeholder when no
+    findings exist yet.
     """
     if not findings:
         return (
@@ -1553,6 +1556,26 @@ def _render_review_findings(findings: list[dict] | None) -> str:
         f"<tbody>{source_rows}</tbody></table></div>"
     )
 
+    # Recurring friction (GUA-100) -- named signature groups, not the reporter-
+    # native category tag below. See telemetry/recurrence.py for the grouping
+    # rationale (multi-match "all matches", unmatched -> category/repo fallback).
+    recurrence_html = ""
+    recurring_groups = [g for g in compute_recurrence(findings) if g.promotable]
+    if recurring_groups:
+        recurrence_rows = "".join(
+            f"<tr><td>{html.escape(g.pattern_key)}</td><td>{g.count}</td>"
+            f"<td>{html.escape(', '.join(g.repos))}</td>"
+            f"<td>{html.escape(g.first_seen)} → {html.escape(g.last_seen)}</td></tr>"
+            for g in recurring_groups
+        )
+        recurrence_html = (
+            "<h4>Recurring friction</h4>"
+            '<div class="table-view"><table>'
+            "<thead><tr><th>Pattern</th><th>Count</th><th>Repos</th>"
+            "<th>First → last seen</th></tr></thead>"
+            f"<tbody>{recurrence_rows}</tbody></table></div>"
+        )
+
     # Top recurring categories
     category_counts: dict[str, int] = {}
     for f in findings:
@@ -1594,7 +1617,7 @@ def _render_review_findings(findings: list[dict] | None) -> str:
         f'<section class="chart"><h3>Code Review Findings</h3>'
         f'<p class="note">{total} findings total, {blockers} blockers. '
         f"Source: akira-scan + SANYI, persisted per review run.</p>"
-        f"{severity_table}{source_table}{category_html}{repo_table}"
+        f"{severity_table}{source_table}{recurrence_html}{category_html}{repo_table}"
         f"</section>"
     )
 
