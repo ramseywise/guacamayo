@@ -38,7 +38,13 @@ Add entries to the accumulator (`.sounding/growth/growth.md`). One line per thre
 YYYY-MM-DD [type] - [concise learning/discovery]
 ```
 
-Types: `[discovered]`, `[confirmed]`, `[corrected]`
+Types: `[discovered]`, `[confirmed]`, `[corrected]`, `[friction]`
+
+`[friction]` is for *what cost time and will cost it again* — a repeated manual fix, a
+permission prompt for a command shape you keep hitting, a guard you worked around. Write
+the *pattern*, not the instance: "branch created before issue scoped" not "GUA-92 branched
+early". Friction entries are what `/workflow-retro` counts for recurrence; an entry naming
+only this session's outcome cannot recur.
 
 Do NOT edit identity files here. Capture is this skill's job. /dream transforms.
 
