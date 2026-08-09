@@ -175,6 +175,15 @@ def _run_facts() -> None:
     findings_written = upsert_findings(finding_rows, store)
     print(f"Findings table: {findings_written} rows upserted -> {store}")
 
+    from telemetry.recurrence import RECURRENCE_THRESHOLD, compute_recurrence
+
+    recurrence_groups = compute_recurrence(finding_rows)
+    promotable = sum(1 for g in recurrence_groups if g.promotable)
+    print(
+        f"Recurrence: {len(recurrence_groups)} groups, {promotable} promotable "
+        f"(threshold >= {RECURRENCE_THRESHOLD})"
+    )
+
     if not args.no_git:
         from telemetry.gitstore import refresh as refresh_git
 
