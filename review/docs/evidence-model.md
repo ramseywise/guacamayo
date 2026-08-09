@@ -9,6 +9,7 @@ returns it. This is the `evidence.state` field in the canonical finding schema
 ### Verified
 
 Directly confirmed by deterministic evidence:
+
 - Code inspection (grep, read, trace)
 - Test result (ran and observed)
 - Reproduction (triggered the failure)
