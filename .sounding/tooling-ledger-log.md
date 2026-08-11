@@ -31,6 +31,67 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R9 — 2026-08-11
+
+### Graduated rows (3 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-28 | R7 F5: Bash antipattern advisory hook | friction | verified | 2026-08-04 insights experiment verdict: `bash-antipatterns=16.0` — already below the 25/session target (confirmed). Trend 30.24 → 28.9 → 16.0. Advisory hook not required; metric met by behavioral change. |
+| 2026-08-05 | R8 F4: Insights-agent spawn protocol encoded in /grow SKILL.md | workflow | verified | Presence metric met: protocol block confirmed in `guacamayo/.claude/skills/grow/SKILL.md` Step 4a (content invariants + Edit tool requirement + dispatcher git-diff verification). Third spawn attempt ran clean. |
+| 2026-08-05 | R8 F6: ~/.claude/docs/ reappeared (third occurrence) | workflow | verified | Writer identified (cartographer pre-LIB-94 code); LIB-94 fix merged; directory removed 2026-08-05; no recurrence observed at R9 check (0 writes to ~/.claude/docs/ since fix). Metric `absence:~/.claude/docs/-directory` window 1 clean. |
+
+### R9 findings
+
+- F1: Branch lifecycle friction — 17 stale branches deleted in one cleanup run; `make prune` + `prune.sh` added to close the gap
+- F2: Dependabot auto-merge policy gap — majors silently accumulate; no triage path for GH Actions major bumps; Ramsey decision needed
+- F3: Repo rename mechanics — sisyphus rename exposed 4-step checklist gap; step 4 (remote URL update) is silent and breaks `make push`
+- F4: Execution skill compliance at 36% (target 80%) — 64% of execution sessions skip guardrails; no enforcement path yet
+- Metrics updated: heavy-session concentration (53.47% vs 40% target, failed), fable non-verdict (17.74% vs 5%, still failing post R8 F5 fix — re-measure), bash antipatterns (confirmed verified, graduated)
+
+### R9 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F2): Add triage step to dependabot-auto-merge.yml for GH Actions majors**
+In `.github/workflows/dependabot-auto-merge.yml`, add an `else` branch after the existing merge step:
+```yaml
+      - if: steps.metadata.outputs.update-type == 'version-update:semver-major'
+        run: |
+          gh pr edit "$PR_URL" --add-label "needs-review"
+          gh pr edit "$PR_URL" --add-assignee "ramseywise"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+Apply to all repos with `dependabot-auto-merge.yml`. Alternative: document the deliberate gap in `repo-security-setup.md` (section: "Dependabot major updates — manual review required").
+Eval: before = open major-update PRs sit unowned; after = labeled `needs-review` + assigned, visible in triage.
+
+**P2 (F3): Add repo-rename checklist to repo-security-setup.md**
+Add a new section `## Repo rename checklist` to `~/.claude/scripts/repo-security-setup.sh` (or the companion `~/.claude/refs/repo-security-setup.md` if it exists). Steps:
+1. GitHub rename (Settings → rename)
+2. Update prefix table in `~/.claude/refs/agile.md` and CLAUDE.md
+3. Update `ISSUE_REPO` in affected Makefiles
+4. `git remote set-url origin git@github.com:ramseywise/<new-name>.git` on local checkout
+5. Verify with `git remote -v` and `make status`
+No code change — doc addition only.
+
+**P3 (F4): Advisory stop-hook for execution sessions without skill invocations**
+Extend `task_complete_check.sh` with an advisory check: if the session ran 3+ Edit tool calls and no workflow skill appears in the session's tool log, emit a stderr advisory:
+```
+[task-complete] Multi-file edit session without workflow skill — consider /code-review before pushing.
+```
+Exit 0 (advisory only). Does not block. Metric: raise `execution-sessions-with-skills` from 36% toward 70%.
+
+**P4 (context): Mid-session compact prompt at 100k**
+Add to `~/.claude/rules/context-health.md` (already loaded always-on):
+```
+- **100k trigger**: At ~100k context, emit a one-line advisory before the next response:
+  "Context approaching 150k — consider /compact before the next phase."
+  The 30-turn heuristic approximates this; prefer the actual context count when visible.
+```
+This upgrades the existing heuristic to a threshold. The rule already says "compact proactively" — this specifies when. Metric: reduce sessions >150k from 19% to below 10%.
+
+---
+
 ## R8 — 2026-08-05
 
 ### Graduated rows (2 retired this retro)

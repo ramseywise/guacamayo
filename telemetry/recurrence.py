@@ -45,6 +45,13 @@ PATTERNS: dict[str, str] = {
     "duplicate-implementation": r"duplicat|divergent|identical pattern",
     "test-coverage-gap": r"test cover|test only|test checks|coverage unknown|not validated",
     "slug-inconsistency": r"\bslug\b",
+    # Added 2026-08-10 (retro F3): 7 of 14 promotable groups were `unmatched:`
+    # fallbacks, which means PATTERNS lacked a signature for those clusters. These
+    # two were derived by reading the 68 unmatched titles, not guessed.
+    "god-module": r"mixes multiple|multiple responsibilities|\d{3,}-line|god (module|object|class)",
+    "unhandled-none-return": (
+        r"unhandled (none|\w+ exception)|\bnone from\b|returns none|\bpnone\b|raises stopiteration"
+    ),
 }
 
 _COMPILED_PATTERNS: dict[str, re.Pattern[str]] = {
