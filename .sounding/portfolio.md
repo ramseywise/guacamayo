@@ -10,6 +10,9 @@
 - **listen-wiseer** — Spotify copilot: LangGraph agent, GMM/LightGBM recommender, agentic web search, langmem. The best-documented repo; Phase 8 (RAG right-sizing) landed.
 - **atlas** — agentic financial intelligence for B2B: LangGraph forecast/segment/knowledge agents, Neo4j, real eval harness. Bridges the classical-ML and agentic eras natively.
 
+**Prototyping**
+- **galactus** — contract-bounded LLM generation. `ml6/` is the reference case study: FastAPI service generating length-constrained marketing copy grounded in uploaded PDFs. Thesis: counting characters is code's job; the model's job is content. Also hosts review-leakage ML dimension scanner. Stack: Python 3.12, FastAPI, Pydantic v2, Anthropic SDK, structlog.
+
 **Meta / tooling / knowledge (supports everything else)**
 - **guacamayo** (this repo) — the Sounding instance + persistence KB. The meta-layer session lives here; v2 = 3 seeds, single-writer lifecycle, feedback loop wired to `~/.claude` (retro + ledger) and librarian. KB half still unscoped — Ramsey's call.
 - **librarian** — sourced knowledge compiler (raw → wiki, conflict-flagged, cited) + MCP + code index. The system of record for factual session history; being extended into a DSSG team-facing KB template (indexer decisions made — don't relitigate). Its cartographer half settled into two cadences (2026-08-02): `--facts` daily, deriving session notes from JSONL and failing loud on empty input, and `--cron` weekly, deterministic and key-free — the LLM analysis stage was retired rather than repaired, because the report nobody read was also what made an empty pipeline look healthy. **librarian is a public repo**, and its derived session material (`raw/`, the wiki session log) carries verbatim prompts; both are gitignored, and that boundary is load-bearing, not hygiene.
@@ -29,7 +32,7 @@
 - The tooling loop: playground proves → ai-project-template extracts → every repo consumes; guacamayo sessions run the cross-cutting view; /retro + ledger graduate learnings to `~/.claude`.
 - Knowledge: librarian compiles everything factual; wiki-worthy classical-ML content emerges via atlas ingestion (decided: no dedicated ml-foundations pass). learn-ai-engineering feeds raw interview-prep content into librarian via compile-not-merge — librarian ingests, learn-ai-engineering points at wiki pages.
 - The portfolio showcase layer waits until 2–3 repos are genuinely demo-ready — rooms before the front door.
-- Measurement: the 6-pillar assessment framework (prompt → context → harness → loop → graph → eval) in learn-ai-engineering is a reusable instrument for scoring portfolio maturity. First run (2026-07-29): playground 14/18, listen-wiseer/librarian 12/18, atlas 11/18, job-system 4/18. The nesting rule — inner pillars cap outer — revealed that prompt/context at level 2 everywhere is the binding constraint, not harness or eval.
+- Measurement: the 6-pillar assessment framework (prompt → context → harness → loop → graph → eval) in learn-ai-engineering is a reusable instrument for scoring portfolio maturity. First run (2026-07-29): playground 14/18, listen-wiseer/librarian 12/18, atlas 11/18, sisyphus 4/18. The nesting rule — inner pillars cap outer — revealed that prompt/context at level 2 everywhere is the binding constraint, not harness or eval.
 
 ## Where Detail Lives (pointers, never copied here)
 

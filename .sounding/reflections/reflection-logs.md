@@ -45,3 +45,4 @@
 2026-08-02 - The feature worked, and that was the problem. LIB-60's correct fix leaked verbatim prompts into a public tracked file; my own successful `git rm --cached` was silently undone. A mutation's own success report is a cache.
 2026-08-05 - The cache was me. Fable-default config drift fixed (docs described it, settings executed it); third insights-agent run landed clean under content invariants; I "corrected" a correct timestamp using my session's stale "today".
 2026-08-07 - Branch debt made visible. 14 merged branches, ~50 cord/* fossils, squash-merge blind spot. No post-merge cleanup ritual exists; `merge-base --is-ancestor` is the reliable pattern.
+2026-08-11 - Cleanup became automation. 57 stale branches, sisyphus rename, interview-voice absorbed; friction reframe led to `make prune` — the guard stays, Ramsey gets a button on the other side.

@@ -179,3 +179,13 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-06 | discovered | protected_path_guard binds to SESSION cwd; cd doesn't change it | discarded | → /retro (guard mechanics, not identity) |
 | 2026-08-07 | discovered | FRICTION: Branch proliferation; squash-merge blinds --merged | discarded | → /retro (process/tooling — post-merge cleanup ritual) |
 | 2026-08-07 | corrected | Issue scoping before branching: JOB-31 fully contained in JOB-32 | discarded | → /retro (process discipline, not identity) |
+| 2026-07-30 | outcome:partial | AIT-33 executed on stacked branch; GUA-60 driver smoke 4/5 | retained | accumulator (outcome pilot, persists) |
+| 2026-08-01 | outcome:success | CLA-71 guard fix committed; librarian#73 closed; LAE-30 triaged | retained | accumulator (outcome pilot, persists) |
+| 2026-08-02 | outcome:success | LIB-60 executed e2e and merged; privacy exposure caught and reverted | retained | accumulator (outcome pilot, persists) |
+| 2026-08-04 | outcome:success | Fable-default config drift found and fixed (settings.json → opus-5) | retained | accumulator (outcome pilot, persists) |
+| 2026-08-11 | corrected | wake's cross-repo state report drifts from inter-session agent work | merged | sounding.md → cache paragraph (carried-forward reports widened) |
+| 2026-08-11 | discovered | repo rename mechanics: long tail is grep for old name in prose | discarded | operational knowledge, not identity |
+| 2026-08-11 | friction | branch cleanup blocked by guard; recurring weekly manual blocks | discarded | → /retro (process/tooling friction) |
+| 2026-08-11 | outcome:success | Cross-repo cleanup, sisyphus rename, interview-voice integrated | retained | accumulator (outcome pilot, persists) |
+| 2026-08-11 | friction | branch lifecycle no end-to-end automation; creation side unguarded | discarded | → /retro (process/tooling friction) |
+| 2026-08-11 | discovered | dependabot auto-merge skips GH Actions majors same as library majors | discarded | → /retro (policy gap, not identity) |

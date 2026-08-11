@@ -110,6 +110,46 @@ def test_empty_findings_returns_empty_list() -> None:
     assert compute_recurrence([]) == []
 
 
+def test_god_module_signature_matches_size_and_mixed_concerns() -> None:
+    findings = [
+        _finding(title="Single 1458-line module mixes multiple distinct concerns"),
+        _finding(title="_run_facts() mixes multiple responsibilities across 296 lines"),
+        _finding(title="God object accumulates unrelated state"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "god-module")
+    assert matched.count == 3
+
+
+def test_god_module_does_not_match_expression_complexity() -> None:
+    """A complex *expression* is not a module mixing concerns.
+
+    This title sits in the live corpus and would take `god-module` from n=2 to
+    n=3 -- i.e. across the promotion threshold. Matching it would be fitting the
+    regex to the desired answer rather than to the friction, so it is excluded
+    deliberately and this test pins that choice.
+    """
+    findings = [
+        _finding(
+            title="_NON_SOURCE regex pattern is complex multi-line pattern with 12+ OR clauses"
+        )
+    ]
+    groups = compute_recurrence(findings)
+    assert not any(g.pattern_key == "god-module" for g in groups)
+
+
+def test_unhandled_none_return_signature() -> None:
+    findings = [
+        _finding(title="Unhandled None from SQL fetchone() will crash on missing metadata"),
+        _finding(title="_render_fact emits literal 'pNone' for facts with no page number"),
+        _finding(title="_first_theme_color raises StopIteration on empty theme_colors"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "unhandled-none-return")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
 # --- Live corpus (Step 4 done-condition) ------------------------------------
 
 _LIVE_CORPUS = Path("~/workspace/guacamayo/.claude/docs/review-findings.jsonl").expanduser()
@@ -132,3 +172,27 @@ def test_live_corpus_yields_expected_top_pattern() -> None:
     matched = next(g for g in groups if g.pattern_key == "hardcoded-not-configurable")
     assert matched.count >= 20
     assert len(matched.repos) >= 4
+
+
+@pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
+def test_live_corpus_new_signatures_reduce_unmatched_promotables() -> None:
+    """Retro F3: before this change, 7 of 14 promotable groups were `unmatched:`
+    fallbacks -- the pattern table had no signature for those clusters.
+
+    `unhandled-none-return` clears the threshold on the live corpus (n=3).
+    `god-module` does NOT (n=2) -- it is a real signature one instance short, and
+    that is recorded rather than papered over by loosening the regex.
+    """
+    rows: list[dict[str, Any]] = []
+    for line in _LIVE_CORPUS.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            rows.append(json.loads(line))
+
+    groups = {g.pattern_key: g for g in compute_recurrence(rows)}
+
+    assert groups["unhandled-none-return"].count >= RECURRENCE_THRESHOLD
+    assert groups["unhandled-none-return"].promotable is True
+
+    assert groups["god-module"].count == 2
+    assert groups["god-module"].promotable is False

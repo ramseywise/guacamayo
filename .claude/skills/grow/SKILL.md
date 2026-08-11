@@ -69,7 +69,7 @@ Ask: "Any sessions since we started I should know about?" — one sentence per s
 
 ```bash
 # Open issues — current board state
-for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
   echo "--- $repo ---"
   gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
 done
