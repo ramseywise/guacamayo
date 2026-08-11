@@ -13,6 +13,6 @@
 - [outcome:success] Fable-default config drift found and fixed (settings.json:269 → claude-opus-5); 5-day gap between documented decision and executing config closed — 2026-08-04
 
 *Format: YYYY-MM-DD [type] - [concise learning/discovery]*
-*Types: [discovered] = new insight, [confirmed] = validated existing approach, [corrected] = updated understanding*
+*Types: [discovered] = new insight, [confirmed] = validated existing approach, [corrected] = updated understanding, [friction] = what cost time and will cost it again (write the pattern, not the instance)*
 *Outcome tags persist across synthesis (pilot measurement — first 20 sessions)*
 *Processed and cleared by /synthesize*

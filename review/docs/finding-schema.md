@@ -91,6 +91,7 @@ For ranked-list readability (agents output this, not raw YAML):
 ```
 
 Schema:
+
 ```yaml
 id: AK-001
 source: akira-scan
@@ -116,6 +117,7 @@ communication: { comment_type: request_change }
 ```
 
 Schema:
+
 ```yaml
 id: SY-001
 source: sanyi

@@ -11,6 +11,7 @@ never USD: the weights are model-blind, so a `_usd` suffix would be a lie.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import sqlite3
@@ -464,7 +465,8 @@ def read_all(store: Path) -> list[dict[str, Any]]:
 # These live in the JSONL. Query this table for metrics; read the JSONL for narrative.
 
 FINDING_COLUMNS: dict[str, type] = {
-    "id": str,  # e.g. "AK-001"
+    "finding_uid": str,  # sha1(id|date|repo|file|title) — see _finding_uid()
+    "id": str,  # e.g. "AK-001" — per-run label, NOT unique across runs
     "source": str,  # "akira-scan" | "sanyi" | "workflow-review" | ...
     "date": str,  # YYYY-MM-DD emission date
     "session_id": str,  # nullable FK → sessions.session_id (NULL for pre-GUA-63 rows)
@@ -483,14 +485,67 @@ FINDING_COLUMNS: dict[str, type] = {
 _FINDING_SQL_TYPES = {str: "TEXT"}
 
 
+def _finding_uid(row: dict[str, Any]) -> str:
+    """Stable identity for a finding across review runs.
+
+    `id` alone is NOT unique: reporters restart their counters every run, so
+    "CR-001" names a different finding in each review. Keying the table on `id`
+    made every run's findings overwrite the previous run's — 125 JSONL rows
+    collapsed to 44 in the DB, silently, since GUA-63. The composite below was
+    verified distinct across all 125 production rows.
+
+    `date` and `repo` separate runs; `file` and `title` separate two findings
+    that share an id within one run's reporter output.
+    """
+    parts = [str(row.get(k) or "") for k in ("id", "date", "repo", "file", "title")]
+    return hashlib.sha1("|".join(parts).encode("utf-8")).hexdigest()
+
+
 def _connect_findings(store: Path) -> sqlite3.Connection:
     """Open (or create) the store and ensure the findings table exists."""
     store.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(store)
     cols = ", ".join(f"{name} {_FINDING_SQL_TYPES[typ]}" for name, typ in FINDING_COLUMNS.items())
-    conn.execute(f"CREATE TABLE IF NOT EXISTS findings ({cols}, PRIMARY KEY (id))")
+    _migrate_findings_pk(conn)
+    conn.execute(f"CREATE TABLE IF NOT EXISTS findings ({cols}, PRIMARY KEY (finding_uid))")
     _add_missing_finding_columns(conn)
     return conn
+
+
+def _migrate_findings_pk(conn: sqlite3.Connection) -> None:
+    """Rebuild a legacy findings table keyed on `id` onto `finding_uid`.
+
+    `CREATE TABLE IF NOT EXISTS` cannot change a primary key, and ALTER TABLE
+    cannot add one, so an existing table has to be rebuilt. Rows already in the
+    old table are carried over with their uid computed — that recovers nothing
+    the old key destroyed (those writes are gone), but it keeps the surviving
+    rows and lets the next JSONL upsert restore the full history.
+    """
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(findings)")}
+    if not existing or "finding_uid" in existing:
+        return  # no table yet, or already migrated
+
+    conn.row_factory = sqlite3.Row
+    carried = [dict(r) for r in conn.execute("SELECT * FROM findings")]
+    conn.row_factory = None
+
+    conn.execute("ALTER TABLE findings RENAME TO findings_old")
+    cols = ", ".join(f"{name} {_FINDING_SQL_TYPES[typ]}" for name, typ in FINDING_COLUMNS.items())
+    conn.execute(f"CREATE TABLE findings ({cols}, PRIMARY KEY (finding_uid))")
+
+    if carried:
+        names = list(FINDING_COLUMNS)
+        placeholders = ", ".join("?" for _ in names)
+        for row in carried:
+            row["finding_uid"] = _finding_uid(row)
+        conn.executemany(
+            f"INSERT OR REPLACE INTO findings ({', '.join(names)}) VALUES ({placeholders})",
+            [tuple(row.get(n) for n in names) for row in carried],
+        )
+
+    conn.execute("DROP TABLE findings_old")
+    conn.commit()
+    log.info("factstore.findings_pk_migrated", carried_rows=len(carried))
 
 
 def _add_missing_finding_columns(conn: sqlite3.Connection) -> None:
@@ -504,14 +559,17 @@ def _add_missing_finding_columns(conn: sqlite3.Connection) -> None:
 
 
 def upsert_findings(rows: list[dict[str, Any]], store: Path) -> int:
-    """Idempotent on finding id. Returns rows written.
+    """Idempotent on finding_uid. Returns rows written.
 
     Re-running over the same JSONL replaces rows in place rather than
     appending duplicates, so this is safe to schedule alongside --facts.
+
+    Keyed on finding_uid, not id: see _finding_uid() for why id collapses runs.
     """
     if not rows:
         return 0
     names = list(FINDING_COLUMNS)
+    rows = [r if r.get("finding_uid") else {**r, "finding_uid": _finding_uid(r)} for r in rows]
     placeholders = ", ".join("?" for _ in names)
     sql = f"INSERT OR REPLACE INTO findings ({', '.join(names)}) VALUES ({placeholders})"
     values = []
@@ -593,6 +651,7 @@ def from_findings_jsonl(path: Path) -> list[dict[str, Any]]:
             "evidence_state": raw.get("evidence_state", ""),
             "review_type": raw.get("review_type", ""),
         }
+        row["finding_uid"] = _finding_uid(row)
         rows.append(row)
     log.info("factstore.from_findings_jsonl", rows=len(rows), path=str(path))
     return rows
