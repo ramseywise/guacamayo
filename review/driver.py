@@ -117,10 +117,15 @@ _YAML_FRONTMATTER = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
 # Dimension name → agent filename stem mapping
 _DIMENSION_TO_AGENT_FILE: dict[str, str] = {
     "correctness": "correctness",
+    "intent": "intent",
+    "architecture": "architecture",
     "safety": "safety",
-    "structure": "structure",
-    "agent-quality": "agent-quality",
     "contracts": "contracts",
+    "testing": "testing",
+    "runtime": "runtime",
+    "safeguards": "safeguards",
+    "silent-failure": "silent-failure",
+    "leakage": "leakage",
     "wander": "wander",
 }
 
@@ -141,10 +146,15 @@ If you find no issues, return {"findings": []}.
 # Dimension → Reporter enum value
 _DIMENSION_TO_REPORTER: dict[str, Reporter] = {
     "correctness": Reporter.CORRECTNESS,
+    "intent": Reporter.INTENT,
+    "architecture": Reporter.ARCHITECTURE,
     "safety": Reporter.SAFETY,
-    "structure": Reporter.STRUCTURE,
-    "agent-quality": Reporter.AGENT_QUALITY,
     "contracts": Reporter.CONTRACTS,
+    "testing": Reporter.TESTING,
+    "runtime": Reporter.RUNTIME,
+    "safeguards": Reporter.SAFEGUARDS,
+    "silent-failure": Reporter.SILENT_FAILURE,
+    "leakage": Reporter.LEAKAGE,
     "wander": Reporter.WANDER,
 }
 
