@@ -10,7 +10,9 @@ def validate_finding(data: dict) -> tuple[bool, str]:
     except ValidationError as e:
         return False, e.json()
 
-    if finding.reporter == Reporter.SANYI and finding.severity.violation_code:
+    # CONTRACTS is the SANYI checker post-reconciliation; the retired SANYI reporter
+    # is still honoured so historical findings validate identically.
+    if finding.reporter in (Reporter.CONTRACTS, Reporter.SANYI) and finding.severity.violation_code:
         code = finding.severity.violation_code
         try:
             expected = violation_merge_impact(code)

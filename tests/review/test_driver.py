@@ -19,6 +19,7 @@ from click.testing import CliRunner
 
 from review.cli import main
 from review.driver import (
+    _DIMENSION_TO_AGENT_FILE,
     FINDINGS_SCHEMA,
     DriverConfig,
     DriverResult,
@@ -133,18 +134,18 @@ class TestLoadAgentPrompt:
         """Files without frontmatter return full content + suffix."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
-        (agents_dir / "structure.md").write_text("You are structure.\n")
-        prompt = load_agent_prompt("structure", agents_dir)
-        assert "You are structure." in prompt
+        (agents_dir / "architecture.md").write_text("You are architecture.\n")
+        prompt = load_agent_prompt("architecture", agents_dir)
+        assert "You are architecture." in prompt
         assert "Driver mode" in prompt
 
-    def test_agent_quality_mapped_to_hyphenated_file(self, tmp_path: Path) -> None:
-        """'agent-quality' dimension maps to 'agent-quality.md'."""
+    def test_hyphenated_dimension_mapped_to_hyphenated_file(self, tmp_path: Path) -> None:
+        """'silent-failure' dimension maps to 'silent-failure.md'."""
         agents_dir = tmp_path / "agents"
         agents_dir.mkdir()
-        (agents_dir / "agent-quality.md").write_text("---\nname: x\n---\nAQ content.\n")
-        prompt = load_agent_prompt("agent-quality", agents_dir)
-        assert "AQ content." in prompt
+        (agents_dir / "silent-failure.md").write_text("---\nname: x\n---\nSI content.\n")
+        prompt = load_agent_prompt("silent-failure", agents_dir)
+        assert "SI content." in prompt
 
     def test_missing_agent_file_raises(self, tmp_path: Path) -> None:
         """FileNotFoundError when agent .md is missing."""
@@ -153,12 +154,9 @@ class TestLoadAgentPrompt:
         with pytest.raises(FileNotFoundError, match="Agent file not found"):
             load_agent_prompt("correctness", agents_dir)
 
-    @pytest.mark.parametrize(
-        "dimension",
-        ["correctness", "safety", "structure", "agent-quality", "contracts", "wander"],
-    )
-    def test_all_six_dimensions_load_from_real_repo(self, dimension: str) -> None:
-        """All 6 real agent files load and strip frontmatter correctly."""
+    @pytest.mark.parametrize("dimension", sorted(_DIMENSION_TO_AGENT_FILE))
+    def test_all_dimensions_load_from_real_repo(self, dimension: str) -> None:
+        """Every registered dimension's agent file loads and strips frontmatter."""
         repo_root = Path(__file__).resolve().parent.parent.parent
         agents_dir = repo_root / ".claude" / "agents"
         prompt = load_agent_prompt(dimension, agents_dir)
@@ -300,7 +298,7 @@ class TestRunReview:
         findings_by_dim = {
             "correctness": [make_finding_dict("CR-001")],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [],
         }
         config = DriverConfig(
@@ -463,7 +461,7 @@ class TestRunReview:
         findings_by_dim = {
             "correctness": [make_finding_dict("CR-001")],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [],
         }
         reviews_dir = tmp_path / "reviews"
@@ -508,7 +506,7 @@ class TestRunReview:
         findings_by_dim = {
             "correctness": [dup1, dup2],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [],
         }
         config = DriverConfig(
@@ -539,7 +537,7 @@ class TestRunReview:
         findings_by_dim = {
             "correctness": [],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [wander_finding],
         }
         config = DriverConfig(
@@ -645,7 +643,7 @@ class TestCliRun:
         findings_by_dim = {
             "correctness": [make_finding_dict()],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [],
         }
 
@@ -688,7 +686,7 @@ class TestCliRun:
         findings_by_dim = {
             "correctness": [make_finding_dict()],
             "safety": [],
-            "structure": [],
+            "architecture": [],
             "wander": [],
         }
         reviews_dir = tmp_path / ".claude" / "docs" / "reviews"
