@@ -11,13 +11,38 @@ without a model call lives here.
 | Part | Where | Role |
 |------|-------|------|
 | Deterministic backbone | `review/` (this package) | Schemas, validation, dedup, fingerprints, trends, routing signals, report rendering |
-| Dimension agents | `.claude/agents/` | LLM judgment: `correctness` (CR-), `safety` (SF-), `structure` (ST-), `agent-quality` (AQ-), `contracts` (CT-), `wander` (WD-) |
+| Dimension agents | `.claude/agents/` | LLM judgment — 11 dimensions, see the table below |
 | Checklists | `.claude/skills/` | Per-dimension checklists + `shared` scan rules, read by the agents; not invoked directly |
 
 Orchestration: `review-cli run` is the single entry point — it owns the full pipeline
-from signal detection through report rendering. Skills (`/akira`, `/workflow-review`)
-call `review-cli run` and present the result; they no longer orchestrate individual
+from signal detection through report rendering. Skills (`/workflow-review`) call
+`review-cli run` and present the result; they no longer orchestrate individual
 CLI subcommands. Agents preload the global `review-shared` skill via frontmatter.
+
+## Dimensions
+
+The dimension vocabulary mirrors the `review-*` skill family in galactus, which is
+canonical (reconciled 2026-08-11, 5 → 11). Conditional dimensions dispatch only when
+`signals.py` detects the matching signal.
+
+| Dimension | Prefix | Dispatch |
+|-----------|--------|----------|
+| `correctness` | CR- | always |
+| `intent` | IN- | always |
+| `architecture` | AR- | always |
+| `safety` | SF- | always |
+| `testing` | TE- | always |
+| `silent-failure` | SI- | always |
+| `wander` | WD- | always (questions, not findings) |
+| `runtime` | RT- | `is_agent_code` |
+| `safeguards` | SG- | `is_agent_code` |
+| `leakage` | LK- | `is_ml_code` |
+| `contracts` | CT- | `has_sanyi_contracts` |
+
+Renamed in that reconciliation: `structure` → `architecture` (ST- → AR-), and
+`agent-quality` (AQ-) split into `runtime` + `safeguards`. Findings persisted under the
+old reporter names still deserialize, but their fingerprints differ, so the first sweep
+after the rename shows the old findings as resolved and the new ones as newly appearing.
 
 ## Package layout
 

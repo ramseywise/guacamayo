@@ -39,7 +39,7 @@ Before gathering context, determine the review scope from the branch and repo st
 | Scope | What runs | What's skipped |
 |-------|-----------|----------------|
 | **Full** | All stages (1-8) | Nothing |
-| **Lightweight** | Context brief (slim), lint/tests, worktree check, DoD, verdict | akira-scan, SANYI, plan fidelity |
+| **Lightweight** | Context brief (slim), lint/tests, worktree check, DoD, verdict | dimension scan, plan fidelity |
 
 The review artifact is always written regardless of scope — `check-review` in `make ship` gates on it.
 
@@ -102,8 +102,9 @@ uv run --project ~/workspace/guacamayo review-cli run \
   --reviews-dir <target-repo>/.claude/docs/reviews
 ```
 
-The driver spawns all active dimension agents (correctness, safety, structure,
-agent-quality if agent code, contracts if SANYI.md exists, wander), validates every
+The driver spawns all active dimension agents — always-on: correctness, intent,
+architecture, safety, testing, silent-failure, wander; conditional: runtime and
+safeguards if agent code, leakage if ML code, contracts if SANYI.md exists — validates every
 finding through the Pydantic gate (one repair round-trip then hard fail), deduplicates
 via union-find, fingerprints, and persists a sweep record. Capture stdout as the
 dimension report for Stage 7. The driver's exit code surfaces any validation failure.
@@ -195,8 +196,17 @@ Produce the unified report:
 | Reporter | Status | Findings |
 |----------|--------|----------|
 | plan-fidelity | ran/skipped | N findings |
-| akira-scan | dispatched/skipped | N findings |
-| SANYI | dispatched/skipped | N findings |
+| correctness | dispatched/skipped | N findings |
+| intent | dispatched/skipped | N findings |
+| architecture | dispatched/skipped | N findings |
+| safety | dispatched/skipped | N findings |
+| testing | dispatched/skipped | N findings |
+| silent-failure | dispatched/skipped | N findings |
+| runtime | dispatched/skipped | N findings |
+| safeguards | dispatched/skipped | N findings |
+| leakage | dispatched/skipped | N findings |
+| contracts | dispatched/skipped | N findings |
+| wander | dispatched/skipped | N questions |
 | lint/tests | ran/skipped | pass/fail |
 
 ## 12. Merge Verdict

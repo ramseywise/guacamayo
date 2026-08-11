@@ -57,28 +57,58 @@ class Category(str, Enum):
 
 
 class Reporter(str, Enum):
-    # Legacy reporters (pre-Phase 2)
+    """Finding sources.
+
+    The dimension reporters mirror the ``review-*`` skill family in galactus, which
+    is canonical for dimension vocabulary. Legacy values predate that reconciliation
+    and are retained only so historical sweep records still deserialize.
+    """
+
+    # Deprecated — retired 2026-08-11 with the akira/sanyi generation.
+    # Never emitted by the driver; kept so persisted findings still parse.
     AKIRA_SCAN = "akira_scan"
     AKIRA_WANDER = "akira_wander"
-    SANYI = "sanyi"
+    SANYI = "sanyi"  # superseded by CONTRACTS, which carries the violation-code check
+    # Non-dimension reporters (no prefix constraint)
     LINT = "lint"
     PLAN_FIDELITY = "plan_fidelity"
-    # Phase 2 dimension reporters
+    # Dimension reporters — one per galactus review-* skill
     CORRECTNESS = "correctness"
+    INTENT = "intent"
+    ARCHITECTURE = "architecture"
     SAFETY = "safety"
-    STRUCTURE = "structure"
-    AGENT_QUALITY = "agent_quality"
     CONTRACTS = "contracts"
+    TESTING = "testing"
+    RUNTIME = "runtime"
+    SAFEGUARDS = "safeguards"
+    SILENT_FAILURE = "silent_failure"
+    LEAKAGE = "leakage"
     WANDER = "wander"
+
+
+# Reporters retired 2026-08-11. Retained in the enum for backward-compatible
+# deserialization of existing sweep records; the driver never dispatches them.
+DEPRECATED_REPORTERS: frozenset[Reporter] = frozenset(
+    {
+        Reporter.AKIRA_SCAN,
+        Reporter.AKIRA_WANDER,
+        Reporter.SANYI,
+    }
+)
 
 
 # Maps dimension reporter → expected ID prefix (e.g. correctness → "CR")
 REPORTER_ID_PREFIX: dict[str, str] = {
     Reporter.CORRECTNESS: "CR",
+    Reporter.INTENT: "IN",
+    Reporter.ARCHITECTURE: "AR",
     Reporter.SAFETY: "SF",
-    Reporter.STRUCTURE: "ST",
-    Reporter.AGENT_QUALITY: "AQ",
     Reporter.CONTRACTS: "CT",
+    Reporter.TESTING: "TE",
+    Reporter.RUNTIME: "RT",
+    Reporter.SAFEGUARDS: "SG",
+    Reporter.SILENT_FAILURE: "SI",
+    Reporter.LEAKAGE: "LK",
     Reporter.WANDER: "WD",
 }
 
