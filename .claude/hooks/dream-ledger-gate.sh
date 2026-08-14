@@ -31,7 +31,7 @@ remaining=$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2} \[' "$growth" 2>/dev/null || t
 remaining=${remaining:-0}
 remaining=$((remaining + 0))
 
-# If entries remain, this is an append (/grow) or partial edit — not a clear. Pass.
+# If entries remain, this is an append (/meta-grow) or partial edit — not a clear. Pass.
 [ "$remaining" -gt 0 ] && exit 0
 
 # growth.md was cleared (0 dated entries). Check ledger exists and has today's rows.

@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '{\"type\": \"context\", \"content\": \"Identity workspace (Sounding): run /wake before starting work.\"}'",
+            "command": "printf '{\"type\": \"context\", \"content\": \"Identity workspace (Sounding): run /meta-wake before starting work.\"}'",
             "timeout": 5
           }
         ]
