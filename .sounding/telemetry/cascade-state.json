@@ -1,0 +1,29 @@
+{
+  "compacts": 5,
+  "grows_due": 1,
+  "insights_due": 0,
+  "retro_due": 0,
+  "last_compact": "2026-08-14T09:39:49Z",
+  "history": [
+    {
+      "ts": "2026-08-12T09:30:08Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-12T09:42:28Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-12T17:01:50Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T09:20:45Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T09:39:49Z",
+      "repo": "guacamayo"
+    }
+  ]
+}

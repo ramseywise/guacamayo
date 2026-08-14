@@ -1,0 +1,45 @@
+{
+  "issues_checked": 18,
+  "repos_checked": [
+    "ai-project-template",
+    "atlas",
+    "galactus",
+    "guacamayo",
+    "learn-ai-engineering",
+    "lebanese-blonde",
+    "librarian",
+    "listen-wiseer",
+    "playground",
+    "sisyphus"
+  ],
+  "coverage": {
+    "unmatchable_plans": 106
+  },
+  "counts_by_kind": {
+    "label-artifact": 3
+  },
+  "total": 3,
+  "inconsistencies": [
+    {
+      "kind": "label-artifact",
+      "repo": "guacamayo",
+      "issue": 103,
+      "detail": "labelled `ready`",
+      "evidence": "no plan doc joins to this issue (ready implies DoR passed)"
+    },
+    {
+      "kind": "label-artifact",
+      "repo": "guacamayo",
+      "issue": 104,
+      "detail": "labelled `ready`",
+      "evidence": "no plan doc joins to this issue (ready implies DoR passed)"
+    },
+    {
+      "kind": "label-artifact",
+      "repo": "sisyphus",
+      "issue": 33,
+      "detail": "labelled `ready`",
+      "evidence": "no plan doc joins to this issue (ready implies DoR passed)"
+    }
+  ]
+}
