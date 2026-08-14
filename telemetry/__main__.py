@@ -2,6 +2,7 @@
 
 Usage:
     uv run telemetry --facts               # Refresh the fact table + inject dashboard regions
+    uv run telemetry --consistency         # Emit the board-consistency report /wake renders
 
 Ported from ramseywise/librarian tools/cartographer/__main__.py:147-458 (`_run_facts`)
 @ aa3166e (GUA-93), minus the derive-notes step (stays librarian) and the
@@ -11,6 +12,7 @@ Ported from ramseywise/librarian tools/cartographer/__main__.py:147-458 (`_run_f
 from __future__ import annotations
 
 import sys
+from typing import Any
 
 from telemetry.log_config import configure_logging
 
@@ -31,9 +33,234 @@ def main() -> None:
     if "--facts" in sys.argv:
         sys.argv.remove("--facts")
         _run_facts()
+    elif "--consistency" in sys.argv:
+        sys.argv.remove("--consistency")
+        _run_consistency()
     else:
-        print("usage: telemetry --facts [options]", file=sys.stderr)
+        print("usage: telemetry [--facts | --consistency] [options]", file=sys.stderr)
         raise SystemExit(2)
+
+
+# The ten repos wake's Phase 5 loop already walks (wake/SKILL.md:97). Reused rather
+# than maintained separately — a second list would drift from the first, and a repo
+# missing from the checker's copy would be silently unchecked.
+ACTIVE_REPOS: tuple[str, ...] = (
+    "guacamayo",
+    "sisyphus",
+    "learn-ai-engineering",
+    "librarian",
+    "atlas",
+    "ai-project-template",
+    "listen-wiseer",
+    "playground",
+    "lebanese-blonde",
+    "galactus",
+)
+
+
+def _fetch_issues_with_bodies(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+    """Open issues including `body`, which `loop.collect_issues` does not request.
+
+    Separate call rather than widening loop's `--json` set: that function feeds the
+    dashboard's loop tab and stores its rows, and issue bodies are large enough that
+    adding them there would bloat every consumer for one caller's benefit.
+    """
+    import json
+    import shutil
+    import subprocess
+
+    if not shutil.which("gh"):
+        return []
+    try:
+        out = subprocess.run(
+            [
+                "gh",
+                "issue",
+                "list",
+                "-R",
+                f"{owner}/{repo}",
+                "--state",
+                "open",
+                "--limit",
+                "100",
+                "--json",
+                "number,title,state,labels,body",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return []
+    if out.returncode != 0 or not out.stdout.strip():
+        return []
+    try:
+        payload = json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return []
+
+    return [
+        {
+            "repo": repo,
+            "number": issue.get("number", 0),
+            "title": issue.get("title", ""),
+            "state": (issue.get("state") or "").upper(),
+            "labels": ",".join(sorted(lbl.get("name", "") for lbl in (issue.get("labels") or []))),
+            "body": issue.get("body") or "",
+        }
+        for issue in payload
+    ]
+
+
+def _fetch_open_prs(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+    """Open PRs with title + body, for resolving `in-review` against real PRs."""
+    import json
+    import shutil
+    import subprocess
+
+    if not shutil.which("gh"):
+        return []
+    try:
+        out = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "-R",
+                f"{owner}/{repo}",
+                "--state",
+                "open",
+                "--limit",
+                "100",
+                "--json",
+                "number,title,state,body",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return []
+    if out.returncode != 0 or not out.stdout.strip():
+        return []
+    try:
+        payload = json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return []
+
+    return [
+        {
+            "repo": repo,
+            "number": pr.get("number", 0),
+            "title": pr.get("title", ""),
+            "state": (pr.get("state") or "").upper(),
+            "body": pr.get("body") or "",
+        }
+        for pr in payload
+    ]
+
+
+def _run_consistency() -> None:
+    """Emit the board-consistency report `/wake` renders instead of re-deriving.
+
+    Two sources fold into one report: label-vs-artifact from `consistency.py`,
+    and plan<->issue drift from `loop.detect_drift` (already bidirectional —
+    this does not reimplement it).
+
+    Path checking was a third source and was removed after its first live run
+    (65 findings, all false positives). See the `consistency.py` docstring.
+
+    Raises on a total `gh` failure. An empty report from a broken fetch is
+    byte-for-byte a clean board from the outside, which is the librarian#60
+    lesson stated at `EmptyInputError` above.
+    """
+    import argparse
+    import json
+    from pathlib import Path
+
+    from telemetry.consistency import (
+        Inconsistency,
+        check_label_artifact,
+        to_report,
+    )
+    from telemetry.loop import collect_plan_docs, detect_drift
+
+    repo_root = Path(__file__).resolve().parents[1]
+    p = argparse.ArgumentParser(description="Emit the board-consistency report")
+    p.add_argument("--workspace", default="~/workspace", help="Root holding the active repo clones")
+    p.add_argument(
+        "--out",
+        default=str(repo_root / ".sounding" / "telemetry" / "consistency.json"),
+        help="Report path (wake reads this)",
+    )
+    p.add_argument(
+        "--repos",
+        default=",".join(ACTIVE_REPOS),
+        help="Comma-separated repos to check (default: wake's Phase 5 list)",
+    )
+    args = p.parse_args()
+
+    workspace = Path(args.workspace).expanduser()
+    repos = [r.strip() for r in args.repos.split(",") if r.strip()]
+
+    issues: list[dict[str, Any]] = []
+    prs: list[dict[str, Any]] = []
+    repo_roots: dict[str, Path] = {}
+    for repo in repos:
+        root = workspace / repo
+        if root.is_dir():
+            repo_roots[repo] = root
+        issues.extend(_fetch_issues_with_bodies(repo))
+        prs.extend(_fetch_open_prs(repo))
+
+    if not issues:
+        exc = EmptyInputError(
+            f"no issues fetched across {len(repos)} repos — refusing to report a clean "
+            "board on what is almost certainly a gh failure"
+        )
+        print(f"FATAL: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    plans = collect_plan_docs(workspace)
+    plan_issues = {(d.repo, d.issue) for d in plans if d.issue is not None}
+    unmatchable_plans = sum(1 for d in plans if d.issue is None)
+
+    findings: list[Inconsistency] = []
+
+    findings.extend(check_label_artifact(issues, prs, plan_issues))
+
+    # Plan<->issue drift is loop.py's, already bidirectional. Folded in as
+    # Inconsistency rows so wake renders one table, not two.
+    for drift in detect_drift(plans, issues):
+        findings.append(
+            Inconsistency(
+                kind="plan-issue-drift",
+                repo=drift.repo,
+                issue=drift.issue,
+                detail=f"plan {Path(drift.path).name} reads {drift.status}",
+                evidence=f"{drift.reason} (labels: {drift.label})",
+            )
+        )
+
+    report = to_report(
+        findings,
+        issues_checked=len(issues),
+        repos_checked=list(repo_roots),
+        unmatchable_plans=unmatchable_plans,
+    )
+
+    out_path = Path(args.out).expanduser()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+
+    by_kind = ", ".join(f"{k}={v}" for k, v in sorted(report["counts_by_kind"].items())) or "none"
+    print(f"Consistency: {report['total']} findings ({by_kind}) -> {out_path}")
+    print(
+        f"Coverage: {len(issues)} issues across {len(repo_roots)} repos; "
+        f"{unmatchable_plans} plans join to no issue"
+    )
 
 
 def _run_facts() -> None:
@@ -59,7 +286,17 @@ def _run_facts() -> None:
 
     repo_root = Path(__file__).resolve().parents[1]
     p = argparse.ArgumentParser(description="Refresh the session fact table + dashboard regions")
-    p.add_argument("--store", default=str(repo_root / "data" / "sessions.db"))
+    # The live fact store is librarian's, not guacamayo's: the daily cartographer
+    # job passes --store pointing there, and librarian owns session derivation.
+    # This default previously resolved to guacamayo/data/sessions.db, which nothing
+    # scheduled ever wrote -- a manual un-flagged run would write that copy and
+    # every reader of it would then report ~stale-by-N-days against a store the
+    # pipeline had abandoned (misdiagnosed as "telemetry is broken", 2026-08-12).
+    p.add_argument(
+        "--store",
+        default=str(Path("~/workspace/librarian/data/sessions.db").expanduser()),
+        help="Session fact store (default: librarian's, which the daily job writes)",
+    )
     p.add_argument("--projects-dir", default="~/.claude/projects")
     p.add_argument(
         "--notes-dir",
@@ -133,14 +370,18 @@ def _run_facts() -> None:
         action="store_true",
         help="Skip deterministic verdict scoring against the tooling ledger",
     )
+    # Hook sinks moved out of global ~/.claude into this repo (2026-08-12) -- guacamayo
+    # owns the pipeline that reads them, so data and consumer now live together. The
+    # writer is ~/.claude/hooks/lib.sh, which honours CLAUDE_TELEMETRY_DIR and falls
+    # back to ~/.claude when this repo is absent; these defaults mirror that.
     p.add_argument(
         "--hook-log",
-        default=str(Path("~/.claude/.hook-log.jsonl").expanduser()),
+        default=str(repo_root / ".sounding" / "telemetry" / ".hook-log.jsonl"),
         help="Guard-hook event log (blocks/warns) for the hook-activity card",
     )
     p.add_argument(
         "--hook-pass-log",
-        default=str(Path("~/.claude/.hook-pass-log.jsonl").expanduser()),
+        default=str(repo_root / ".sounding" / "telemetry" / ".hook-pass-log.jsonl"),
         help="Guard-hook pass log (silent OKs) for the hook-activity card",
     )
     args = p.parse_args()
