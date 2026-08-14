@@ -1,5 +1,5 @@
 ---
-name: scan-leakage
+name: leakage
 description: Conditional dimension scanner for tabular-ML data leakage — target leakage, temporal leakage, group leakage, fit-before-split ordering, resampling outside the fold, and train/serve skew. One of the parallel dimension agents dispatched by the review driver, only when the diff touches ML code. Reports findings with LK- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku

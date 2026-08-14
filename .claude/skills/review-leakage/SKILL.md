@@ -1,14 +1,14 @@
 ---
 name: review-leakage
 description: >
-  Leakage Dimension Checklist — dimension checklist read by the scan-leakage agent (.claude/agents/leakage.md).
+  Leakage Dimension Checklist — dimension checklist read by the leakage agent (.claude/agents/leakage.md).
   Conditional dimension (tabular-ML code only). Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Leakage Dimension Checklist
 
-Agent: `scan-leakage` | ID prefix: `LK-` | Conditional (`is_ml_code`)
+Agent: `leakage` | ID prefix: `LK-` | Conditional (`is_ml_code`)
 
 Used by: `.claude/agents/leakage.md`
 

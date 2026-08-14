@@ -1,14 +1,14 @@
 ---
 name: review-contracts
 description: >
-  Contracts Dimension Checklist — dimension checklist read by the scan-contracts agent (.claude/agents/contracts.md).
+  Contracts Dimension Checklist — dimension checklist read by the contracts agent (.claude/agents/contracts.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Contracts Dimension Checklist
 
-Agent: `scan-contracts` | ID prefix: `CT-` | Conditional (SANYI.md present)
+Agent: `contracts` | ID prefix: `CT-` | Conditional (SANYI.md present)
 
 Used by: `.claude/agents/contracts.md`
 

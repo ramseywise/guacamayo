@@ -3132,3 +3132,5 @@
 {"ts":"2026-08-14T15:27:52Z","hook":"memory_duplication_guard","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/CLAUDE.md"}
 {"ts":"2026-08-14T15:28:14Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/CLAUDE.md"}
 {"ts":"2026-08-14T15:28:14Z","hook":"memory_duplication_guard","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/CLAUDE.md"}
+{"ts":"2026-08-14T15:32:35Z","hook":"docs_drift_warn","exit_code":0,"repo":"ai-project-template","context":"/Users/wiseer/.claude/hooks/risky_git_guard.sh"}
+{"ts":"2026-08-14T15:33:24Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/review-architecture/SKILL.md"}

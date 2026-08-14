@@ -33,16 +33,16 @@ Full schema: `review/docs/finding-schema.md`
 
 | Dimension | Prefix | Agent |
 |-----------|--------|-------|
-| correctness | CR- | scan-correctness |
-| intent | IN- | scan-intent |
-| architecture | AR- | scan-architecture |
-| safety | SF- | scan-safety |
-| testing | TE- | scan-testing |
-| silent-failure | SI- | scan-silent-failure |
-| contracts | CT- | scan-contracts (conditional: SANYI.md present) |
-| runtime | RT- | scan-runtime (conditional: agent code) |
-| safeguards | SG- | scan-safeguards (conditional: agent code) |
-| leakage | LK- | scan-leakage (conditional: ML code) |
+| correctness | CR- | correctness |
+| intent | IN- | intent |
+| architecture | AR- | architecture |
+| safety | SF- | safety |
+| testing | TE- | testing |
+| silent-failure | SI- | silent-failure |
+| contracts | CT- | contracts (conditional: SANYI.md present) |
+| runtime | RT- | runtime (conditional: agent code) |
+| safeguards | SG- | safeguards (conditional: agent code) |
+| leakage | LK- | leakage (conditional: ML code) |
 | wander | WD- | wander (questions, not findings) |
 
 ## Evidence Model

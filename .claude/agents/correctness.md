@@ -1,6 +1,6 @@
 ---
-name: scan-correctness
-description: Dimension scanner for correctness — bugs, logic errors, edge cases, and data correctness. One of five parallel dimension agents dispatched by /akira. Reports findings with CR- prefixed IDs. Read-only, never edits.
+name: correctness
+description: Dimension scanner for correctness — bugs, logic errors, edge cases, and data correctness. One of the parallel dimension agents dispatched by the review driver. Reports findings with CR- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
 skills: [review-shared]

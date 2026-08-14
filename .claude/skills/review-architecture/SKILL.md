@@ -1,16 +1,16 @@
 ---
 name: review-architecture
 description: >
-  Structure Dimension Checklist — dimension checklist read by the scan-structure agent (.claude/agents/structure.md).
+  Architecture Dimension Checklist — dimension checklist read by the architecture agent (.claude/agents/architecture.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
-# Structure Dimension Checklist
+# Architecture Dimension Checklist
 
-Agent: `scan-structure` | ID prefix: `ST-` | Always-on
+Agent: `architecture` | ID prefix: `AR-` | Always-on
 
-Used by: `.claude/agents/structure.md`
+Used by: `.claude/agents/architecture.md`
 
 ## Naming and Layering
 

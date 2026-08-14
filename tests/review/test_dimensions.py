@@ -97,12 +97,12 @@ class TestDimensionSkillChecklists:
 
     @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
     def test_skill_md_exists(self, dimension):
-        skill_file = SCAN_DIMS_DIR / dimension / "SKILL.md"
+        skill_file = SCAN_DIMS_DIR / f"review-{dimension}" / "SKILL.md"
         assert skill_file.exists(), f"Missing dimension checklist: {skill_file}"
 
     @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
     def test_skill_md_references_agent(self, dimension):
-        skill_file = SCAN_DIMS_DIR / dimension / "SKILL.md"
+        skill_file = SCAN_DIMS_DIR / f"review-{dimension}" / "SKILL.md"
         content = skill_file.read_text()
         # Each SKILL.md should reference its agent name or the dimension name
         assert dimension in content.lower(), (

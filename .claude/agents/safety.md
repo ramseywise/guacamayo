@@ -1,6 +1,6 @@
 ---
-name: scan-safety
-description: Dimension scanner for safety — missing safeguards, error/resource handling, security, privacy, secrets, reliability, and performance/scale. One of five parallel dimension agents dispatched by /akira. Reports findings with SF- prefixed IDs. Read-only, never edits.
+name: safety
+description: Dimension scanner for safety — missing safeguards, error/resource handling, security, privacy, secrets, reliability, and performance/scale. One of the parallel dimension agents dispatched by the review driver. Reports findings with SF- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
 skills: [review-shared]

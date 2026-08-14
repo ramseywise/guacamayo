@@ -1,7 +1,7 @@
 ---
 name: review-safeguards
 description: >
-  Safeguards Dimension Checklist — dimension checklist read by the scan-safeguards agent
+  Safeguards Dimension Checklist — dimension checklist read by the safeguards agent
   (.claude/agents/safeguards.md). Conditional dimension (agent-system code only).
   Reference material, not invoked directly.
 allowed-tools: Read
@@ -9,14 +9,14 @@ allowed-tools: Read
 
 # Safeguards Dimension Checklist
 
-Agent: `scan-safeguards` | ID prefix: `SG-` | Conditional (`is_agent_code`)
+Agent: `safeguards` | ID prefix: `SG-` | Conditional (`is_agent_code`)
 
 Used by: `.claude/agents/safeguards.md`
 
 Activation: dispatched only when `detect-signals` reports `is_agent_code: true`.
 
 The safeguards dimension owns whether the system can be trusted and held accountable.
-Tool side effects, workflow state, and retrieval boundaries belong to `scan-runtime`.
+Tool side effects, workflow state, and retrieval boundaries belong to `runtime`.
 
 ## Documented Safeguards (highest-value class)
 
