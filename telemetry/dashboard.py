@@ -44,6 +44,7 @@ from telemetry.loop import (
     non_conforming,
     status_counts,
 )
+from telemetry.periods import DEFAULT_PERIOD, PERIODS, iso_week, period_key
 from telemetry.recurrence import compute_recurrence
 from telemetry.verdicts import parse_metric
 
@@ -159,31 +160,12 @@ def _work_sessions(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return [r for r in rows if not r.get("is_meta")]
 
 
-def _iso_week(day: str) -> str:
-    year, month, dom = (int(part) for part in day.split("-"))
-    iso = _date(year, month, dom).isocalendar()
-    return f"{iso.year}-W{iso.week:02d}"
-
-
-PERIODS = ("day", "week", "month")
-
-# Daily is noise at this volume; monthly hides everything actionable.
-_DEFAULT_PERIOD = "week"
-
-
-def _period_key(day: str, period: str) -> str:
-    """Bucket key for `day` at `period`. Keys sort lexicographically within a period.
-
-    Raises on an unknown period rather than falling back to daily — a silent
-    fallback makes a caller typo look like working code.
-    """
-    if period == "day":
-        return day
-    if period == "week":
-        return _iso_week(day)
-    if period == "month":
-        return day[:7]
-    raise ValueError(f"unknown period {period!r} (expected one of {', '.join(PERIODS)})")
+# Period bucketing lives in `telemetry/periods.py` (GUA-104b) so `recurrence.py`
+# can share it without importing this module. These aliases keep every existing
+# call site here unchanged.
+_iso_week = iso_week
+_period_key = period_key
+_DEFAULT_PERIOD = DEFAULT_PERIOD
 
 
 def _percentile(values: list[float], pct: float) -> float:
@@ -1548,6 +1530,54 @@ def parse_findings(path: Path) -> list[dict]:
     return findings
 
 
+def _rising_badge(rising: bool) -> str:
+    """Inline 'rising' badge for a recurrence row. Empty when not rising."""
+    if not rising:
+        return ""
+    return (
+        ' <span style="font-size:10px;font-weight:600;color:var(--bad);'
+        "border:1px solid var(--bad);border-radius:3px;padding:0 4px;"
+        'vertical-align:middle">rising</span>'
+    )
+
+
+# Sparkline geometry: sized to sit inside a table cell without changing row
+# height. Kept local rather than reusing `_svg_line`, which renders a full
+# `Point` series with axes and is the wrong altitude for a cell.
+_SPARK_BAR_W = 6
+_SPARK_GAP = 2
+_SPARK_H = 18
+_SPARK_MAX_BUCKETS = 12
+
+
+def _period_sparkline(period_counts: dict[str, int]) -> str:
+    """Bar sparkline over the last `_SPARK_MAX_BUCKETS` periods of a signature.
+
+    Bars are scaled to the group's own maximum, so the shape shows this
+    signature's trend rather than its size relative to other signatures --
+    the table's Count column already carries magnitude.
+    """
+    if not period_counts:
+        return '<span style="color:var(--text-3);font-size:11px">—</span>'
+
+    keys = sorted(period_counts)[-_SPARK_MAX_BUCKETS:]
+    values = [period_counts[k] for k in keys]
+    peak = max(values)
+    width = len(keys) * (_SPARK_BAR_W + _SPARK_GAP)
+
+    bars = "".join(
+        f'<rect x="{i * (_SPARK_BAR_W + _SPARK_GAP)}" '
+        f'y="{_SPARK_H - height}" width="{_SPARK_BAR_W}" height="{height}" '
+        f'fill="var(--s1)"><title>{html.escape(key)}: {value}</title></rect>'
+        for i, (key, value) in enumerate(zip(keys, values))
+        for height in (max(1, round(_SPARK_H * value / peak)) if peak else 1,)
+    )
+    return (
+        f'<svg width="{width}" height="{_SPARK_H}" viewBox="0 0 {width} {_SPARK_H}" '
+        f'role="img" aria-label="{len(keys)} periods, peak {peak}">{bars}</svg>'
+    )
+
+
 def _render_review_findings(findings: list[dict] | None) -> str:
     """Render the Code Review Findings subtab section.
 
@@ -1606,19 +1636,30 @@ def _render_review_findings(findings: list[dict] | None) -> str:
     # Recurring friction (GUA-100) -- named signature groups, not the reporter-
     # native category tag below. See telemetry/recurrence.py for the grouping
     # rationale (multi-match "all matches", unmatched -> category/repo fallback).
+    # A group reaches this table if it is promotable (lifetime count) OR rising
+    # (recent surge) -- the `or` lives here at the call site, not inside
+    # RecurrenceGroup, so the two signals stay separately inspectable (GUA-104b
+    # Open Question 3). compute_recurrence already sorts rising groups first.
     recurrence_html = ""
-    recurring_groups = [g for g in compute_recurrence(findings) if g.promotable]
+    recurring_groups = [g for g in compute_recurrence(findings) if g.promotable or g.rising]
     if recurring_groups:
         recurrence_rows = "".join(
-            f"<tr><td>{html.escape(g.pattern_key)}</td><td>{g.count}</td>"
+            f"<tr><td>{html.escape(g.pattern_key)}"
+            f"{_rising_badge(g.rising)}</td><td>{g.count}</td>"
+            f"<td>{_period_sparkline(g.period_counts)}</td>"
             f"<td>{html.escape(', '.join(g.repos))}</td>"
             f"<td>{html.escape(g.first_seen)} → {html.escape(g.last_seen)}</td></tr>"
             for g in recurring_groups
         )
         recurrence_html = (
             "<h4>Recurring friction</h4>"
+            '<p class="note">A <span style="color:var(--bad);font-weight:600">rising</span> '
+            "badge means the most recent complete week exceeded 1.5&times; the mean of the "
+            "three weeks before it (partial trailing weeks excluded). Rising groups sort "
+            "first &mdash; a pattern getting worse is more actionable than one that has "
+            "been bad for a long time.</p>"
             '<div class="table-view"><table>'
-            "<thead><tr><th>Pattern</th><th>Count</th><th>Repos</th>"
+            "<thead><tr><th>Pattern</th><th>Count</th><th>By week</th><th>Repos</th>"
             "<th>First → last seen</th></tr></thead>"
             f"<tbody>{recurrence_rows}</tbody></table></div>"
         )
