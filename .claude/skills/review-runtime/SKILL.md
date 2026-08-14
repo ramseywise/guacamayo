@@ -1,14 +1,14 @@
 ---
 name: review-runtime
 description: >
-  Runtime Dimension Checklist — dimension checklist read by the scan-runtime agent (.claude/agents/runtime.md).
+  Runtime Dimension Checklist — dimension checklist read by the runtime agent (.claude/agents/runtime.md).
   Conditional dimension (agent-system code only). Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Runtime Dimension Checklist
 
-Agent: `scan-runtime` | ID prefix: `RT-` | Conditional (`is_agent_code`)
+Agent: `runtime` | ID prefix: `RT-` | Conditional (`is_agent_code`)
 
 Used by: `.claude/agents/runtime.md`
 
@@ -17,7 +17,7 @@ import an LLM/agent framework or match agent-system path signals.
 
 The runtime dimension owns how the agent system *behaves* at execution time. Evaluation
 rigor, human responsibility, and whether a documented safeguard has real code backing
-belong to `scan-safeguards`.
+belong to `safeguards`.
 
 ## Prompt / LLM Smells
 

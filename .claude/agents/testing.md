@@ -1,5 +1,5 @@
 ---
-name: scan-testing
+name: testing
 description: Dimension scanner for testing — unit, integration, contract, regression, end-to-end coverage, negative paths, assertion usefulness, and failure-before-fix evidence. One of the parallel dimension agents dispatched by the review driver. Reports findings with TE- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku

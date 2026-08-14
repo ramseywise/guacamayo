@@ -1,14 +1,14 @@
 ---
 name: review-silent-failure
 description: >
-  Silent-Failure Dimension Checklist — dimension checklist read by the scan-silent-failure agent
+  Silent-Failure Dimension Checklist — dimension checklist read by the silent-failure agent
   (.claude/agents/silent-failure.md). Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Silent-Failure Dimension Checklist
 
-Agent: `scan-silent-failure` | ID prefix: `SI-` | Always-on
+Agent: `silent-failure` | ID prefix: `SI-` | Always-on
 
 Used by: `.claude/agents/silent-failure.md`
 

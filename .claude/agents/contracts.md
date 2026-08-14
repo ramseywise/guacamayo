@@ -1,5 +1,5 @@
 ---
-name: scan-contracts
+name: contracts
 description: Conditional dimension scanner for contract violations — cross-layer violations and SANYI contract drift. The contracts dimension IS sanyi-review, positioned as a peer dimension scanner. Dispatched only when SANYI.md exists in the repo. Reports findings with CT- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku

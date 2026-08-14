@@ -1,14 +1,14 @@
 ---
 name: review-testing
 description: >
-  Testing Dimension Checklist — dimension checklist read by the scan-testing agent (.claude/agents/testing.md).
+  Testing Dimension Checklist — dimension checklist read by the testing agent (.claude/agents/testing.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Testing Dimension Checklist
 
-Agent: `scan-testing` | ID prefix: `TE-` | Always-on
+Agent: `testing` | ID prefix: `TE-` | Always-on
 
 Used by: `.claude/agents/testing.md`
 

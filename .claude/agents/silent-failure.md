@@ -1,5 +1,5 @@
 ---
-name: scan-silent-failure
+name: silent-failure
 description: Dimension scanner for silent failure — swallowed errors, failures masked as success, async silent paths, and retries/recovery that never surface their final failure. One of the parallel dimension agents dispatched by the review driver. Reports findings with SI- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku

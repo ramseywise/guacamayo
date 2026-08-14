@@ -1,14 +1,14 @@
 ---
 name: review-correctness
 description: >
-  Correctness Dimension Checklist — dimension checklist read by the scan-correctness agent (.claude/agents/correctness.md).
+  Correctness Dimension Checklist — dimension checklist read by the correctness agent (.claude/agents/correctness.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Correctness Dimension Checklist
 
-Agent: `scan-correctness` | ID prefix: `CR-` | Always-on
+Agent: `correctness` | ID prefix: `CR-` | Always-on
 
 Used by: `.claude/agents/correctness.md`
 

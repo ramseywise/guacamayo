@@ -2,14 +2,14 @@
 name: review-safety
 description: >
   Safety Dimension Checklist — safeguards, secrets/PII, security, privacy and data,
-  reliability, and performance/scale. Read by the scan-safety agent (.claude/agents/safety.md).
+  reliability, and performance/scale. Read by the safety agent (.claude/agents/safety.md).
   Reference material, not invoked directly.
 allowed-tools: Read
 ---
 
 # Safety Dimension Checklist
 
-Agent: `scan-safety` | ID prefix: `SF-` | Always-on
+Agent: `safety` | ID prefix: `SF-` | Always-on
 
 Used by: `.claude/agents/safety.md`
 
