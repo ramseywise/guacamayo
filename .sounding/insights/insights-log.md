@@ -1611,7 +1611,7 @@ Sessions are healthy on cost and structure: cache is excellent, context discipli
 
 ---
 
-## 2026-08-11 Insights Run
+## 2026-08-11 (555 sessions, 2026-07-15 to 2026-08-11)
 
 ### Numbers
 - **Sessions analyzed**: 555 (28 days active, 171.4 msgs/day)
