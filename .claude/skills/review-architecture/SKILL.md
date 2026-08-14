@@ -1,5 +1,5 @@
 ---
-name: structure
+name: review-architecture
 description: >
   Structure Dimension Checklist — dimension checklist read by the scan-structure agent (.claude/agents/structure.md).
   Reference material, not invoked directly.

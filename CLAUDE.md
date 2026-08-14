@@ -83,8 +83,10 @@ else is execution at varying granularity.
 
 .claude/
 ├── hooks/                        # Repo-specific enforcement hooks (dream-ledger-gate.sh)
-├── agents/                       # Review dimension scanners (correctness, safety, structure,
-│                                 # agent-quality, contracts, wander) — the review package's LLM half
+├── agents/                       # Review dimension scanners (12: correctness, intent, architecture,
+│                                 # safety, testing, silent-failure, performance, wander + conditional
+│                                 # runtime, safeguards, leakage, contracts) — the review package's
+│                                 # LLM half. Vocabulary is reconciled with galactus's review-* family
 ├── skills/                       # genesis (inert), wake, grow, dream — the identity lifecycle —
 │                                 # plus review dimension checklists + shared scan rules (agent-preloaded).
 │                                 # Nothing generic lives here; global ~/.claude is canonical
@@ -104,6 +106,32 @@ Skills auto-discover paths (Glob), nothing hardcoded — the workspace rename wi
 - **The factual session record lives in librarian** (raw sessions → compiled wiki), not here. Reflections stay local because they're subjective and identity-bearing; chat logs were deleted in v2 as duplicates.
 - **Continuity files hold pointers, never copies.** Cross-repo work state = per-repo `.claude/docs/plans/` or GitHub Issues, read fresh at every wake. The one committed exception is `.sounding/queue.md` — plan docs are git-ignored, so a mobile/cloud clone gets no `.claude/docs/`; queue.md travels with the repo to give mobile `/meta-wake` a pointer set.
 - **Retrieval-first knowledge access.** When accumulated knowledge is needed, query librarian (MCP: `search_wiki` / `read_page` / `get_domain_briefing`, or librarian's `/query` skill) — never bulk-read `librarian/wiki/` directories into context. One retrieved page beats a loaded domain.
+
+### Review Dimensions — 12, reconciled with galactus
+
+The driver dispatches one agent per active dimension. The registry lives in three places
+that must stay in sync: `review/signals.py` (`ALWAYS_ON_DIMENSIONS` +
+`CONDITIONAL_DIMENSIONS`), `review/driver.py` (`_DIMENSION_TO_AGENT_FILE` +
+`_DIMENSION_TO_REPORTER`), and `review/schemas/models.py` (`Reporter` +
+`REPORTER_ID_PREFIX`). Adding a dimension without all five entries fails at dispatch, not
+at import.
+
+| Kind | Dimensions |
+|------|-----------|
+| **Always-on** (8) | `correctness` CR, `intent` IN, `architecture` AR, `safety` SF, `testing` TE, `silent-failure` SI, `performance` PF, `wander` WD |
+| **Conditional** (4) | `runtime` RT + `safeguards` SG (`is_agent_code`), `leakage` LK (`is_ml_code`), `contracts` CT (`has_sanyi_contracts`) |
+
+**akira and sanyi were absorbed, not retired.** Their content survives as dimensions —
+sanyi's contract checking *is* the `contracts` dimension (it reads `SANYI.md` and emits
+`CT-` findings against the same three-principle taxonomy), and akira's defect scanning
+split across `correctness`/`safety`/`architecture`. The `Reporter` enum keeps
+`AKIRA_SCAN` / `AKIRA_WANDER` / `SANYI` values so historical sweep records still
+deserialize; `DEPRECATED_REPORTERS` marks them and the driver never dispatches them.
+
+`/review-defense` is **not** a dimension — it is a plan-stage war game that dispatches its
+own adversaries and writes to `.claude/docs/reviews/`. It never touches `Status:`. Its
+`references/claim-schema.md` is vendored from galactus's `decide-shared`; galactus is canon,
+so re-vendor rather than editing it here.
 
 ---
 

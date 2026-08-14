@@ -1,5 +1,5 @@
 ---
-name: shared
+name: review-shared
 description: >
   Shared Scan Rules — cross-scanner finding format, evidence model, and severity
   mapping for the dimension agents. Reference material, not invoked directly.

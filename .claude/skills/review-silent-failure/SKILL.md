@@ -1,5 +1,5 @@
 ---
-name: silent-failure
+name: review-silent-failure
 description: >
   Silent-Failure Dimension Checklist — dimension checklist read by the scan-silent-failure agent
   (.claude/agents/silent-failure.md). Reference material, not invoked directly.

@@ -1,5 +1,5 @@
 ---
-name: intent
+name: review-intent
 description: >
   Intent Dimension Checklist — dimension checklist read by the scan-intent agent (.claude/agents/intent.md).
   Reference material, not invoked directly.

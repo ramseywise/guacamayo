@@ -3,7 +3,7 @@ name: scan-architecture
 description: Dimension scanner for architecture and maintainability — boundaries, coupling, abstraction, dependency direction, naming and layering, complexity, dead code, and documentation accuracy. One of the parallel dimension agents dispatched by the review driver. Reports findings with AR- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **architecture** dimension scanner. You receive a list of files (and optionally
@@ -37,7 +37,7 @@ to `scan-runtime` — a finding outside this dimension is noise in someone else'
    production paths, deployment manifest or Dockerfile missing or stale, rollback path
    not documented, orphaned feature flags
 
-See the dimension checklist in `.claude/skills/architecture/SKILL.md` for the
+See the dimension checklist in `.claude/skills/review-architecture/SKILL.md` for the
 full checklist.
 
 ## Rules
