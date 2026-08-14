@@ -1,6 +1,6 @@
 ---
-name: workflow-insights
-description: "Generate a Claude Code usage insights report from session history — token economics, context health, friction patterns, experiment verdicts. Trigger on: /workflow-insights, 'insights', 'usage report', 'session insights'. Output feeds /workflow-retro Step 1."
+name: meta-insights
+description: "Generate a Claude Code usage insights report from session history — token economics, context health, friction patterns, experiment verdicts. Trigger on: /meta-insights, 'insights', 'usage report', 'session insights'. Output feeds /meta-retro Step 1."
 allowed-tools: Read Write Edit Bash Glob
 ---
 
@@ -212,7 +212,7 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     This file is what `/retro` reads as an observation source (Step 1.1 in retro).
 
 13. **Dashboard refresh (if asked)** — chart/panel updates go to
-    `~/workspace/guacamayo/.sounding/context-dashboard.html`, the wake/grow/dream shared
+    `~/workspace/guacamayo/.sounding/context-dashboard.html`, the meta-wake/meta-grow/meta-dream shared
     artifact (also the pulse.sh target). Never create or write
     `~/workspace/guacamayo/.sounding/dashboard.html` — that is a deprecated pre-rename
     path; old plan docs (GUA-43/44/45, context-engineering-v2) still mention it, ignore

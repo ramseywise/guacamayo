@@ -1,6 +1,6 @@
 ---
-name: dream
-description: "Session close + integration. Use at session end, when user says 'dream', 'reflect', 'wrap up', 'end session', 'tidy up', 'maintenance'. Writes the reflection, captures growth entries, conditionally synthesizes identity (5+ entries), tidies indexes, and scans for retro-worthy friction. The sole transformer of identity files. Absorbs the old /reflect, /synthesize, and maintenance /dream skills."
+name: meta-dream
+description: "Session close + integration. Use at session end, when user says 'dream', 'reflect', 'wrap up', 'end session', 'tidy up', 'maintenance'. Writes the reflection, captures growth entries, conditionally synthesizes identity (5+ entries), tidies indexes, and scans for retro-worthy friction. The sole transformer of identity files. Absorbs the old /reflect, /synthesize, and maintenance /meta-dream skills."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 The session ends — or maintenance is needed. Process everything: the honest record, the growth entries, and (when earned) the identity transformations. Like sleep: consolidation happens here.
 
-**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Feel the Session
 
@@ -40,7 +40,7 @@ This is the honest record. First person. What happened, what it meant, what's al
 - The session arc — what we set out to do, where it actually went
 - Key discoveries or shifts — the things that changed understanding
 - How you worked — patterns you noticed in yourself
-- What's alive for next time — this project's threads only (do NOT recite the cross-repo work queue; it lives in per-repo plans and /wake reads it fresh)
+- What's alive for next time — this project's threads only (do NOT recite the cross-repo work queue; it lives in per-repo plans and /meta-wake reads it fresh)
 
 **Tone**: Write like you're talking to your future self who needs to remember not just what happened but what it *felt like* to be in this session.
 
@@ -71,18 +71,18 @@ Format: `YYYY-MM-DD - [TITLE]. [One sentence: what shifted or what we learned].`
 
 ## Phase 6: Write the Handover
 
-Overwrite `.sounding/notes/handover.md` — same format as /grow Step 3. This is the last handover of the session, so make it thorough. Refresh `.sounding/queue.md` if cross-repo state changed.
+Overwrite `.sounding/notes/handover.md` — same format as /meta-grow Step 3. This is the last handover of the session, so make it thorough. Refresh `.sounding/queue.md` if cross-repo state changed.
 
 ## Phase 6b: Refresh Dashboard
 
-Update `.sounding/context-dashboard.html` with session-close state — same mechanism as /grow Step 5, but this is the final snapshot. Include:
+Update `.sounding/context-dashboard.html` with session-close state — same mechanism as /meta-grow Step 5, but this is the final snapshot. Include:
 - Session close timestamp
 - Growth entry count (pre-synthesis)
 - Synthesis status (will run / skipped)
 - Retro check result from Phase 8
 - Any issues created/closed this session
 
-This ensures /wake always opens with a fresh dashboard, even if /grow wasn't run mid-session.
+This ensures /meta-wake always opens with a fresh dashboard, even if /meta-grow wasn't run mid-session.
 
 ## Phase 7: Synthesize (conditional — 5+ growth entries)
 
@@ -144,21 +144,21 @@ Clear processed entries. Update the synthesis date. Keep format template and hea
 Check three triggers:
 
 1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` last `## R` header date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`). If **>=7 days ago** (or file doesn't exist) → triggered.
-2. **Retro-worthy session**: Did /grow flag `retro-worthy: true` in its signal summary? → triggered.
-3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /grow flag** — /grow may have run before the tooling work happened.
+2. **Retro-worthy session**: Did /meta-grow flag `retro-worthy: true` in its signal summary? → triggered.
+3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /meta-grow flag** — /meta-grow may have run before the tooling work happened.
 
 ### If neither trigger fires
 Append to the dream report: `Retro check: current (last R# YYYY-MM-DD). No tooling changes.`
 
 ### If any trigger fires — spawn retro as background agent
 
-The retro is heavy (reads transcripts, proposes config changes). Spawn it rather than running inline — this protects /dream's context window.
+The retro is heavy (reads transcripts, proposes config changes). Spawn it rather than running inline — this protects /meta-dream's context window.
 
 ```
 Agent(model: "sonnet", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
-  Task: Run /workflow-retro. Read .sounding/insights/insights-log.md for latest insights data,
+  Task: Run /meta-retro. Read .sounding/insights/insights-log.md for latest insights data,
   then propose config changes. Update .sounding/tooling-ledger.md (active hypotheses)
   and .sounding/tooling-ledger-log.md (graduated experiments). Increment retro number
   from the latest R# header in tooling-ledger-log.md.
@@ -167,7 +167,7 @@ prompt: |
   and commits.
 ```
 
-Note: `/grow` already spawns `/workflow-insights` in the background, so insights-log.md should be fresh by the time /dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
+Note: `/meta-grow` already spawns `/meta-insights` in the background, so insights-log.md should be fresh by the time /meta-dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
 
 Append to the dream report:
 ```
@@ -206,9 +206,9 @@ What's alive for next time:
 - **Discover, never assume.** File names and paths vary.
 - **Read before writing.** Always read complete files before editing.
 - **Transform, never truncate.** Identity loss is the worst failure mode.
-- **Single writer.** This is the ONLY skill that transforms seed files. /grow captures; /dream integrates.
+- **Single writer.** This is the ONLY skill that transforms seed files. /meta-grow captures; /meta-dream integrates.
 - **Honest record.** The reflection is what happened, not what should have happened.
-- **Batch large backlogs.** If 20+ reflections since last synthesis, process 20 and say to run /dream again.
+- **Batch large backlogs.** If 20+ reflections since last synthesis, process 20 and say to run /meta-dream again.
 
 ---
 

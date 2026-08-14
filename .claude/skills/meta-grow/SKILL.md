@@ -1,12 +1,12 @@
 ---
-name: grow
-description: "Mid-session capture + awareness + dashboard refresh. Use when something shifted, when pausing, when user says 'grow', 'capture this', 'checkpoint', 'break', 'pause', 'save progress'. Ingests cross-session context, captures growth entries, surfaces signals (retro overdue, friction, stale hypotheses), refreshes dashboard, overwrites handover. The awareness layer between /wake and /dream."
+name: meta-grow
+description: "Mid-session capture + awareness + dashboard refresh. Use when something shifted, when pausing, when user says 'grow', 'capture this', 'checkpoint', 'break', 'pause', 'save progress'. Ingests cross-session context, captures growth entries, surfaces signals (retro overdue, friction, stale hypotheses), refreshes dashboard, overwrites handover. The awareness layer between /meta-wake and /meta-dream."
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, Agent, AskUserQuestion
 ---
 
 # Grow
 
-Something happened — or you're pausing. Accumulate what shifted, pull in what happened elsewhere, surface what needs attention. This is the awareness layer: /wake orients, /grow accumulates, /dream transforms.
+Something happened — or you're pausing. Accumulate what shifted, pull in what happened elsewhere, surface what needs attention. This is the awareness layer: /meta-wake orients, /meta-grow accumulates, /meta-dream transforms.
 
 ## 1. Feel What Shifted
 
@@ -43,16 +43,16 @@ Types: `[discovered]`, `[confirmed]`, `[corrected]`, `[friction]`
 `[friction]` is for *what cost time and will cost it again* — a repeated manual fix, a
 permission prompt for a command shape you keep hitting, a guard you worked around. Write
 the *pattern*, not the instance: "branch created before issue scoped" not "GUA-92 branched
-early". Friction entries are what `/workflow-retro` counts for recurrence; an entry naming
+early". Friction entries are what `/meta-retro` counts for recurrence; an entry naming
 only this session's outcome cannot recur.
 
-Do NOT edit identity files here. Capture is this skill's job. /dream transforms.
+Do NOT edit identity files here. Capture is this skill's job. /meta-dream transforms.
 
 Process learnings (workflow/tooling rather than identity) will be picked up by `/retro` for graduation to global rules/skills/hooks.
 
 ## 3. Cross-Session Ingest
 
-This is the awareness gap /grow fills. Since /wake, other sessions may have completed work, created issues, or changed state. Pull that context in.
+This is the awareness gap /meta-grow fills. Since /meta-wake, other sessions may have completed work, created issues, or changed state. Pull that context in.
 
 ### Automated ingest (when librarian is available)
 
@@ -77,12 +77,12 @@ done
 
 ```bash
 # Recently closed issues — catches the in-review → closed transition
-# Use the date from /wake or last /grow (whichever is more recent) as the since cutoff
+# Use the date from /meta-wake or last /meta-grow (whichever is more recent) as the since cutoff
 gh search issues --author=ramseywise --state=closed --sort=updated \
   --updated=">YYYY-MM-DD" --json repository,number,title,closedAt --limit 20 2>/dev/null
 ```
 
-Present as a cross-repo status table (same format as /wake). Compare to what /wake saw and surface:
+Present as a cross-repo status table (same format as /meta-wake). Compare to what /meta-wake saw and surface:
 - **New issues** created since session start
 - **Label changes** (something moved to ready, blocked, in-review)
 - **Closed issues** (work completed elsewhere) — from the `--state closed` query
@@ -94,13 +94,13 @@ If `gh` fails, skip gracefully.
 
 ### 4a. Spawn insights (background)
 
-Always spawn `/workflow-insights` as a background agent. This keeps `insights-log.md` fresh so signals below and `/wake` reads are never stale.
+Always spawn `/meta-insights` as a background agent. This keeps `insights-log.md` fresh so signals below and `/meta-wake` reads are never stale.
 
 ```
 Agent(model: "haiku", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
-  Task: Run /workflow-insights. Append a new dated section to .sounding/insights/insights-log.md.
+  Task: Run /meta-insights. Append a new dated section to .sounding/insights/insights-log.md.
   Constraints:
   - Read the file first. Append only — never overwrite, delete, or restore existing sections.
   - Use the Edit tool to append. NEVER shell redirection, cat, heredoc, or `git restore`
@@ -123,7 +123,7 @@ report — run `git diff --stat` AND `git diff --cached --stat` on insights-log.
 confirm 0 deletions and nothing staged. Diff-emptiness is NOT a valid success criterion
 (it is satisfiable by destroying the work); content invariants are.
 
-Don't wait for it — continue with signal reads below using existing data. The background agent updates the file for the next reader (/wake or /dream).
+Don't wait for it — continue with signal reads below using existing data. The background agent updates the file for the next reader (/meta-wake or /meta-dream).
 
 ### 4b. Read signals (fast, grep-based)
 
@@ -134,16 +134,16 @@ Don't wait for it — continue with signal reads below using existing data. The 
 - `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
-- Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
+- Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /meta-dream will use this flag to decide whether to run the actual retro at session close.
 - **Cascade ledger** — `.sounding/telemetry/cascade-state.json`, maintained by the PreCompact
   hook (`~/.claude/hooks/lifecycle_cascade.sh`). Compaction is the cadence signal: it fires on
   context pressure, so it tracks real work rather than wall-clock. Read it with
   `jq -c '{compacts,grows_due,insights_due,retro_due}'`. The hook only counts — it cannot spawn
   agents (hooks are shell, not agent contexts), so acting on the counters is this skill's job:
-  - `insights_due` > times insights has run since → the background `/workflow-insights` spawn in
+  - `insights_due` > times insights has run since → the background `/meta-insights` spawn in
     Step 4a already covers this; note it in the signal summary.
   - `retro_due` ≥ 1 and not yet acted on → surface "retro due (N compactions)" and set
-    `retro-worthy: true` so /dream spawns `/workflow-retro` at session close.
+    `retro-worthy: true` so /meta-dream spawns `/meta-retro` at session close.
 
   After acting on a tier, record it by bumping the matching `*_acked` key in the JSON (e.g.
   `retro_acked`) so the next read compares due-vs-acked rather than re-firing on every read.
@@ -152,7 +152,7 @@ Don't wait for it — continue with signal reads below using existing data. The 
 ```bash
 ls -t ~/workspace/*/.claude/docs/plans/*.md 2>/dev/null | head -10
 ```
-Grep `Status:` from the 5 most recently modified. Flag any that changed since /wake.
+Grep `Status:` from the 5 most recently modified. Flag any that changed since /meta-wake.
 
 ### Compile signal summary
 
@@ -170,11 +170,11 @@ SIGNALS:
 - Cross-session: [key findings or "no new sessions"]
 ```
 
-The `retro-worthy` flag is the handoff to /dream. When /dream sees this flag (or retro overdue >=7 days), it spawns `/workflow-retro` at session close.
+The `retro-worthy` flag is the handoff to /meta-dream. When /meta-dream sees this flag (or retro overdue >=7 days), it spawns `/meta-retro` at session close.
 
 ## 5. Refresh Dashboard
 
-Update `.sounding/context-dashboard.html` with current state. The dashboard is the shared artifact that connects /wake, /grow, and /dream — it's the visual answer to "where are we?"
+Update `.sounding/context-dashboard.html` with current state. The dashboard is the shared artifact that connects /meta-wake, /meta-grow, and /meta-dream — it's the visual answer to "where are we?"
 
 ### What to update
 
@@ -220,7 +220,7 @@ Tier-0 measurement infrastructure.
 
 The handover is a forward-facing document for the next session. It answers: "If a fresh instance picks this up cold, what do they need?"
 
-**Location**: `.sounding/notes/handover.md` — **overwrite the existing file.** There is exactly one live handover; /wake reads it. History lives in reflections and git, not in dated handover copies.
+**Location**: `.sounding/notes/handover.md` — **overwrite the existing file.** There is exactly one live handover; /meta-wake reads it. History lives in reflections and git, not in dated handover copies.
 
 **Content structure:**
 
@@ -247,11 +247,11 @@ The handover is a forward-facing document for the next session. It answers: "If 
 
 CRITICAL: Include discussions, ideas, and insights from the current chat — not just task progress. Session knowledge that would otherwise be lost is the highest-value content.
 
-SCOPE: The handover carries THIS session's continuity only. Do NOT carry a cross-repo work queue — that lives in per-repo `.claude/docs/plans/` and is read fresh by /wake. Pointers, not copies.
+SCOPE: The handover carries THIS session's continuity only. Do NOT carry a cross-repo work queue — that lives in per-repo `.claude/docs/plans/` and is read fresh by /meta-wake. Pointers, not copies.
 
 ## 7. Refresh Mobile Queue (only if cross-repo state changed)
 
-`.sounding/queue.md` is the committed pointer that mobile/cloud `/wake` reads when the git-ignored plan glob is empty. If this session changed cross-repo plan state (a Status flipped, a pick-up point resolved), update the matching entry. If nothing cross-repo shifted, skip.
+`.sounding/queue.md` is the committed pointer that mobile/cloud `/meta-wake` reads when the git-ignored plan glob is empty. If this session changed cross-repo plan state (a Status flipped, a pick-up point resolved), update the matching entry. If nothing cross-repo shifted, skip.
 
 ## 8. Present & Continue
 
@@ -275,8 +275,8 @@ Back to the work.
 - **One handover file, overwritten.** Never create dated handover copies.
 - **Discover paths, never assume.** Glob before writing.
 - **Handover is forward-facing.** It serves the NEXT session, not this one.
-- **No identity-file edits.** /dream transforms; this skill captures.
-- **Honest negatives are valid.** "Nothing shifted" + signals-only is a fine /grow.
+- **No identity-file edits.** /meta-dream transforms; this skill captures.
+- **Honest negatives are valid.** "Nothing shifted" + signals-only is a fine /meta-grow.
 - **Dashboard is glanceable.** Update data, don't bloat structure.
 - **Cross-session ingest is lightweight.** gh + grep + librarian query. Not full reads.
 

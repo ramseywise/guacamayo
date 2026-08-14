@@ -1,6 +1,6 @@
 ---
-name: workflow-retro
-description: "Tooling retrospective — closes the context-engineering feedback loop (observe → diagnose → codify → enforce → verify). Includes config-health audit (duplicate skills, settings syntax, memory staleness, plan-doc hygiene). Reads session friction signals, the tooling ledger, guacamayo growth entries, and plan-doc deviations; emits proposed diffs to hooks/skills/rules grouped by write target, then applies the ones you approve. Trigger on: /workflow-retro, 'retro', 'tooling retrospective', 'what friction keeps recurring', 'config audit', 'audit settings'."
+name: meta-retro
+description: "Tooling retrospective — closes the context-engineering feedback loop (observe → diagnose → codify → enforce → verify). Includes config-health audit (duplicate skills, settings syntax, memory staleness, plan-doc hygiene). Reads session friction signals, the tooling ledger, guacamayo growth entries, and plan-doc deviations; emits proposed diffs to hooks/skills/rules grouped by write target, then applies the ones you approve. Trigger on: /meta-retro, 'retro', 'tooling retrospective', 'what friction keeps recurring', 'config audit', 'audit settings'."
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Bash Edit Write
 ---
@@ -35,7 +35,7 @@ tagged with severity (BLOCKER / WARN / NOTE).
 `.claude/`, check for skills/hooks that duplicate a global one by name. Same name in repo
 AND global → BLOCKER (double-load + drift). Exception: repo skills documented as
 deliberately divergent in that repo's CLAUDE.md. Known-sanctioned repo-local sets:
-guacamayo identity-lifecycle (wake/grow/dream/genesis), repo project skills.
+guacamayo identity-lifecycle (meta-wake/meta-grow/meta-dream/genesis), repo project skills.
 
 **Check B — Settings schema (BLOCKER/WARN).** For `~/.claude/settings.json` and every repo
 settings file: (1) JSON validates, (2) wildcard syntax uses `Bash(cmd:*)` not
@@ -58,7 +58,7 @@ frontmatter matches the directory name. Mismatches break `/slash` dispatch silen
 Read what exists; skip gracefully what doesn't. Note which sources you actually used.
 
 1. **Insights summary**: read `~/workspace/guacamayo/.sounding/insights-log.md` first
-   (written by `/workflow-insights` — contains experiment verdicts, recommendations, model/skill/tool
+   (written by `/meta-insights` — contains experiment verdicts, recommendations, model/skill/tool
    economics, and trends). If it doesn't exist or is stale (>7 days), fall back to running
    `python3 ~/.claude/scripts/insights.py --dry-run` for fresh mechanical stats, or read
    recent session JSONL under `~/.claude/projects/<project-slug>/`. Look for: repeated
@@ -83,7 +83,7 @@ Read what exists; skip gracefully what doesn't. Note which sources you actually 
    item, `YYYY-MM-DD-<slug>.md`) — compare Execution Notes / deviations against the original
    steps. Recurring deviation categories are tooling gaps.
 5. **Skill coverage** — read the `## Skill Coverage` section of `insights-summary.md`
-   (written by `/workflow-insights` step 7). Two opposite findings live here:
+   (written by `/meta-insights` step 7). Two opposite findings live here:
    - **Skill exists but is never invoked** → a *description* problem, not a value problem.
      The `Skill` tool matches on `description:` frontmatter, so a skill that never
      auto-triggers usually has a weak one. Propose a description rewrite
@@ -252,7 +252,7 @@ Issue body format:
 <type>:<signal> <threshold>
 
 ## Source
-<date> /workflow-retro F<N>
+<date> /meta-retro F<N>
 ```
 
 ### keep → ledger only

@@ -3115,3 +3115,7 @@
 {"ts":"2026-08-14T15:21:50Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/review-defense/SKILL.md"}
 {"ts":"2026-08-14T15:22:03Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/review-defense/SKILL.md"}
 {"ts":"2026-08-14T15:22:15Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/review-defense/SKILL.md"}
+{"ts":"2026-08-14T15:24:37Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T15:25:02Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T15:25:38Z","hook":"memory_duplication_guard","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/CLAUDE.md"}
+{"ts":"2026-08-14T15:25:38Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/CLAUDE.md"}

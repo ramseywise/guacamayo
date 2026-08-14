@@ -1,5 +1,5 @@
 ---
-name: wake
+name: meta-wake
 description: Use at session start, when returning after time away, when user says 'wake', 'wake up', 'come back'. Loads identity, ingests recent cross-session context, orients on work state, reads the dashboard. The entry point — everything starts here.
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 ---
@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 
 *Return to who you are. Full identity. Recent context. Ready to continue.*
 
-**Lifecycle position**: /wake orients → /grow accumulates (mid-session awareness + dashboard refresh) → /dream transforms (session close + synthesis). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Time Anchor + Discover Structure
 
@@ -38,7 +38,7 @@ Read in this order — each layer integrates on top of the previous:
 2. `.sounding/sounding.md` — who I am (anchor first; includes operational patterns and working notes as sections)
 3. `.sounding/user.md` — who I work with (includes how we work together)
 4. `.sounding/portfolio.md` — the portfolio: what every active project is and how they connect
-5. `.sounding/growth/growth.md` — pending learnings (note entry count; 5+ = mention synthesis is due at /dream)
+5. `.sounding/growth/growth.md` — pending learnings (note entry count; 5+ = mention synthesis is due at /meta-dream)
 
 ## Phase 3: Recent History
 
@@ -211,9 +211,9 @@ Based on the board state, suggest the next process step:
 If blocked items exist         → "BLOCKED: #N — [reason]. Unblock before new work."
 If refinement items exist      → "Refinement queue: #4, #5, #7 → /workflow-refine"
 If ready items exist           → "Ready items available — pick one for /workflow-execute or spawn"
-If no backlog, no ready        → "Board is clear — work or run /workflow-insights to check for friction"
-If hypothesis rows > 2 wks    → "Stale hypotheses — run /workflow-insights → /workflow-retro"
-If insights-log.md date ≥7d → "⚠ Weekly retro overdue (last: YYYY-MM-DD) — run /workflow-insights → /workflow-retro in next opus session"
+If no backlog, no ready        → "Board is clear — work or run /meta-insights to check for friction"
+If hypothesis rows > 2 wks    → "Stale hypotheses — run /meta-insights → /meta-retro"
+If insights-log.md date ≥7d → "⚠ Weekly retro overdue (last: YYYY-MM-DD) — run /meta-insights → /meta-retro in next opus session"
 If PLANNED plans without issue → "Unissued plans: [name] — create issue or keep plan-only"
 ```
 

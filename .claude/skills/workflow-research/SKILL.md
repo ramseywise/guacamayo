@@ -32,7 +32,7 @@ All paths in this skill (`.claude/docs/plans/`, git and test commands) resolve a
 
 Run commands with the target as working dir (`git -C <repo> ...`, `cd <repo> && uv run
 pytest ...`). Artifacts always land in the TARGET repo's `.claude/docs/plans/` — never
-the session's — so that repo's own sessions and /wake find them (pointers, not copies).
+the session's — so that repo's own sessions and /meta-wake find them (pointers, not copies).
 
 
 For `review`/`refine`/`argue`, the active doc is the `.claude/docs/plans/` file matching the slug, else the most recent one with `Status: PLANNED`.
