@@ -6,7 +6,11 @@ from typing import Any
 
 import pytest
 
-from telemetry.recurrence import RECURRENCE_THRESHOLD, compute_recurrence
+from telemetry.recurrence import (
+    RECURRENCE_THRESHOLD,
+    compute_period_counts,
+    compute_recurrence,
+)
 
 
 def _finding(
@@ -150,9 +154,198 @@ def test_unhandled_none_return_signature() -> None:
     assert matched.promotable is True
 
 
+# --- Per-period counts + rising flag (GUA-104b) ------------------------------
+
+# All rising tests pin `today` so the "is the trailing period complete" decision
+# is deterministic. Without it these tests would change verdict as real time
+# passes -- the failure mode would be a suite that goes red on a Monday.
+_TODAY = "2026-08-14"  # a Friday, ISO week 2026-W33
+
+
+def test_period_counts_reconcile_with_recurrence_counts() -> None:
+    """The differential test: per-period totals must equal the lifetime count
+    under the same multi-match policy. This is what catches the two matchers
+    diverging -- the failure the shared `_matched_keys` exists to prevent."""
+    findings = [
+        _finding(title="hardcoded value not externalized", date="2026-07-06"),
+        _finding(title="silent swallow with no timeout", date="2026-07-20"),
+        _finding(title="resource leak, not closed", date="2026-08-03"),
+        _finding(title="unrelated prose", category="api-contract", repo="atlas", date="2026-08-10"),
+        _finding(title="hardcoded magic number", date="2026-08-12"),
+    ]
+    groups = compute_recurrence(findings, today=_TODAY)
+    counts = compute_period_counts(findings)
+
+    for group in groups:
+        assert sum(counts[group.pattern_key].values()) == group.count, group.pattern_key
+        assert sum(group.period_counts.values()) == group.count, group.pattern_key
+
+
+def test_undated_findings_excluded_from_period_counts_but_not_from_count() -> None:
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-08-03"),
+        _finding(title="resource leak on close", date=""),
+    ]
+    groups = compute_recurrence(findings, today=_TODAY)
+    matched = next(g for g in groups if g.pattern_key == "resource-leak")
+    assert matched.count == 2
+    assert sum(matched.period_counts.values()) == 1
+
+
+def test_stopped_signature_is_not_rising() -> None:
+    """Fired 5x in April and stopped. Lifetime count is high; trend is dead."""
+    findings = [
+        _finding(title="hardcoded value not externalized", date="2026-04-07") for _ in range(5)
+    ]
+    groups = compute_recurrence(findings, today=_TODAY)
+    matched = next(g for g in groups if g.pattern_key == "hardcoded-not-configurable")
+    assert matched.count == 5
+    assert matched.promotable is True
+    assert matched.rising is False
+
+
+def test_recent_surge_is_rising() -> None:
+    """1x/week for three weeks, then 5x in the most recent complete week."""
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-07-15"),  # W29
+        _finding(title="resource leak, not closed", date="2026-07-22"),  # W30
+        _finding(title="resource leak, not closed", date="2026-07-29"),  # W31
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(5)]  # W32
+    groups = compute_recurrence(findings, today=_TODAY)
+    matched = next(g for g in groups if g.pattern_key == "resource-leak")
+    assert matched.rising is True
+
+
+def test_partial_trailing_period_produces_no_spurious_rise_or_fall() -> None:
+    """The trailing week (W33) is incomplete on `_TODAY` and must be ignored.
+
+    W32 is the most recent complete week at 5, against 1/week before it -- so
+    the verdict is driven entirely by complete periods and is *rising*. The
+    two findings sitting in the partial W33 must neither create the flag nor
+    (as a low-looking week) suppress it.
+    """
+    complete = [
+        _finding(title="resource leak, not closed", date="2026-07-15"),
+        _finding(title="resource leak, not closed", date="2026-07-22"),
+        _finding(title="resource leak, not closed", date="2026-07-29"),
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(5)]
+    partial = [_finding(title="resource leak, not closed", date="2026-08-13") for _ in range(2)]
+
+    with_partial = next(
+        g
+        for g in compute_recurrence(complete + partial, today=_TODAY)
+        if g.pattern_key == "resource-leak"
+    )
+    without_partial = next(
+        g for g in compute_recurrence(complete, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert with_partial.rising == without_partial.rising is True
+    # The partial period is still *reported*, just not used for the verdict.
+    assert "2026-W33" in with_partial.period_counts
+
+
+def test_single_firing_below_threshold_is_not_rising() -> None:
+    """0 -> 1 is an infinite proportional rise and must not flag."""
+    findings = [_finding(title="resource leak, not closed", date="2026-08-05")]
+    groups = compute_recurrence(findings, today=_TODAY)
+    matched = next(g for g in groups if g.pattern_key == "resource-leak")
+    assert matched.rising is False
+
+
+def test_rising_groups_sort_first() -> None:
+    """A rising group outranks a higher-count group that is merely frequent."""
+    stale = [
+        _finding(title="hardcoded value not externalized", date="2026-04-07") for _ in range(9)
+    ]
+    surging = [
+        _finding(title="resource leak, not closed", date="2026-07-15"),
+        _finding(title="resource leak, not closed", date="2026-07-22"),
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(5)]
+
+    groups = compute_recurrence(stale + surging, today=_TODAY)
+    assert groups[0].pattern_key == "resource-leak"
+    assert groups[0].rising is True
+    assert groups[0].count < next(g for g in groups if g.pattern_key.startswith("hardcoded")).count
+
+
+def test_promotable_semantics_unchanged_by_rising() -> None:
+    """`rising` must not loosen the existing promotion gate (Open Question 3)."""
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-07-15"),
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(2)]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched.count == RECURRENCE_THRESHOLD
+    assert matched.promotable is True
+    # promotable is count-driven only; it never reads `rising`.
+    below = [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(2)]
+    matched_below = next(
+        g for g in compute_recurrence(below, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched_below.promotable is False
+
+
+def test_period_counts_respect_multi_match_policy() -> None:
+    """A title matching two patterns lands in both signatures' period counts."""
+    findings = [_finding(title="silent swallow with no timeout on retry", date="2026-08-05")]
+    counts = compute_period_counts(findings)
+    assert counts["silent-swallow"]["2026-W32"] == 1
+    assert counts["missing-timeout"]["2026-W32"] == 1
+
+
+@pytest.mark.parametrize(
+    "period,expected", [("day", "2026-08-05"), ("week", "2026-W32"), ("month", "2026-08")]
+)
+def test_period_counts_bucket_at_requested_period(period: str, expected: str) -> None:
+    findings = [_finding(title="resource leak, not closed", date="2026-08-05")]
+    counts = compute_period_counts(findings, period=period)
+    assert counts["resource-leak"] == {expected: 1}
+
+
+def test_unknown_period_raises() -> None:
+    findings = [_finding(title="resource leak, not closed", date="2026-08-05")]
+    with pytest.raises(ValueError, match="unknown period"):
+        compute_period_counts(findings, period="quarter")
+
+
 # --- Live corpus (Step 4 done-condition) ------------------------------------
 
 _LIVE_CORPUS = Path("~/workspace/guacamayo/.claude/docs/review-findings.jsonl").expanduser()
+
+
+@pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
+def test_live_corpus_dates_are_run_dates_not_occurrence_dates() -> None:
+    """The `rising` flag cannot discriminate on today's corpus, and this pins why.
+
+    `date` on a finding is the date the *review run* emitted it, not the date
+    the friction occurred. 85 of 125 rows share 2026-08-04 because that is when
+    one large sweep ran. Every signature therefore has its mass in a single
+    week, so every promotable group reads as rising -- a flag that fires on
+    everything carries no information.
+
+    This is a property of the corpus, not of `_is_rising`: the unit tests above
+    show the rule discriminating correctly on per-occurrence dates. Fixing it
+    means emitting an occurrence date per finding (or spreading runs out over
+    time), which is a data-collection change well outside GUA-104b.
+
+    If this test starts failing, the corpus has become time-diverse enough for
+    the flag to mean something on live data -- delete it and assert on the
+    signal instead.
+    """
+    rows: list[dict[str, Any]] = []
+    for line in _LIVE_CORPUS.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line:
+            rows.append(json.loads(line))
+
+    by_date: dict[str, int] = {}
+    for row in rows:
+        by_date[str(row.get("date", ""))] = by_date.get(str(row.get("date", "")), 0) + 1
+
+    # A single day holding >50% of the corpus is the burstiness that defeats
+    # any week-over-week trend.
+    assert max(by_date.values()) > len(rows) * 0.5
 
 
 @pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
