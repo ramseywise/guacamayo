@@ -10,25 +10,32 @@ tokens) are comparable and may.
 from __future__ import annotations
 
 import re
+from datetime import date as _date
 from pathlib import Path
 from typing import Any
 
 import pytest
 
 from telemetry.dashboard import (
+    _DEFAULT_PERIOD,
     JULY_BOUNDARY,
     LEDGER_METRIC_MAPPING,
+    PERIODS,
     RATE_METRICS,
     SAMPLING_FRAME,
     Experiment,
     Panel,
     Point,
     _annotations_for_metric,
+    _group,
     _metric_value,
     _panel_body,
+    _period_key,
     _render_annotations,
     _saturation_warning,
+    _span_days,
     _svg_line,
+    _work_sessions,
     build_hook_activity,
     build_series,
     funnel_counts,
@@ -37,7 +44,7 @@ from telemetry.dashboard import (
     render_hook_activity_card,
     warn_unmapped_experiments,
 )
-from telemetry.factstore import ERA_JSONL, ERA_NOTE, upsert
+from telemetry.factstore import ERA_JSONL, ERA_NOTE, read_all, upsert
 
 
 def _row(session_id: str, date: str, regime: str, **overrides: object) -> dict[str, Any]:
@@ -168,8 +175,9 @@ def test_rate_metrics_actually_reach_the_page(two_regime_store: Path) -> None:
     html = render_dashboard(two_regime_store, funnel=None)
     assert "Compaction rate" in html
     assert "Sessions per week" in html
-    # Each faceted chart states the no-crossing rule and its per-panel frame.
-    assert html.count("no line crosses a regime boundary") == len(RATE_METRICS)
+    # Each faceted chart states the no-crossing rule and its per-panel frame,
+    # once per period — every panel is rendered at all three and toggled in JS.
+    assert html.count("no line crosses a regime boundary") == len(RATE_METRICS) * len(PERIODS)
     assert "rate is not a workflow property" in html
 
 
@@ -1182,3 +1190,188 @@ def test_render_dashboard_annotation_at_2026_07_24(tmp_path: Path) -> None:
     assert 'data-metric="execution_skill_compliance_pct"' in html
     assert 'class="annotation-line"' in html
     assert "Session intent classifier + compliance metric" in html
+
+
+# --- GUA-104a Steps 1-3: period bucketing ----------------------------------
+
+
+@pytest.mark.parametrize(
+    ("day", "period", "expected"),
+    [
+        ("2026-08-13", "day", "2026-08-13"),
+        ("2026-08-13", "week", "2026-W33"),
+        ("2026-08-13", "month", "2026-08"),
+        # ISO week 1 spanning December — the classic off-by-one. 2026 is a
+        # 53-week ISO year, so its last days stay in 2026-W53.
+        ("2026-12-31", "week", "2026-W53"),
+        ("2027-01-01", "week", "2026-W53"),
+        ("2027-01-04", "week", "2027-W01"),
+        # The mirror case: December days that belong to the *next* ISO year.
+        ("2024-12-30", "week", "2025-W01"),
+        ("2022-01-01", "week", "2021-W52"),
+        ("2026-12-31", "month", "2026-12"),
+    ],
+)
+def test_period_key(day: str, period: str, expected: str) -> None:
+    assert _period_key(day, period) == expected
+
+
+@pytest.mark.parametrize("period", ["", "daily", "weekly", "monthly", "year", "DAY"])
+def test_period_key_rejects_unknown_period(period: str) -> None:
+    """A silent fallback to daily would make a caller typo look like working code."""
+    with pytest.raises(ValueError, match="unknown period"):
+        _period_key("2026-08-13", period)
+
+
+def test_period_keys_sort_lexicographically() -> None:
+    """Bucket ordering relies on string sort — the property `_iso_week` already had."""
+    days = ["2026-01-05", "2026-02-09", "2026-08-13", "2026-12-31"]
+    for period in ("day", "week", "month"):
+        keys = [_period_key(d, period) for d in days]
+        assert keys == sorted(keys), f"{period} keys do not sort: {keys}"
+
+
+def test_group_defaults_to_daily(two_regime_store: Path) -> None:
+    """Default `period="day"` must leave every pre-period caller byte-identical."""
+    rows = _work_sessions(read_all(two_regime_store))
+    explicit = {k: len(v) for k, v in _group(rows, "date", "day").items()}
+    assert {k: len(v) for k, v in _group(rows).items()} == explicit
+    assert set(explicit) == {str(r["date"]) for r in rows}
+
+
+def test_group_buckets_by_period(two_regime_store: Path) -> None:
+    rows = _work_sessions(read_all(two_regime_store))
+    monthly = _group(rows, "date", "month")
+    assert set(monthly) == {"2026-05", "2026-06", "2026-07"}
+    assert len(monthly["2026-07"]) == 3
+    # Every row lands in exactly one bucket at every period.
+    for period in ("day", "week", "month"):
+        assert sum(len(v) for v in _group(rows, "date", period).values()) == len(rows)
+
+
+def test_point_date_stays_iso_at_every_period(two_regime_store: Path) -> None:
+    """`_span_days` calls `_date.fromisoformat` — a bucket key there raises."""
+    for period in ("day", "week", "month"):
+        series = build_series("cost_units_p50", two_regime_store, period)
+        assert series.points, f"{period} produced no points"
+        for point in series.points:
+            _date.fromisoformat(point.date)  # raises if `date` holds a bucket key
+        assert _span_days(series.points) >= 0
+
+
+def test_point_bucket_carries_the_display_key(two_regime_store: Path) -> None:
+    series = build_series("cost_units_p50", two_regime_store, "month")
+    # 2026-07 appears twice: the month spans a regime boundary, and buckets are
+    # sub-grouped by regime so a panel never mixes regimes.
+    assert [p.bucket for p in series.points] == ["2026-05", "2026-06", "2026-07", "2026-07"]
+    # `date` is the first observation in the bucket, not the key.
+    assert [p.date for p in series.points] == [
+        "2026-05-01",
+        "2026-06-10",
+        "2026-07-16",
+        "2026-07-18",
+    ]
+    assert [p.regime for p in series.points] == [
+        "note-hook",
+        "note-hook",
+        "telemetry-v1",
+        "session-hygiene-v1",
+    ]
+
+
+def test_coarser_periods_collapse_points(two_regime_store: Path) -> None:
+    daily = build_series("cost_units_p50", two_regime_store, "day")
+    monthly = build_series("cost_units_p50", two_regime_store, "month")
+    assert len(monthly.points) < len(daily.points)
+    assert sum(p.n for p in monthly.points) == sum(p.n for p in daily.points)
+
+
+def test_build_series_rejects_unknown_period(two_regime_store: Path) -> None:
+    with pytest.raises(ValueError, match="unknown period"):
+        build_series("cost_units_p50", two_regime_store, "weekly")
+
+
+def test_period_buckets_never_span_a_regime(two_regime_store: Path) -> None:
+    """A week or month can straddle a regime boundary; a day cannot.
+
+    The generic path assumed single-regime buckets ("regime is a date lookup"),
+    which only holds at daily resolution — so bucketing sub-groups by regime.
+    """
+    for metric in sorted(RATE_METRICS):
+        for period in ("day", "week", "month"):
+            series = build_series(metric, two_regime_store, period)
+            for panel in series.panels:
+                assert {p.regime for p in panel.points} == {panel.regime}
+
+
+def test_sessions_per_week_folded_into_group_path(two_regime_store: Path) -> None:
+    """The hand-rolled weekly bucketing was removed; output must not change."""
+    series = build_series("sessions_per_week", two_regime_store)
+
+    assert series.faceted is True
+    observed = {
+        (panel.regime, point.date, point.value, point.n)
+        for panel in series.panels
+        for point in panel.points
+    }
+    assert observed == {
+        ("note-hook", "2026-05-01", 2.0, 2),
+        ("note-hook", "2026-06-10", 1.0, 1),
+        ("telemetry-v1", "2026-07-16", 1.0, 1),
+        ("session-hygiene-v1", "2026-07-18", 2.0, 2),
+    }
+
+
+# --- GUA-104a Step 4: period selector --------------------------------------
+
+
+def test_period_selector_renders_all_three_buttons(two_regime_store: Path) -> None:
+    html = render_dashboard(two_regime_store, funnel=None)
+    for period in PERIODS:
+        assert f'class="period-btn active" data-period="{period}"' in html or (
+            f'data-period="{period}"' in html
+        )
+    assert 'class="period-filter"' in html
+
+
+def test_default_period_is_week(two_regime_store: Path) -> None:
+    """Daily is noise at this volume; monthly hides everything actionable."""
+    html = render_dashboard(two_regime_store, funnel=None)
+    assert f'class="period-btn active" data-period="{_DEFAULT_PERIOD}"' in html
+    assert _DEFAULT_PERIOD == "week"
+    # Only the default period's views are visible on load.
+    assert f'<div class="period-view" data-period="{_DEFAULT_PERIOD}">' in html
+    for period in PERIODS:
+        if period != _DEFAULT_PERIOD:
+            assert f'data-period="{period}" style="display:none"' in html
+
+
+def test_every_panel_rendered_at_every_period(two_regime_store: Path) -> None:
+    html = render_dashboard(two_regime_store, funnel=None)
+    counts = {p: html.count(f'class="period-view" data-period="{p}"') for p in PERIODS}
+    assert len(set(counts.values())) == 1, f"uneven period coverage: {counts}"
+    assert counts[_DEFAULT_PERIOD] > 0
+
+
+def test_period_toggle_is_self_contained(two_regime_store: Path) -> None:
+    """The dashboard opens from file:// with no network — a CDN script is a blank panel."""
+    html = render_dashboard(two_regime_store, funnel=None)
+    assert "period-btn" in html and "addEventListener" in html
+    assert 'apply("week")' in html
+    # No remote references anywhere in the emitted page.
+    assert "http://" not in html
+    assert "https://" not in html
+    assert "<script src" not in html
+
+
+def test_period_and_surface_toggles_do_not_collide(two_regime_store: Path) -> None:
+    """Both toggles hide/show by dataset attribute; they must nest, not fight.
+
+    `.surf-view` divs live inside `.period-view` wrappers, so the period toggle
+    governs the outer element and the surface toggle the inner one.
+    """
+    html = render_dashboard(two_regime_store, funnel=None)
+    period_at = html.index('class="period-view"')
+    surf_at = html.index('class="surf-view"')
+    assert period_at < surf_at, "surf-view must nest inside period-view"
+    assert html.count('id="surf-sel"') == 1
