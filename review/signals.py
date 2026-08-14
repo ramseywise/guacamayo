@@ -183,6 +183,7 @@ ALWAYS_ON_DIMENSIONS = [
     "safety",
     "testing",
     "silent-failure",
+    "performance",
     "wander",
 ]
 
@@ -199,7 +200,7 @@ def active_dimensions(signals: dict[str, bool]) -> list[str]:
     """Return the list of dimension names that should be dispatched.
 
     Always-on: correctness, intent, architecture, safety, testing,
-    silent-failure, wander
+    silent-failure, performance, wander
     Conditional: runtime + safeguards (is_agent_code), leakage (is_ml_code),
     contracts (has_sanyi_contracts)
     """
