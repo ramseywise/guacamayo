@@ -47,6 +47,7 @@ from review.static_analysis import run_static_analysis
 from review.trends import build_trend_report, render_trend_report
 from review.validation import validate_finding
 from review.verdict import derive_merge_decision
+from telemetry.occurrence import SOURCE_RUN, SOURCE_UNRESOLVED, resolve_occurred
 
 # ---------------------------------------------------------------------------
 # Config + result types
@@ -170,12 +171,18 @@ def emit_findings_jsonl(
     repo: str,
     session_id: str | None,
     jsonl_path: Path | None = None,
+    repo_path: Path | None = None,
 ) -> None:
     """Append one JSONL line per finding to the review-findings file.
 
     Stamped fields per finding-schema.md (Persistence format):
-      id, source, date, repo, file, lines, symbols, title,
-      merge_impact, evidence_state, category, session_id.
+      id, source, date, occurred, occurred_source, repo, file, lines, symbols,
+      title, merge_impact, evidence_state, category, session_id.
+
+    `date` is the run date and feeds `finding_uid`; `occurred` is the friction date
+    resolved by blaming the cited line (GUA-109). Every row carries an `occurred`, so
+    consumers need no null branch: when blame cannot answer, `occurred` mirrors `date`
+    and `occurred_source` is "run" to keep that substitution visible rather than implied.
 
     session_id is null when the invoking skill does not pass --session-id.
     The file is created (with parent dirs) if absent. Never overwrites.
@@ -186,6 +193,9 @@ def emit_findings_jsonl(
         session_id: Claude Code session id from --session-id option, or None.
         jsonl_path: Target JSONL file. None resolves _FINDINGS_JSONL_PATH at call
             time (not import time) so tests can monkeypatch the module global.
+        repo_path: Checkout being reviewed, used to blame `occurred`. None skips
+            resolution entirely and stamps every row `run` — callers that have no
+            checkout (unit tests, synthetic findings) get the fallback, not an error.
     """
     if not findings:
         return
@@ -194,6 +204,9 @@ def emit_findings_jsonl(
         jsonl_path = _FINDINGS_JSONL_PATH
     jsonl_path.parent.mkdir(parents=True, exist_ok=True)
     date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+    # One cache per emit: a sweep's findings cluster heavily on the same files, and each
+    # miss costs a git subprocess.
+    occurrence_cache: dict = {}
 
     with jsonl_path.open("a", encoding="utf-8") as fh:
         for finding in findings:
@@ -206,10 +219,28 @@ def emit_findings_jsonl(
                 elif first_file.start_line is not None:
                     lines_val = str(first_file.start_line)
 
+            occurred: str | None = None
+            occurred_source = SOURCE_RUN
+            if repo_path is not None:
+                # `resolve_occurred` joins workspace/repo, so pass the checkout's parent
+                # to reconstruct exactly `repo_path` rather than assuming ~/workspace —
+                # worktrees and non-standard checkout locations resolve correctly.
+                occurred, occurred_source = resolve_occurred(
+                    repo_path.name,
+                    file_path,
+                    lines_val,
+                    workspace=repo_path.parent,
+                    cache=occurrence_cache,
+                )
+            if occurred is None or occurred_source == SOURCE_UNRESOLVED:
+                occurred, occurred_source = date_str, SOURCE_RUN
+
             row: dict = {
                 "id": finding.id,
                 "source": finding.reporter.value,
                 "date": date_str,
+                "occurred": occurred,
+                "occurred_source": occurred_source,
                 "repo": repo,
                 "file": file_path,
                 "title": finding.claim.title,
@@ -774,6 +805,7 @@ async def _run_review_async(
         repo=repo_name,
         session_id=config.session_id,
         jsonl_path=config.findings_path or _FINDINGS_JSONL_PATH,
+        repo_path=config.repo,
     )
 
     # --- Stage 6: trends ---

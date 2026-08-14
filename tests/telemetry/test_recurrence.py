@@ -6,7 +6,11 @@ from typing import Any
 
 import pytest
 
+from telemetry.periods import period_key
 from telemetry.recurrence import (
+    DIRECTION_FALLING,
+    DIRECTION_FLAT,
+    DIRECTION_RISING,
     RECURRENCE_THRESHOLD,
     compute_period_counts,
     compute_recurrence,
@@ -286,6 +290,113 @@ def test_promotable_semantics_unchanged_by_rising() -> None:
     assert matched_below.promotable is False
 
 
+def test_direction_rising_matches_the_rising_property() -> None:
+    """`direction` and the back-compat `rising` property must never disagree."""
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-07-15"),
+        _finding(title="resource leak, not closed", date="2026-07-22"),
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05") for _ in range(5)]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched.direction == DIRECTION_RISING
+    assert matched.rising is True
+
+
+def test_declining_signature_is_falling() -> None:
+    """5x/week for three weeks, then 1x. The boolean flag could not say this.
+
+    This is the case GUA-109 exists to surface: a friction that was fixed reads as
+    `falling`, where a boolean `rising` collapsed it into the same `False` as a
+    signature that never moved at all.
+    """
+    findings = [
+        _finding(title="resource leak, not closed", date=day)
+        for day in ("2026-07-08", "2026-07-15", "2026-07-22")
+        for _ in range(5)
+    ] + [_finding(title="resource leak, not closed", date="2026-08-05")]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched.direction == DIRECTION_FALLING
+    assert matched.rising is False, "falling must not read as rising"
+
+
+def test_steady_signature_is_flat() -> None:
+    """Equal counts every week trend in neither direction."""
+    findings = [
+        _finding(title="resource leak, not closed", date=day)
+        for day in ("2026-07-08", "2026-07-15", "2026-07-22", "2026-08-05")
+        for _ in range(3)
+    ]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched.direction == DIRECTION_FLAT
+
+
+def test_small_decline_is_flat_not_falling() -> None:
+    """A 2 -> 1 drop lacks the prior mass to be worth calling a decline.
+
+    Without the `FALLING_MIN_PRIOR_MEAN` gate every trailing-off one-off in the corpus
+    would report as an improvement, drowning the declines that reflect real fixes.
+    """
+    findings = [
+        _finding(title="resource leak, not closed", date=day)
+        for day in ("2026-07-08", "2026-07-15", "2026-07-22")
+        for _ in range(2)
+    ]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert matched.direction == DIRECTION_FLAT
+
+
+def test_no_period_counts_is_flat() -> None:
+    """A signature with no dated findings has no trend to report."""
+    matched = next(
+        g
+        for g in compute_recurrence([_finding(title="resource leak, not closed", date="")])
+        if g.pattern_key == "resource-leak"
+    )
+    assert matched.direction == DIRECTION_FLAT
+
+
+def test_buckets_on_occurred_not_run_date() -> None:
+    """The core GUA-109 behaviour: periods follow `occurred`, not the sweep's `date`.
+
+    All four findings share one run `date`, which under the old rule put them in a single
+    week and made the signature look like a spike. Their `occurred` dates spread them
+    evenly, so the same rows read as flat.
+    """
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-08-05", occurred=day)
+        for day in ("2026-07-08", "2026-07-15", "2026-07-22", "2026-08-05")
+        for _ in range(3)
+    ]
+    matched = next(
+        g for g in compute_recurrence(findings, today=_TODAY) if g.pattern_key == "resource-leak"
+    )
+    assert set(matched.period_counts) == {"2026-W28", "2026-W29", "2026-W30", "2026-W32"}
+    assert matched.direction == DIRECTION_FLAT
+
+
+def test_falls_back_to_date_when_occurred_absent() -> None:
+    """Legacy rows written before GUA-109 must still land in a period."""
+    findings = [_finding(title="resource leak, not closed", date="2026-08-05")]
+    assert compute_period_counts(findings)["resource-leak"] == {"2026-W32": 1}
+
+
+def test_first_and_last_seen_use_occurred() -> None:
+    """The card's date range must agree with the trend beside it."""
+    findings = [
+        _finding(title="resource leak, not closed", date="2026-08-05", occurred="2026-07-08"),
+        _finding(title="resource leak, not closed", date="2026-08-05", occurred="2026-07-22"),
+    ]
+    matched = next(g for g in compute_recurrence(findings) if g.pattern_key == "resource-leak")
+    assert (matched.first_seen, matched.last_seen) == ("2026-07-08", "2026-07-22")
+
+
 def test_period_counts_respect_multi_match_policy() -> None:
     """A title matching two patterns lands in both signatures' period counts."""
     findings = [_finding(title="silent swallow with no timeout on retry", date="2026-08-05")]
@@ -314,38 +425,54 @@ def test_unknown_period_raises() -> None:
 _LIVE_CORPUS = Path("~/workspace/guacamayo/.claude/docs/review-findings.jsonl").expanduser()
 
 
+def _live_rows() -> list[dict[str, Any]]:
+    return [
+        json.loads(line)
+        for line in _LIVE_CORPUS.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+
+
 @pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
-def test_live_corpus_dates_are_run_dates_not_occurrence_dates() -> None:
-    """The `rising` flag cannot discriminate on today's corpus, and this pins why.
+def test_live_corpus_is_time_diverse() -> None:
+    """The inverse of GUA-104b's pinning test, which asserted the defect itself.
 
-    `date` on a finding is the date the *review run* emitted it, not the date
-    the friction occurred. 85 of 125 rows share 2026-08-04 because that is when
-    one large sweep ran. Every signature therefore has its mass in a single
-    week, so every promotable group reads as rising -- a flag that fires on
-    everything carries no information.
+    That test held `max(by_date) > 50%` -- true, and the reason the trend signal was
+    meaningless: one sweep stamped 85 of 125 rows with a single run date. Now that rows
+    carry `occurred`, the corpus spreads across real friction dates, and this asserts the
+    property the signal depends on rather than the bug.
 
-    This is a property of the corpus, not of `_is_rising`: the unit tests above
-    show the rule discriminating correctly on per-occurrence dates. Fixing it
-    means emitting an occurrence date per finding (or spreading runs out over
-    time), which is a data-collection change well outside GUA-104b.
-
-    If this test starts failing, the corpus has become time-diverse enough for
-    the flag to mean something on live data -- delete it and assert on the
-    signal instead.
+    It guards forward: a future bulk sweep that re-concentrates the corpus, or a
+    regression that reverts bucketing to the run date, fails here rather than silently
+    making every signature look like it spiked at once.
     """
-    rows: list[dict[str, Any]] = []
-    for line in _LIVE_CORPUS.read_text(encoding="utf-8").splitlines():
-        line = line.strip()
-        if line:
-            rows.append(json.loads(line))
-
-    by_date: dict[str, int] = {}
+    rows = _live_rows()
+    by_occurred: dict[str, int] = {}
     for row in rows:
-        by_date[str(row.get("date", ""))] = by_date.get(str(row.get("date", "")), 0) + 1
+        key = str(row.get("occurred") or row.get("date") or "")
+        by_occurred[key] = by_occurred.get(key, 0) + 1
 
-    # A single day holding >50% of the corpus is the burstiness that defeats
-    # any week-over-week trend.
-    assert max(by_date.values()) > len(rows) * 0.5
+    assert max(by_occurred.values()) <= len(rows) * 0.5, (
+        "one day holds >50% of the corpus -- the trend is measuring sweep scheduling again"
+    )
+    weeks = {period_key(day, "week") for day in by_occurred if day}
+    assert len(weeks) >= 6, f"corpus spans only {len(weeks)} ISO weeks; too bursty to trend"
+
+
+@pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
+def test_live_corpus_directions_discriminate() -> None:
+    """The signal must vary across groups. One value for everything carries no information.
+
+    This is the real acceptance criterion for GUA-109: not that `direction` computes, but
+    that it *distinguishes*. Under the old run-date bucketing every promotable group read
+    the same way, which is what made `rising` unusable as a `/workflow-retro` trigger.
+    """
+    groups = compute_recurrence(_live_rows())
+    assert groups, "live corpus produced no groups"
+    directions = {g.direction for g in groups}
+    assert len(directions) > 1, (
+        f"every group reports {directions} -- the direction signal does not discriminate"
+    )
 
 
 @pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")

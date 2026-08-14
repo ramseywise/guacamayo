@@ -32,6 +32,10 @@ SOURCE_BLAME = "blame"  # blamed the cited line range — the good case
 SOURCE_HEAD = "head"  # repo found, line not blameable; used HEAD's commit date
 SOURCE_UNRESOLVED = "unresolved"  # no usable checkout; caller falls back to the run date
 
+# Written by callers (not by `resolve_occurred`) when they substitute the run date for an
+# unresolved lookup. It lives here so the emitter and the backfill agree on one spelling.
+SOURCE_RUN = "run"
+
 _GIT_TIMEOUT = 15
 
 

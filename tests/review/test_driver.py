@@ -10,7 +10,9 @@ Covers:
 
 from __future__ import annotations
 
+import datetime
 import json
+import subprocess
 import textwrap
 from pathlib import Path
 
@@ -775,6 +777,32 @@ class TestFindingsSchema:
 # ---------------------------------------------------------------------------
 
 
+def _make_git_repo(path: Path, filename: str, date: str) -> Path:
+    """Create a one-commit git repo whose file was committed on `date`. Returns its path.
+
+    The commit date is forced so `occurred` has a known value distinct from today's run
+    date — that gap is what proves blame ran rather than the run-date fallback.
+    """
+    path.mkdir(parents=True)
+    stamp = f"{date}T12:00:00"
+    env = {
+        "GIT_AUTHOR_DATE": stamp,
+        "GIT_COMMITTER_DATE": stamp,
+        "PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin",
+        "HOME": str(path.parent),
+    }
+    (path / filename).write_text("alpha\nbravo\ncharlie\n")
+    for args in (
+        ["init", "-q"],
+        ["config", "user.email", "t@example.com"],
+        ["config", "user.name", "Tester"],
+        ["add", "-A"],
+        ["commit", "-q", "-m", "feat: initial"],
+    ):
+        subprocess.run(["git", *args], cwd=path, check=True, capture_output=True, env=env)
+    return path
+
+
 class TestEmitFindingsJsonl:
     def test_emits_one_line_per_finding(self, tmp_path: Path) -> None:
         """Each finding produces exactly one JSONL line."""
@@ -864,6 +892,66 @@ class TestEmitFindingsJsonl:
         row = json.loads(jsonl.read_text().splitlines()[0])
         assert row["lines"] == "10-20"
 
+    def test_occurred_defaults_to_run_date_without_repo_path(self, tmp_path: Path) -> None:
+        """No checkout to blame → `occurred` mirrors `date`, tagged `run`.
+
+        Every row must carry an `occurred`, so downstream trend code never branches on null.
+        """
+        jsonl = tmp_path / "review-findings.jsonl"
+        emit_findings_jsonl([make_finding("CR-001")], repo="r", session_id=None, jsonl_path=jsonl)
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["occurred"] == row["date"]
+        assert row["occurred_source"] == "run"
+
+    def test_occurred_blames_cited_line(self, tmp_path: Path) -> None:
+        """With a real checkout, `occurred` is the commit date — not the run date."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        repo = _make_git_repo(tmp_path / "ws" / "demo", "app.py", "2026-02-11")
+        finding = ReviewFinding(
+            id="CR-001",
+            reporter=Reporter.CORRECTNESS,
+            category=Category.CORRECTNESS,
+            evidence_state=EvidenceState.VERIFIED,
+            location=Location(files=[FileLocation(path="app.py", start_line=2, end_line=2)]),
+            claim=Claim(title="T", observation="O"),
+            severity=Severity(merge_impact=MergeImpact.NIT),
+            comment_type=CommentType.NIT,
+        )
+        emit_findings_jsonl(
+            [finding], repo="demo", session_id=None, jsonl_path=jsonl, repo_path=repo
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["occurred"] == "2026-02-11"
+        assert row["occurred_source"] == "blame"
+        assert row["date"] != row["occurred"], "run date must stay the sweep date"
+
+    def test_date_is_untouched_by_occurrence_resolution(self, tmp_path: Path) -> None:
+        """`date` feeds finding_uid — blame must never move it."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        repo = _make_git_repo(tmp_path / "ws" / "demo", "app.py", "2026-02-11")
+        today = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+        emit_findings_jsonl(
+            [make_finding("CR-001")], repo="demo", session_id=None, jsonl_path=jsonl, repo_path=repo
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["date"] == today
+
+    def test_unresolvable_repo_path_falls_back_to_run(self, tmp_path: Path) -> None:
+        """A repo_path that is not a checkout degrades to `run`, it does not raise."""
+        jsonl = tmp_path / "review-findings.jsonl"
+        not_a_repo = tmp_path / "ws" / "plain"
+        not_a_repo.mkdir(parents=True)
+        emit_findings_jsonl(
+            [make_finding("CR-001")],
+            repo="plain",
+            session_id=None,
+            jsonl_path=jsonl,
+            repo_path=not_a_repo,
+        )
+        row = json.loads(jsonl.read_text().splitlines()[0])
+        assert row["occurred_source"] == "run"
+        assert row["occurred"] == row["date"]
+
     def test_run_review_emits_jsonl_with_session_id(self, tmp_path: Path) -> None:
         """run_review end-to-end: session_id from config is stamped in the JSONL output."""
         jsonl = tmp_path / "review-findings.jsonl"
@@ -889,9 +977,16 @@ class TestEmitFindingsJsonl:
         captured: list[dict] = []
 
         def capturing_emit(
-            findings, *, repo, session_id, jsonl_path=driver_module._FINDINGS_JSONL_PATH
+            findings,
+            *,
+            repo,
+            session_id,
+            jsonl_path=driver_module._FINDINGS_JSONL_PATH,
+            repo_path=None,
         ):
-            original_emit(findings, repo=repo, session_id=session_id, jsonl_path=jsonl)
+            original_emit(
+                findings, repo=repo, session_id=session_id, jsonl_path=jsonl, repo_path=repo_path
+            )
             for f in findings:
                 captured.append({"session_id": session_id})
 
@@ -929,9 +1024,16 @@ class TestEmitFindingsJsonl:
         original_emit = driver_module.emit_findings_jsonl
 
         def capturing_emit(
-            findings, *, repo, session_id, jsonl_path=driver_module._FINDINGS_JSONL_PATH
+            findings,
+            *,
+            repo,
+            session_id,
+            jsonl_path=driver_module._FINDINGS_JSONL_PATH,
+            repo_path=None,
         ):
-            original_emit(findings, repo=repo, session_id=session_id, jsonl_path=jsonl)
+            original_emit(
+                findings, repo=repo, session_id=session_id, jsonl_path=jsonl, repo_path=repo_path
+            )
 
         driver_module.emit_findings_jsonl = capturing_emit
         try:

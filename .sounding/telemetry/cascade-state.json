@@ -1,10 +1,10 @@
 {
-  "compacts": 40,
-  "grows_due": 13,
+  "compacts": 47,
+  "grows_due": 15,
   "grows_acked": 2,
   "insights_due": 3,
   "retro_due": 1,
-  "last_compact": "2026-08-14T17:29:18Z",
+  "last_compact": "2026-08-14T18:16:27Z",
   "history": [
     {
       "ts": "2026-08-12T09:30:08Z",
@@ -164,6 +164,34 @@
     },
     {
       "ts": "2026-08-14T17:29:18Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:38:28Z",
+      "repo": "workspace"
+    },
+    {
+      "ts": "2026-08-14T17:39:46Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:43:51Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:50:52Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:06:40Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:12:38Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:16:27Z",
       "repo": "guacamayo"
     }
   ]

@@ -26,7 +26,7 @@ import sys
 import tempfile
 from pathlib import Path
 
-from telemetry.occurrence import SOURCE_UNRESOLVED, resolve_occurred
+from telemetry.occurrence import SOURCE_RUN, SOURCE_UNRESOLVED, resolve_occurred
 from telemetry.periods import iso_week
 
 DEFAULT_CORPUS = Path(".claude/docs/review-findings.jsonl")
@@ -34,10 +34,6 @@ DEFAULT_CORPUS = Path(".claude/docs/review-findings.jsonl")
 # Fields that feed `_finding_uid` (factstore.py) plus the row identity. Rewriting any of
 # them silently orphans factstore rows, so they are verified byte-identical after a write.
 IDENTITY_FIELDS = ("id", "date", "repo", "file", "title")
-
-# Written to `occurred_source` when the helper could not date the row at all; `occurred`
-# then mirrors the run date so every row has a usable value and consumers need no null branch.
-SOURCE_RUN = "run"
 
 
 def read_rows(path: Path) -> list[dict]:
