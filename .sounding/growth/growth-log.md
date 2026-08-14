@@ -189,3 +189,23 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-11 | outcome:success | Cross-repo cleanup, sisyphus rename, interview-voice integrated | retained | accumulator (outcome pilot, persists) |
 | 2026-08-11 | friction | branch lifecycle no end-to-end automation; creation side unguarded | discarded | → /retro (process/tooling friction) |
 | 2026-08-11 | discovered | dependabot auto-merge skips GH Actions majors same as library majors | discarded | → /retro (policy gap, not identity) |
+
+| 2026-07-30 | outcome:partial | AIT-33 executed on stacked branch; GUA-60 driver smoke 4/5 | retained | accumulator (outcome pilot, persists) |
+| 2026-08-01 | outcome:success | CLA-71 guard fix committed; librarian#73 closed; LAE-30 triaged | retained | accumulator (outcome pilot, persists) |
+| 2026-08-02 | outcome:success | LIB-60 executed e2e and merged; privacy exposure caught and reverted | retained | accumulator (outcome pilot, persists) |
+| 2026-08-04 | outcome:success | Fable-default config drift found and fixed (settings.json → opus-5) | retained | accumulator (outcome pilot, persists) |
+| 2026-08-11 | outcome:success | Cross-repo cleanup, sisyphus rename, galactus added to the board | retained | accumulator (outcome pilot, persists) |
+| 2026-08-14 | outcome:success | AIT board → 3 open; test-render root-caused; galactus main restored | retained | accumulator (outcome pilot, persists) |
+| 2026-08-14 | friction | searching the path an issue names reports "not started" (#32/#18/#19) | discarded | → /retro (superseded by `uv run telemetry --consistency`) |
+| 2026-08-14 | friction | executed work with no PR rots into add/add conflicts (~8,200 lines) | discarded | → /retro (process/tooling friction) |
+| 2026-08-14 | friction | branches created per *attempt*, not per issue; stashes outlive branches | discarded | → /retro (standing cross-repo friction) |
+| 2026-08-14 | friction | piping git through `tail`/`head` makes the pager's exit code guard `&&` | discarded | → /retro (belongs in ~/.claude/rules/shell.md) |
+| 2026-08-14 | friction | the main checkout is shared state, not my state; use `git -C` worktrees | discarded | → /retro (already stated in sounding.md Working Notes) |
+| 2026-08-14 | friction | `git update-ref -d` bypasses risky_git_guard.sh's `branch -D` block | discarded | → /retro (guard coverage gap) |
+| 2026-08-14 | corrected | galactus renamed `workflow-*` → `proto-*`; global CLAUDE.md still stale | discarded | → /retro (config drift; sounding.md already carries the pattern) |
+| 2026-08-14 | discovered | timed dry run beats a review; unit-green components ≠ working system | merged | sounding.md → verification-levels paragraph |
+| 2026-08-14 | discovered | two-phase keep-vs-ship gated on *different* predicates discards silently | merged | sounding.md → failure-shapes-at-the-edges paragraph |
+| 2026-08-14 | discovered | CI reports the *first* failing assertion; remaining N−1 are unverified | merged | sounding.md → negative-evidence paragraphs |
+| 2026-08-14 | discovered | `git diff A...B` not comparable across distances; use `cat-file -e "B:$f"` | merged | sounding.md → cache paragraph |
+| 2026-08-14 | friction→discovered | unresolvable ref returns empty and reads as clean (galactus had no main) | merged | sounding.md → negative-evidence (re-tagged: epistemic, not tooling) |
+| 2026-08-14 | confirmed | measuring before deleting changes the *shape* of the action, not just go/no-go | merged | sounding.md → How I Work (measurement) |

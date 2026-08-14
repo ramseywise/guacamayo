@@ -2845,3 +2845,265 @@
 {"ts":"2026-08-14T10:12:31Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-471/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case9.md"}
 {"ts":"2026-08-14T10:13:09Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
 {"ts":"2026-08-14T10:14:24Z","hook":"task_complete_check","exit_code":2,"repo":"ai-project-template","context":"LINT ERRORS (run ruff check --fix):.nE902 No such file or directory (os error 2)--> eval_root:1:1E902 No such file or directory (os error 2)--> py_project_root:1:1E902 No such file or directory "}
+{"ts":"2026-08-14T10:16:29Z","hook":"plan_status_validate","exit_code":2,"repo":"workspace","context":"reject: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:29Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:38Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:38Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:48Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:48Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:54Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:16:54Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:17:04Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:17:04Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:17:21Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:17:21Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case0.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case1.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case2.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case3.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case4.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case5.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case6.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case7.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case8.md"}
+{"ts":"2026-08-14T10:17:37Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-473/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case9.md"}
+{"ts":"2026-08-14T10:19:21Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/telemetry/loop.py"}
+{"ts":"2026-08-14T10:19:33Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/telemetry/loop.py"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case0.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case1.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case2.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case3.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case4.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case5.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case6.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case7.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case8.md"}
+{"ts":"2026-08-14T10:20:21Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-474/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case9.md"}
+{"ts":"2026-08-14T10:25:16Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/wake/SKILL.md"}
+{"ts":"2026-08-14T10:26:17Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/wake/SKILL.md"}
+{"ts":"2026-08-14T10:26:28Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/wake/SKILL.md"}
+{"ts":"2026-08-14T10:26:35Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T10:26:43Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:26:43Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:26:57Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:26:57Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:27:13Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:27:13Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:27:25Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case0.md"}
+{"ts":"2026-08-14T10:27:25Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case1.md"}
+{"ts":"2026-08-14T10:27:25Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case2.md"}
+{"ts":"2026-08-14T10:27:25Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case3.md"}
+{"ts":"2026-08-14T10:27:25Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case4.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case5.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case6.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case7.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case8.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":2,"repo":"guacamayo","context":"reject: /private/var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/pytest-of-wiseer/pytest-475/test_agrees_with_the_hook_on_e0/.claude/docs/plans/case9.md"}
+{"ts":"2026-08-14T10:27:26Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-12-wake-consistency-check.md"}
+{"ts":"2026-08-14T10:27:44Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T11:02:14Z","hook":"destructive_cmd_guard","exit_code":2,"repo":"workspace","context":"rm -rf /var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/ait_render.* 2>/dev/null; cd ~/workspace/ai-project-template && echo .AIT-63 (current):. && git status --short | wc -l && echo .files staged, un"}
+{"ts":"2026-08-14T11:02:46Z","hook":"task_complete_check","exit_code":2,"repo":"ai-project-template","context":"LINT ERRORS (run ruff check --fix):.nE902 No such file or directory (os error 2)--> eval_root:1:1E902 No such file or directory (os error 2)--> ml_source_root:1:1E902 No such file or directory ("}
+{"ts":"2026-08-14T11:08:44Z","hook":"todo_write_nudge","exit_code":0,"repo":"ai-project-template","context":"heavy-session:100-bash-calls"}
+{"ts":"2026-08-14T11:11:35Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-performance/SKILL.md"}
+{"ts":"2026-08-14T11:11:53Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-architecture/SKILL.md"}
+{"ts":"2026-08-14T11:12:03Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/architecture/SKILL.md"}
+{"ts":"2026-08-14T11:12:48Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/SKILL.md"}
+{"ts":"2026-08-14T11:14:58Z","hook":"task_complete_check","exit_code":2,"repo":"ai-project-template","context":"LINT ERRORS (run ruff check --fix):.nE902 No such file or directory (os error 2)--> ml_source_root:1:1E902 No such file or directory (os error 2)--> py_project_root:1:1E902 No such file or direc"}
+{"ts":"2026-08-14T11:18:17Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/specs/track-routing.md"}
+{"ts":"2026-08-14T11:24:48Z","hook":"risky_git_guard","exit_code":2,"repo":"ai-project-template","context":"destructive git op blocked"}
+{"ts":"2026-08-14T11:35:00Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:39:37Z","hook":"task_complete_check","exit_code":2,"repo":"ai-project-template","context":"LINT ERRORS (run ruff check --fix):.nE902 No such file or directory (os error 2)--> ml_source_root:1:1E902 No such file or directory (os error 2)--> py_project_root:1:1E902 No such file or direc"}
+{"ts":"2026-08-14T11:48:28Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:49:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:49:31Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:49:41Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:49:51Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:50:01Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:50:12Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:50:25Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:50:49Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:50:57Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:51:18Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:51:23Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:51:42Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:51:58Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:52:10Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:52:21Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:52:30Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:52:44Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:53:08Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:53:15Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:53:23Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:53:33Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:53:47Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:55:39Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T11:55:55Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T11:56:18Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T11:57:31Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T11:57:40Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T11:57:53Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T11:57:54Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T11:57:55Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T11:57:58Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/cli.py"}
+{"ts":"2026-08-14T12:01:18Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:01:37Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:01:44Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:01:48Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:01:56Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:01:58Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-track-routing.md"}
+{"ts":"2026-08-14T12:02:34Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:07:59Z","hook":"task_complete_check","exit_code":2,"repo":"ai-project-template","context":"LINT ERRORS (run ruff check --fix):.nE902 No such file or directory (os error 2)--> py_project_root:1:1E902 No such file or directory (os error 2)--> template/_scaffold/{{:1:1E902 No such file o"}
+{"ts":"2026-08-14T12:13:49Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T12:13:56Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T12:25:05Z","hook":"todo_write_nudge","exit_code":0,"repo":"guacamayo","context":"heavy-session:100-bash-calls"}
+{"ts":"2026-08-14T12:26:24Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T12:26:47Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T12:28:48Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:28:48Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:29:04Z","hook":"destructive_cmd_guard","exit_code":2,"repo":"guacamayo","context":"cd ~/workspace/ai-project-template && rm -rf /tmp/aitfix && mkdir -p /tmp/aitfix/out && copier copy --overwrite --vcs-ref HEAD --trust --defaults -d project_type=ml_model . /tmp/aitfix/out > /tmp/aitf"}
+{"ts":"2026-08-14T12:33:30Z","hook":"plan_status_validate","exit_code":2,"repo":"galactus","context":"reject: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:33:45Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:33:51Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:33:55Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:34:01Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:34:02Z","hook":"task_complete_check","exit_code":2,"repo":"galactus","context":"LINT ERRORS (run ruff check --fix):.nUP042 Class EvidenceState inherits from both `str` and `enum.Enum`  --> review/models.py:19:7   |19 | class EvidenceState(str, Enum):   |       ^^^^^^^^^^^^^2"}
+{"ts":"2026-08-14T12:34:39Z","hook":"task_complete_check","exit_code":2,"repo":"galactus","context":"LINT ERRORS (run ruff check --fix):.nUP042 Class EvidenceState inherits from both `str` and `enum.Enum`  --> review/models.py:19:7   |19 | class EvidenceState(str, Enum):   |       ^^^^^^^^^^^^^2"}
+{"ts":"2026-08-14T12:34:45Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:35:13Z","hook":"task_complete_check","exit_code":2,"repo":"galactus","context":"LINT ERRORS (run ruff check --fix):.nUP042 Class EvidenceState inherits from both `str` and `enum.Enum`  --> review/models.py:19:7   |19 | class EvidenceState(str, Enum):   |       ^^^^^^^^^^^^^2"}
+{"ts":"2026-08-14T12:35:16Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T12:35:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:35:39Z","hook":"task_complete_check","exit_code":2,"repo":"galactus","context":"LINT ERRORS (run ruff check --fix):.nUP042 Class EvidenceState inherits from both `str` and `enum.Enum`  --> review/models.py:19:7   |19 | class EvidenceState(str, Enum):   |       ^^^^^^^^^^^^^2"}
+{"ts":"2026-08-14T12:35:50Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:35:55Z","hook":"task_complete_check","exit_code":2,"repo":"galactus","context":"LINT ERRORS (run ruff check --fix):.nUP042 Class EvidenceState inherits from both `str` and `enum.Enum`  --> review/models.py:19:7   |19 | class EvidenceState(str, Enum):   |       ^^^^^^^^^^^^^2"}
+{"ts":"2026-08-14T12:36:35Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:36:56Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:37:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:38:36Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-14T12:39:45Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-14T12:40:09Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-14T12:40:15Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:40:15Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:40:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-14T12:40:44Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:40:52Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:40:59Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:41:08Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:41:13Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:41:14Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:41:20Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/models.py"}
+{"ts":"2026-08-14T12:41:39Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T12:41:44Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T12:41:50Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T12:42:50Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T12:44:03Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:44:06Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-10-ml-capability-parity.md"}
+{"ts":"2026-08-14T12:45:10Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/references/finding-schema.md"}
+{"ts":"2026-08-14T12:45:13Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/references/finding-schema.md"}
+{"ts":"2026-08-14T12:45:16Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/references/finding-schema.md"}
+{"ts":"2026-08-14T12:45:23Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:48:50Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-14T12:48:52Z","hook":"risky_git_guard","exit_code":2,"repo":"workspace","context":"destructive git op blocked"}
+{"ts":"2026-08-14T12:49:29Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:50:05Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:51:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-09-prototyping-review-subsystem.md"}
+{"ts":"2026-08-14T12:51:24Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-research/SKILL.md"}
+{"ts":"2026-08-14T12:51:50Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T12:53:40Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-research/SKILL.md"}
+{"ts":"2026-08-14T12:53:47Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-research/SKILL.md"}
+{"ts":"2026-08-14T12:53:56Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-research/SKILL.md"}
+{"ts":"2026-08-14T12:54:19Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/README.md"}
+{"ts":"2026-08-14T12:54:37Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/design-prototype/ARCHIVED.md"}
+{"ts":"2026-08-14T12:54:51Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/design-sprint/ARCHIVED.md"}
+{"ts":"2026-08-14T12:55:06Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/design-initiative/ARCHIVED.md"}
+{"ts":"2026-08-14T12:55:15Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/fog/SKILL.md"}
+{"ts":"2026-08-14T12:55:26Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/war-game/SKILL.md"}
+{"ts":"2026-08-14T12:55:34Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/assumption-audit/SKILL.md"}
+{"ts":"2026-08-14T12:55:56Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T12:55:56Z","hook":"memory_duplication_guard","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T12:56:13Z","hook":"todo_write_nudge","exit_code":0,"repo":"galactus","context":"heavy-session:100-bash-calls"}
+{"ts":"2026-08-14T12:56:31Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/LEDGER-FLAGS.md"}
+{"ts":"2026-08-14T12:57:04Z","hook":"plan_status_validate","exit_code":2,"repo":"galactus","context":"reject: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:04Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:16Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:26Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:26Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:38Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:57:38Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-context-engineering-space.md"}
+{"ts":"2026-08-14T12:58:43Z","hook":"risky_git_guard","exit_code":2,"repo":"guacamayo","context":"destructive git op blocked"}
+{"ts":"2026-08-14T12:59:55Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T13:00:09Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T13:00:14Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T13:01:30Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/notes/handover.md"}
+{"ts":"2026-08-14T13:04:44Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/queue.md"}
+{"ts":"2026-08-14T13:04:59Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T13:07:52Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/references/finding-schema.md"}
+{"ts":"2026-08-14T13:08:07Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/review-shared/references/finding-schema.md"}
+{"ts":"2026-08-14T13:09:02Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T13:09:14Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T13:09:22Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/review/signals.py"}
+{"ts":"2026-08-14T13:10:17Z","hook":"docs_hygiene","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-scope/SKILL.md"}
+{"ts":"2026-08-14T13:11:07Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/project-discovery/ARCHIVED.md"}
+{"ts":"2026-08-14T13:11:21Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/project-genesis/ARCHIVED.md"}
+{"ts":"2026-08-14T13:11:34Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/docs-check/ARCHIVED.md"}
+{"ts":"2026-08-14T13:11:50Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/archived/README.md"}
+{"ts":"2026-08-14T13:12:10Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T13:12:10Z","hook":"memory_duplication_guard","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T13:12:17Z","hook":"risky_git_guard","exit_code":2,"repo":"guacamayo","context":"destructive git op blocked"}
+{"ts":"2026-08-14T13:12:25Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T13:12:25Z","hook":"memory_duplication_guard","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-14T13:12:38Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/skills/proto-research/SKILL.md"}
+{"ts":"2026-08-14T13:13:17Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T13:14:34Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:14:34Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:15:37Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-14T13:17:10Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/reflections/2026-08-14_15-15.md"}
+{"ts":"2026-08-14T13:17:57Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:17:57Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:20:01Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth.md"}
+{"ts":"2026-08-14T13:20:15Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/reflections/reflection-logs.md"}
+{"ts":"2026-08-14T13:20:15Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:20:15Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-pipeline-orchestration.md"}
+{"ts":"2026-08-14T13:21:02Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/notes/handover.md"}
+{"ts":"2026-08-14T13:21:09Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/queue.md"}
+{"ts":"2026-08-14T13:21:29Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/queue.md"}
+{"ts":"2026-08-14T13:21:40Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/queue.md"}
+{"ts":"2026-08-14T13:34:01Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:34:01Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:42:58Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:42:58Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:43:12Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:43:12Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:44:06Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:44:21Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:44:38Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:47:58Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.sounding/growth/growth-log.md"}
+{"ts":"2026-08-14T13:49:07Z","hook":"risky_git_guard","exit_code":2,"repo":"ai-project-template","context":"destructive git op blocked"}
+{"ts":"2026-08-14T13:49:19Z","hook":"risky_git_guard","exit_code":2,"repo":"ai-project-template","context":"destructive git op blocked"}
+{"ts":"2026-08-14T13:50:36Z","hook":"destructive_cmd_guard","exit_code":2,"repo":"ai-project-template","context":"rm -rf /var/folders/0k/fsv7np95035_kd8wq1wrcfj80000gn/T/ait_vscode.DcQoHA0MMY && echo cleaned"}
+{"ts":"2026-08-14T13:52:18Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T13:59:54Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:00:07Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:00:30Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:00:55Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:01:21Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:01:34Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:03:17Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:06:04Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-14T14:19:52Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:20:26Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:20:37Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:21:26Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:31:28Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:31:41Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:32:05Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:33:25Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:34:06Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:34:23Z","hook":"plan_status_validate","exit_code":0,"repo":"workspace","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:39:50Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /private/tmp/claude-501/-Users-wiseer-workspace/f57b257a-0e72-4e2c-97b4-52505b328b36/scratchpad/issue-body.md"}
+{"ts":"2026-08-14T14:40:06Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:40:20Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:41:52Z","hook":"docs_hygiene","exit_code":0,"repo":"ai-project-template","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-ai-project-template/memory/MEMORY.md"}
+{"ts":"2026-08-14T14:42:12Z","hook":"docs_hygiene","exit_code":0,"repo":"ai-project-template","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-ai-project-template/memory/debugging.md"}
+{"ts":"2026-08-14T14:42:33Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}
+{"ts":"2026-08-14T14:42:50Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-14-orchestrator-design.md"}

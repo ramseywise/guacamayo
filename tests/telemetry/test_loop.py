@@ -12,6 +12,7 @@ everything (or nothing) cannot go green. See ramseywise/librarian#91.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 
@@ -182,9 +183,63 @@ def test_qualified_issue_ref_parses(tmp_path: Path) -> None:
     assert doc.issue == 42
 
 
+def test_issue_url_parses(tmp_path: Path) -> None:
+    """The shape the plan-header convention actually writes.
+
+    Recognising only `#42` meant every conforming header joined to None (106
+    unmatchable plans) — the docs that followed the convention were the ones that
+    failed to join. Negative half: `test_shorthand_only_regex_would_miss_the_url`.
+    """
+    doc = loop.parse_plan_doc(
+        _write(tmp_path, "a.md", "Issue: https://github.com/ramseywise/guacamayo/issues/103\n"),
+        "repo",
+    )
+    assert doc.issue == 103
+
+
+def test_shorthand_only_regex_would_miss_the_url() -> None:
+    """Plant the defect: the pre-fix pattern cannot fire on a URL header.
+
+    Guards the fix itself. Without this, narrowing `_ISSUE_NUM_RE` back to `#(\\d+)`
+    leaves the suite green while the live corpus silently stops joining.
+    """
+    url = "https://github.com/ramseywise/guacamayo/issues/103"
+    assert not re.compile(r"#(\d+)").findall(url)
+    assert loop._ISSUE_NUM_RE.findall(url) == [("103", "")]
+
+
+def test_issue_url_with_comment_anchor_resolves_to_the_issue(tmp_path: Path) -> None:
+    """A `#`-anchored comment link must not resolve to the comment id."""
+    doc = loop.parse_plan_doc(
+        _write(
+            tmp_path,
+            "a.md",
+            "Issue: https://github.com/ramseywise/guacamayo/issues/103#issuecomment-99\n",
+        ),
+        "repo",
+    )
+    assert doc.issue == 103
+
+
 def test_filename_fallback(tmp_path: Path) -> None:
     doc = loop.parse_plan_doc(_write(tmp_path, "LIB-91-loop-tab.md", "# Plan\n"), "repo")
     assert doc.issue == 91
+
+
+def test_unparseable_issue_field_falls_back_to_filename(tmp_path: Path) -> None:
+    """An `Issue:` line with no number must not block the filename fallback.
+
+    The pre-fix `break` returned None here, discarding a doc that joins perfectly well
+    by filename — losing a joinable doc silently is the failure this module reports.
+    """
+    doc = loop.parse_plan_doc(_write(tmp_path, "GUA-103-wake.md", "Issue: TBD\n"), "repo")
+    assert doc.issue == 103
+
+
+def test_unparseable_issue_field_and_undatable_filename_has_no_issue(tmp_path: Path) -> None:
+    """Falling through must still yield None when the filename carries nothing."""
+    doc = loop.parse_plan_doc(_write(tmp_path, "2026-08-14-notes.md", "Issue: TBD\n"), "repo")
+    assert doc.issue is None
 
 
 def test_undatable_doc_has_no_issue(tmp_path: Path) -> None:

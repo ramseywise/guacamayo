@@ -61,9 +61,13 @@ WORKFLOW_LABELS: tuple[str, ...] = (
 # occur in the corpus. Copied from plan_status_validate.sh:30 — keep in sync.
 _STATUS_RE = re.compile(r"^[ \t]*(?:\*\*)?Status(?:\*\*)?:[ \t]*(.*)$")
 
-# `Issue: #42` / `Issues: #42, #43` / `Issue: ramseywise/librarian#42`
+# `Issue: #42` / `Issues: #42, #43` / `Issue: ramseywise/librarian#42` /
+# `Issue: https://github.com/ramseywise/librarian/issues/42`
 _ISSUE_FIELD_RE = re.compile(r"^[ \t]*(?:\*\*)?Issues?(?:\*\*)?:[ \t]*(.*)$")
-_ISSUE_NUM_RE = re.compile(r"#(\d+)")
+# The URL alternative comes first so it wins on a full URL: `#(\d+)` alone cannot match
+# a URL at all, and an ordered alternation keeps a `.../issues/42#issuecomment-99` link
+# resolving to the issue rather than the comment anchor.
+_ISSUE_NUM_RE = re.compile(r"(?:/issues/(\d+))|#(\d+)")
 
 # `AIT-22-research.md` -> ("AIT", 22)
 _FILENAME_REF_RE = re.compile(r"^([A-Z]{2,4})-(\d+)")
@@ -170,16 +174,25 @@ def parse_plan_doc(path: Path, repo: str) -> PlanDoc:
 def _extract_issue(lines: list[str], filename: str) -> int | None:
     """Issue number from an `Issue:` field, else from a `PREFIX-N-` filename.
 
-    Only ~35 of 126 docs carry an `Issue:` line and ~20 use the `PREFIX-N` filename
-    convention, so most docs simply do not join. That is reported as coverage rather
-    than papered over — an unjoinable doc is not drift.
+    The field is matched in both live shapes: the shorthand (`#42`,
+    `ramseywise/librarian#42`) and the full URL the plan-header convention writes
+    (`https://github.com/ramseywise/<repo>/issues/42`). Recognising only the shorthand
+    made every *conforming* plan header unjoinable — 106 unmatchable plans, i.e. the
+    docs that followed the convention were exactly the ones that failed to join.
+
+    An `Issue:` line that yields no number falls through to the filename rather than
+    aborting the search. A present-but-unparseable field is not evidence that the
+    filename is also uninformative, and treating it as such loses a joinable doc
+    silently — the failure mode this module exists to report.
+
+    Docs carrying neither shape simply do not join. That is reported as coverage
+    rather than papered over — an unjoinable doc is not drift.
     """
     for line in lines:
         m = _ISSUE_FIELD_RE.match(line)
         if m:
-            nums = _ISSUE_NUM_RE.findall(m.group(1))
-            if nums:
-                return int(nums[0])
+            for url_num, hash_num in _ISSUE_NUM_RE.findall(m.group(1)):
+                return int(url_num or hash_num)
             break
     m = _FILENAME_REF_RE.match(filename)
     return int(m.group(2)) if m else None

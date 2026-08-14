@@ -1,9 +1,10 @@
 {
-  "compacts": 6,
-  "grows_due": 2,
-  "insights_due": 0,
-  "retro_due": 0,
-  "last_compact": "2026-08-14T10:14:46Z",
+  "compacts": 37,
+  "grows_due": 12,
+  "grows_acked": 2,
+  "insights_due": 3,
+  "retro_due": 1,
+  "last_compact": "2026-08-14T14:42:00Z",
   "history": [
     {
       "ts": "2026-08-12T09:30:08Z",
@@ -27,6 +28,130 @@
     },
     {
       "ts": "2026-08-14T10:14:46Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T12:09:15Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T12:15:06Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T12:21:33Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T12:29:04Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T12:53:31Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:01:30Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:12:39Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:17:10Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:21:46Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:24:32Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:27:15Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:30:00Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:32:50Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:35:59Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:39:20Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:42:20Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:45:16Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:48:03Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:50:40Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:53:27Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:56:29Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T13:59:37Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:02:54Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:20:12Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:23:13Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:26:24Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:29:21Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:32:22Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:35:25Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:38:44Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T14:42:00Z",
       "repo": "guacamayo"
     }
   ]
