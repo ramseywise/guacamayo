@@ -31,7 +31,10 @@ from telemetry.dashboard import (
     _metric_value,
     _panel_body,
     _period_key,
+    _period_sparkline,
     _render_annotations,
+    _render_review_findings,
+    _rising_badge,
     _saturation_warning,
     _span_days,
     _svg_line,
@@ -1375,3 +1378,82 @@ def test_period_and_surface_toggles_do_not_collide(two_regime_store: Path) -> No
     surf_at = html.index('class="surf-view"')
     assert period_at < surf_at, "surf-view must nest inside period-view"
     assert html.count('id="surf-sel"') == 1
+
+
+# --- Recurring friction card: rising badge + sparkline (GUA-104b) ------------
+
+
+def _rf(title: str, date: str, repo: str = "guacamayo") -> dict[str, Any]:
+    return {
+        "title": title,
+        "category": "config",
+        "repo": repo,
+        "date": date,
+        "merge_impact": "important",
+        "source": "sanyi",
+    }
+
+
+def test_rising_badge_renders_only_when_rising() -> None:
+    assert _rising_badge(False) == ""
+    assert "rising" in _rising_badge(True)
+
+
+def test_period_sparkline_empty_counts_render_a_dash() -> None:
+    assert "—" in _period_sparkline({})
+
+
+def test_period_sparkline_scales_bars_to_group_peak() -> None:
+    """Bars are scaled within the group, so the tallest bar always hits the box
+    height regardless of the group's absolute size."""
+    svg = _period_sparkline({"2026-W30": 1, "2026-W31": 2, "2026-W32": 4})
+    assert svg.count("<rect") == 3
+    # Peak bar spans the full height; y=0 is the top of the box.
+    assert 'y="0"' in svg
+    assert "2026-W32: 4" in svg
+
+
+def test_period_sparkline_caps_at_twelve_buckets() -> None:
+    counts = {f"2026-W{i:02d}": 1 for i in range(1, 30)}
+    assert _period_sparkline(counts).count("<rect") == 12
+
+
+def test_recurring_friction_table_shows_badge_and_sparkline() -> None:
+    """A rising group reaches the table and carries both new affordances."""
+    findings = [
+        _rf("resource leak, not closed", "2026-07-15"),
+        _rf("resource leak, not closed", "2026-07-22"),
+    ] + [_rf("resource leak, not closed", "2026-08-05") for _ in range(5)]
+
+    html = _render_review_findings(findings)
+    assert "Recurring friction" in html
+    assert "<th>By week</th>" in html
+    assert ">rising<" in html
+    assert "<svg" in html
+
+
+def test_recurring_friction_includes_rising_group_below_promotable_threshold() -> None:
+    """`promotable or rising` is applied at the call site: a group can reach the
+    table on the trend signal alone, without a high lifetime count."""
+    findings = [_rf("slug mismatch between config and loader", "2026-08-05") for _ in range(3)]
+    html = _render_review_findings(findings)
+    assert "slug-inconsistency" in html
+
+
+def test_recurring_friction_escapes_pattern_and_repo() -> None:
+    """The unmatched fallback key embeds category and repo verbatim, so both are
+    attacker-shaped input as far as this table is concerned."""
+    findings = [
+        {
+            "title": "no known signature here",
+            "category": "<script>x</script>",
+            "repo": "guacamayo",
+            "date": "2026-08-05",
+            "merge_impact": "nit",
+            "source": "sanyi",
+        }
+        for _ in range(3)
+    ]
+    html = _render_review_findings(findings)
+    assert "<script>x</script>" not in html
+    assert "&lt;script&gt;" in html
