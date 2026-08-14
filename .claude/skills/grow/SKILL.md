@@ -107,6 +107,12 @@ prompt: |
     (a quoting bug in `cat "$(cat ...)"` destroyed this file once; `git restore` destroyed
     it a second time).
   - Date the new section header from `date +%F` (the system clock), not the conversation.
+  - Header MUST match exactly `## YYYY-MM-DD (N sessions, START to END)` — readers grep this
+    shape by max date. A free-form header (e.g. `## 2026-08-11 Insights Run`) is invisible to
+    every consumer and the run will read as missing.
+  - Append at EOF. Do NOT attempt to prepend or re-sort to maintain newest-first order —
+    readers sort by date, so file order is intentionally irrelevant. Re-sorting a 100KB+
+    file that has twice been destroyed is not worth the risk.
   - Before finishing, verify by content invariants: the file must be strictly LONGER than
     when first read, and every pre-existing `## ` header must still be present. Report
     before/after line counts.
@@ -121,11 +127,26 @@ Don't wait for it — continue with signal reads below using existing data. The 
 
 ### 4b. Read signals (fast, grep-based)
 
-- `.sounding/insights/insights-log.md` first `## YYYY-MM-DD` section header → last insights run date
+- `.sounding/insights/insights-log.md` last insights run date — the file is NOT reliably in
+  newest-first order (append-only agents write at EOF, older sections were prepended), so
+  position is not a valid proxy for recency. Always read by max date, never by position:
+  `grep -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' insights-log.md | sort -r | head -1`
 - `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /dream will use this flag to decide whether to run the actual retro at session close.
+- **Cascade ledger** — `.sounding/telemetry/cascade-state.json`, maintained by the PreCompact
+  hook (`~/.claude/hooks/lifecycle_cascade.sh`). Compaction is the cadence signal: it fires on
+  context pressure, so it tracks real work rather than wall-clock. Read it with
+  `jq -c '{compacts,grows_due,insights_due,retro_due}'`. The hook only counts — it cannot spawn
+  agents (hooks are shell, not agent contexts), so acting on the counters is this skill's job:
+  - `insights_due` > times insights has run since → the background `/workflow-insights` spawn in
+    Step 4a already covers this; note it in the signal summary.
+  - `retro_due` ≥ 1 and not yet acted on → surface "retro due (N compactions)" and set
+    `retro-worthy: true` so /dream spawns `/workflow-retro` at session close.
+
+  After acting on a tier, record it by bumping the matching `*_acked` key in the JSON (e.g.
+  `retro_acked`) so the next read compares due-vs-acked rather than re-firing on every read.
 
 ### Plan state (lightweight)
 ```bash

@@ -79,7 +79,14 @@ Read `.sounding/context-dashboard.html` — scan for the signal summary section 
 ### Ops state (this repo)
 
 Read `.sounding/tooling-ledger.md` — `hypothesis` rows are the standing verification queue.
-Read `.sounding/insights/insights-log.md` — grep the first `## YYYY-MM-DD` section header for the most recent run date. Compare to today to detect retro overdue (≥7 days).
+Read `.sounding/insights/insights-log.md` — get the most recent run date by max date, NOT by
+position (the file is not reliably newest-first; append-only agents write at EOF):
+`grep -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' insights-log.md | sort -r | head -1`.
+Compare to today to detect retro overdue (≥7 days).
+Read `.sounding/telemetry/cascade-state.json` (`jq -c '{compacts,grows_due,insights_due,retro_due}'`)
+— the PreCompact hook's cascade ledger. A nonzero `retro_due` above its `retro_acked` counterpart
+means enough compaction-measured work has accumulated to warrant a retro; surface it in the
+session-open summary alongside the ≥7-day check. Absent file = cascade never fired; not an error.
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board (cross-repo)
@@ -119,6 +126,26 @@ Report explicitly across the full board (never silent on empty categories):
 - **Backlog**: items not yet scoped → count per repo
 
 Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
+
+#### Resolve issue claims before reporting state (added 2026-08-12)
+
+An issue body is a cache, and it rots faster than the code it describes. Before reporting
+any issue's state — **especially "not started"** — verify what the issue asserts:
+
+- **Resolve every path an issue names before counting against it.** If the path does not
+  exist, that is evidence the *issue* is stale, not that the work is absent. A count
+  against a non-existent directory returns 0 and is indistinguishable from untouched work.
+  Confirm the real path from the repo's CLAUDE.md layout block or by listing the parent,
+  then re-run the count.
+- **Labels are the weakest evidence on the board.** `in-progress` over zero artifacts and
+  `backlog` over shipped work are equally common. Never report the WIP count from labels alone.
+- **If an issue's premise cites a decision that has since changed, say so** — it needs
+  rewriting before anyone plans from it.
+
+Cost of skipping this, 2026-08-12: three issues misreported in one wake — #32 "not started"
+while its artifact sat at `jobs/materials/prep/`, #18/#19 "0 briefs" counted against
+`jobs/briefs/`, a directory that never existed while 31 briefs sat in `jobs/backlog/`.
+Two plan docs for finished work were one step away.
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
 

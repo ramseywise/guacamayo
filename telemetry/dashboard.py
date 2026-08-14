@@ -21,7 +21,7 @@ from __future__ import annotations
 import html
 import json
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date as _date
 from pathlib import Path
@@ -106,12 +106,19 @@ _CONTEXT_LIMIT = 150_000
 
 @dataclass(frozen=True)
 class Point:
-    """One plotted observation. `n` carries the sample size behind it."""
+    """One plotted observation. `n` carries the sample size behind it.
+
+    `date` is always a real ISO date — the first observation in the bucket — so
+    `_span_days` can parse it at every period. `bucket` carries the display key
+    (`2026-08-13`, `2026-W33`, `2026-08`), which is not a parseable date above
+    daily resolution. Empty `bucket` means the point predates period bucketing.
+    """
 
     date: str
     value: float
     regime: str
     n: int = 1
+    bucket: str = ""
 
 
 @dataclass(frozen=True)
@@ -158,6 +165,27 @@ def _iso_week(day: str) -> str:
     return f"{iso.year}-W{iso.week:02d}"
 
 
+PERIODS = ("day", "week", "month")
+
+# Daily is noise at this volume; monthly hides everything actionable.
+_DEFAULT_PERIOD = "week"
+
+
+def _period_key(day: str, period: str) -> str:
+    """Bucket key for `day` at `period`. Keys sort lexicographically within a period.
+
+    Raises on an unknown period rather than falling back to daily — a silent
+    fallback makes a caller typo look like working code.
+    """
+    if period == "day":
+        return day
+    if period == "week":
+        return _iso_week(day)
+    if period == "month":
+        return day[:7]
+    raise ValueError(f"unknown period {period!r} (expected one of {', '.join(PERIODS)})")
+
+
 def _percentile(values: list[float], pct: float) -> float:
     if not values:
         return 0.0
@@ -168,10 +196,16 @@ def _percentile(values: list[float], pct: float) -> float:
     return float(ordered[idx])
 
 
-def _group(rows: list[dict[str, Any]], key: str = "date") -> dict[str, list[dict[str, Any]]]:
+def _group(
+    rows: list[dict[str, Any]], key: str = "date", period: str = "day"
+) -> dict[str, list[dict[str, Any]]]:
+    """Group `rows` by `key`, bucketed at `period`.
+
+    `period="day"` keys on the raw value, preserving every pre-period caller.
+    """
     out: dict[str, list[dict[str, Any]]] = {}
     for row in rows:
-        out.setdefault(str(row[key]), []).append(row)
+        out.setdefault(_period_key(str(row[key]), period), []).append(row)
     return out
 
 
@@ -313,8 +347,40 @@ def _regime_bands(points: list[Point]) -> list[tuple[str, str, str]]:
     return bands
 
 
-def build_series(metric: str, store: Path) -> Series:
-    """Build `metric` from the fact table.
+def _period_points(rows: list[dict[str, Any]], metric: str, period: str) -> list[Point]:
+    """Bucket `rows` at `period` and reduce each bucket to a Point.
+
+    Sub-grouped by regime because a week or month can span a regime boundary —
+    only a *day* bucket is single-regime by construction. `date` is the bucket's
+    first observation (a real ISO date); `bucket` is the display key.
+    """
+    grouped: dict[tuple[str, str], list[dict[str, Any]]] = {}
+    for row in rows:
+        key = _period_key(str(row["date"]), period)
+        grouped.setdefault((key, str(row["regime"])), []).append(row)
+
+    points: list[Point] = []
+    for (key, regime), bucket in sorted(grouped.items()):
+        value = (
+            float(len(bucket)) if metric == "sessions_per_week" else _metric_value(metric, bucket)
+        )
+        if value is None:
+            continue
+        points.append(
+            Point(
+                date=min(str(r["date"]) for r in bucket),
+                value=value,
+                regime=regime,
+                n=len(bucket),
+                bucket=key,
+            )
+        )
+    points.sort(key=lambda p: p.date)
+    return points
+
+
+def build_series(metric: str, store: Path, period: str = "day") -> Series:
+    """Build `metric` from the fact table at `period` resolution.
 
     Rate metrics come back faceted by regime; per-session properties come back as
     one continuous line with regime bands. July-only metrics drop every row
@@ -326,17 +392,11 @@ def build_series(metric: str, store: Path) -> Series:
         rows = [r for r in rows if str(r["date"]) >= JULY_BOUNDARY]
 
     if metric == "sessions_per_week":
-        buckets = _group(rows, "date")
-        weekly: dict[tuple[str, str], list[dict[str, Any]]] = {}
-        for day, bucket in buckets.items():
-            for row in bucket:
-                weekly.setdefault((_iso_week(day), str(row["regime"])), []).append(row)
+        # Counts sessions per bucket; "per_week" is the metric's name, not its
+        # resolution — at period="day" it is sessions per day.
         by_regime: dict[str, list[Point]] = {}
-        for (_week, regime), bucket in sorted(weekly.items()):
-            start = min(str(r["date"]) for r in bucket)
-            by_regime.setdefault(regime, []).append(
-                Point(date=start, value=float(len(bucket)), regime=regime, n=len(bucket))
-            )
+        for point in _period_points(rows, metric, "week" if period == "day" else period):
+            by_regime.setdefault(point.regime, []).append(point)
         return Series(
             metric=metric,
             faceted=True,
@@ -346,14 +406,7 @@ def build_series(metric: str, store: Path) -> Series:
             ],
         )
 
-    points: list[Point] = []
-    for day, bucket in sorted(_group(rows).items()):
-        # A date-bucket is single-regime by construction (regime is a date lookup).
-        regime = str(bucket[0]["regime"])
-        value = _metric_value(metric, bucket)
-        if value is None:
-            continue
-        points.append(Point(date=day, value=value, regime=regime, n=len(bucket)))
+    points = _period_points(rows, metric, period)
 
     if metric in RATE_METRICS:
         by_regime = {}
@@ -377,13 +430,7 @@ def build_series(metric: str, store: Path) -> Series:
     surface_points: dict[str, list[Point]] = {}
     for surf in distinct_surfaces:
         surf_rows = [r for r in rows if (r.get("surface") or "unknown") == surf]
-        s_pts: list[Point] = []
-        for day, bucket in sorted(_group(surf_rows).items()):
-            regime = str(bucket[0]["regime"])
-            value = _metric_value(metric, bucket)
-            if value is None:
-                continue
-            s_pts.append(Point(date=day, value=value, regime=regime, n=len(bucket)))
+        s_pts = _period_points(surf_rows, metric, period)
         if s_pts:
             surface_points[surf] = s_pts
 
@@ -2308,7 +2355,7 @@ def render_hook_activity_card(event_log: Path, pass_log: Path) -> str:
             '<div class="card">\n'
             '      <div class="card-title">Hook activity</div>\n'
             '      <p class="card-note">No hook fires logged yet. Guard hooks log to '
-            "<code>~/.claude/.hook-log.jsonl</code> via <code>lib.sh</code>.</p>\n"
+            "<code>.sounding/telemetry/.hook-log.jsonl</code> via <code>lib.sh</code>.</p>\n"
             "    </div>"
         )
 
@@ -2528,11 +2575,18 @@ display:flex;gap:16px;flex-wrap:wrap;}
 .table-view table{border-collapse:collapse;margin-top:8px;font-variant-numeric:tabular-nums;}
 .table-view th,.table-view td{text-align:left;padding:2px 12px 2px 0;
 border-bottom:1px solid var(--border);}
-.surf-filter{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.surf-filter{display:flex;align-items:center;gap:8px;}
 .surf-filter label{font-size:12px;color:var(--text-secondary);}
 .surf-filter select{font-size:12px;padding:3px 8px;border-radius:12px;
 border:1px solid var(--border);background:var(--surface-1);color:var(--text-primary);
 cursor:pointer;}
+.period-filter{display:flex;align-items:center;gap:4px;margin-left:auto;}
+.period-filter label{font-size:12px;color:var(--text-secondary);margin-right:4px;}
+.period-btn{font-size:12px;padding:3px 10px;border-radius:12px;
+border:1px solid var(--border);background:var(--surface-1);color:var(--text-secondary);
+cursor:pointer;}
+.period-btn.active{background:var(--text-primary);color:var(--surface-1);
+border-color:var(--text-primary);}
 """
 
 
@@ -2814,36 +2868,43 @@ def render_dashboard(
     def _chart_var(i: int) -> str:
         return f"var(--chart-{(i % 4) + 1})"
 
-    tier1 = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_TIER1)
-    )
-    tier2 = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_TIER2)
-    )
-    shape = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_TIER_SHAPE)
-    )
+    def _tier(
+        specs: Sequence[tuple[str, str, str, str, str]],
+        exps: list[Experiment] | None = None,
+    ) -> str:
+        """Render a tier at all three periods into period-tagged wrappers.
+
+        Aggregation stays in Python — the browser only shows and hides. The
+        alternative (ship rows, bucket in JS) is a second implementation of
+        `_period_key` that would drift from this one.
+        """
+
+        def _view(i: int, spec: tuple[str, str, str, str, str], period: str) -> str:
+            metric, title, note, prov, unit = spec
+            hidden = "" if period == _DEFAULT_PERIOD else ' style="display:none"'
+            body = _render_series(
+                build_series(metric, store, period),
+                _chart_var(i),
+                title,
+                note,
+                prov,
+                unit,
+                exps,
+            )
+            return f'<div class="period-view" data-period="{period}"{hidden}>{body}</div>'
+
+        return "".join(_view(i, spec, period) for i, spec in enumerate(specs) for period in PERIODS)
+
+    tier1 = _tier(_TIER1)
+    tier2 = _tier(_TIER2)
+    shape = _tier(_TIER_SHAPE)
     # Step 9: friction tab regroup — three groups instead of flat _TIER3 list.
     # LIB-59: this is the one tier with a mapped ledger experiment
     # (execution_skill_compliance_pct), so it is the only call site that passes
     # `experiments` through for annotation rendering.
-    friction_prompt = "".join(
-        _render_series(
-            build_series(metric, store), _chart_var(i), title, note, prov, unit, experiments
-        )
-        for i, (metric, title, note, prov, unit) in enumerate(_FRICTION_PROMPT_ENG)
-    )
-    friction_loop = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_FRICTION_LOOP_ENG)
-    )
-    friction_harness = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_FRICTION_HARNESS_ENG)
-    )
+    friction_prompt = _tier(_FRICTION_PROMPT_ENG, experiments)
+    friction_loop = _tier(_FRICTION_LOOP_ENG)
+    friction_harness = _tier(_FRICTION_HARNESS_ENG)
     tier3 = (
         f'<div class="boundary"><h2 style="font-size:14px;margin:0 0 4px">Prompt-eng</h2>'
         f'<p class="sub" style="margin:0 0 12px">Does reasoning work? '
@@ -2858,10 +2919,7 @@ def render_dashboard(
         f"Error and context signals.</p></div>"
         f"{friction_harness}"
     )
-    rates = "".join(
-        _render_series(build_series(metric, store), _chart_var(i), title, note, prov, unit)
-        for i, (metric, title, note, prov, unit) in enumerate(_RATES)
-    )
+    rates = _tier(_RATES)
     # Build surface selector: "All" + one option per distinct observed surface.
     surfaces = _distinct_surfaces(store)
     surf_options = '<option value="all">All surfaces</option>' + "".join(
@@ -2874,6 +2932,14 @@ def render_dashboard(
         f"</div>"
     )
 
+    period_buttons = "".join(
+        f'<button type="button" class="period-btn'
+        f'{" active" if period == _DEFAULT_PERIOD else ""}" '
+        f'data-period="{period}">{period.capitalize()}</button>'
+        for period in PERIODS
+    )
+    period_selector = f'<div class="period-filter"><label>Period:</label>{period_buttons}</div>'
+
     nav = (
         '<nav class="dash-nav">'
         '<a href="#cost">Cost &amp; Efficiency</a>'
@@ -2881,6 +2947,7 @@ def render_dashboard(
         '<a href="#friction">Friction &amp; Quality</a>'
         '<a href="#review">Code Review</a>'
         '<a href="#progress">Experiments &amp; Progress</a>'
+        f"{period_selector}"
         f"{surf_selector}"
         "</nav>"
     )
@@ -2904,6 +2971,28 @@ def render_dashboard(
         "}"
         'sel.addEventListener("change",function(){apply(sel.value);});'
         'apply("all");'
+        "})();</script>"
+    )
+
+    # Period toggle. Every panel is already rendered at all three periods as
+    # sibling .period-view wrappers; this only flips display. Vanilla JS with no
+    # CDN — a remote <script> is a blank panel on a file:// open.
+    period_js = (
+        "<script>(function(){"
+        'var btns=document.querySelectorAll(".period-btn");'
+        "if(!btns.length)return;"
+        "function apply(p){"
+        'document.querySelectorAll(".period-view").forEach(function(d){'
+        'd.style.display=(d.dataset.period===p)?"":"none";'
+        "});"
+        "btns.forEach(function(b){"
+        'b.classList.toggle("active",b.dataset.period===p);'
+        "});"
+        "}"
+        "btns.forEach(function(b){"
+        'b.addEventListener("click",function(){apply(b.dataset.period);});'
+        "});"
+        f'apply("{_DEFAULT_PERIOD}");'
         "})();</script>"
     )
 
@@ -2955,7 +3044,7 @@ def render_dashboard(
         f"<code>absence:</code>-type experiments are meta-signals with no "
         f"timeseries to land on and are deliberately not rendered.</p>"
         f"{nav}{sec_cost}{sec_context}{sec_friction}{sec_review}{sec_progress}"
-        f"{surf_js}</div>"
+        f"{surf_js}{period_js}</div>"
     )
 
 
