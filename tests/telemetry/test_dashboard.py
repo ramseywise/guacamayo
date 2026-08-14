@@ -27,6 +27,7 @@ from telemetry.dashboard import (
     Panel,
     Point,
     _annotations_for_metric,
+    _direction_badge,
     _group,
     _metric_value,
     _panel_body,
@@ -34,7 +35,6 @@ from telemetry.dashboard import (
     _period_sparkline,
     _render_annotations,
     _render_review_findings,
-    _rising_badge,
     _saturation_warning,
     _span_days,
     _svg_line,
@@ -48,6 +48,7 @@ from telemetry.dashboard import (
     warn_unmapped_experiments,
 )
 from telemetry.factstore import ERA_JSONL, ERA_NOTE, read_all, upsert
+from telemetry.recurrence import DIRECTION_FALLING, DIRECTION_FLAT, DIRECTION_RISING
 
 
 def _row(session_id: str, date: str, regime: str, **overrides: object) -> dict[str, Any]:
@@ -1394,9 +1395,21 @@ def _rf(title: str, date: str, repo: str = "guacamayo") -> dict[str, Any]:
     }
 
 
-def test_rising_badge_renders_only_when_rising() -> None:
-    assert _rising_badge(False) == ""
-    assert "rising" in _rising_badge(True)
+def test_direction_badge_renders_only_when_trending() -> None:
+    assert _direction_badge(DIRECTION_FLAT) == ""
+    assert "rising" in _direction_badge(DIRECTION_RISING)
+    assert "falling" in _direction_badge(DIRECTION_FALLING)
+
+
+def test_direction_badge_colors_falling_as_good_news() -> None:
+    """Friction going down is a positive outcome and must not render as a warning."""
+    assert "--bad" in _direction_badge(DIRECTION_RISING)
+    assert "--good" in _direction_badge(DIRECTION_FALLING)
+
+
+def test_direction_badge_ignores_unknown_direction() -> None:
+    """An unrecognized value renders nothing rather than an unstyled badge."""
+    assert _direction_badge("sideways") == ""
 
 
 def test_period_sparkline_empty_counts_render_a_dash() -> None:
