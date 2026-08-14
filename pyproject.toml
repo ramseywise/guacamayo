@@ -25,6 +25,12 @@ line-length = 100
 # Vendored/moved from librarian (GUA-93) — kept byte-diffable against the originals
 # until Phase 5 deletes them; rule deltas are ignored rather than edited in place.
 "telemetry/**" = ["ISC004", "BLE001"]
+# Vendored skill scripts, demoted from ~/.claude 2026-08-11. mcp-builder is vendored
+# from Anthropic under its own license; skill-creator's eval harness is upstream code.
+# Same policy as telemetry/ above — kept diffable against the originals, not edited in
+# place. Fix upstream, not here.
+".claude/skills/mcp-builder/**" = ["RUF013", "BLE001"]
+".claude/skills/skill-creator/**" = ["BLE001", "C401", "EXE001", "F841", "PLW1510", "RUF059"]
 
 [dependency-groups]
 dev = ["pytest>=8.0", "ruff>=0.11"]

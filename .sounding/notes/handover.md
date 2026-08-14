@@ -1,47 +1,60 @@
-# Handover — 2026-08-07 Branch cleanup + issue closure sweep
+# Handover — 2026-08-11 Cross-repo cleanup + make prune + sisyphus rename
 
-**Context**: Housekeeping session — swept branch debt across all main repos, closed orphaned issues, surfaced squash-merge detection pattern.
+**Context**: Extended meta/housekeeping session after 4-day gap. Branch cleanup, sisyphus rename, interview-voice integration, galactus orientation, and new `make prune` automation.
 
 ## Current State
 
 **Completed:**
-- 14 merged local branches deleted (librarian 10, AIT 2, LAE 2)
-- 5 stale remote-tracking refs pruned (guacamayo 2, librarian 2, LAE 1)
-- Issues closed: GUA-93, GUA-96, LIB-110, LIB-114 (all had merged PRs)
-- LAE: new branch `bug/librarian-sync-cleanup` created from old `LAE-115-code-test-formats` HEAD
+- 17 local branches deleted across 6 repos (all merged or contained)
+- job-system renamed to sisyphus (GitHub, local, prefix JOB→SIS, all config refs updated)
+- interview-voice root files merged into sisyphus; interview-voice repo deleted
+- galactus added to portfolio.md (Prototyping tier) + prefix table (GAL)
+- wake/grow skill repo-lists updated with sisyphus + galactus
+- `make prune` / `make prune-dry` added to workspace Makefile — cross-repo branch cleanup automation
+  - Backs `~/.claude/scripts/prune.sh`: merged PRs (gh API), ancestor branches, tree-identical squash merges
+  - Skips current branches with dirty state, skips dependabot
+  - Dry-run showed 6 local + 57 remote branches to clean
 
-**Waiting on Ramsey (push-guarded):**
-- Remote branch deletions across guacamayo, AIT, job-system, lebanese-blonde, playground (commands in chat)
-- Local `-D` for 3 squash-merged guacamayo branches (GUA-93, GUA-96, bug/insights-log-path)
-- Playground cord/* bulk delete (~50 Devin branches)
-- `JOB-31-fix-stale-paths` local delete (contained in JOB-32)
-
-**Still open:**
-- GUA-92 (current branch, no PR yet)
-- JOB-32 (superset of JOB-31, needs PR — close both #31 and #32)
-- AIT-56-drop-temperature-param (local only, no PR, relevance unclear)
-- Dotclaude CLA-8/CLA-15 merge still pending from prior session
+**Uncommitted across repos:**
+- guacamayo (`bug/friction-loop-capture-and-findings-pk`): dashboard, tooling-ledger, recurrence.py + tests, portfolio.md, wake/grow skills, growth.md, handover
+- sisyphus (`JOB-33-ml6-genai-prototyping`): CLAUDE.md, pyproject.toml, .gitignore, Makefile, .env.example, src/ refs, coding-drill skill
+- ~/.claude: CLAUDE.md prefix table, refs/agile.md prefix table, scripts/prune.sh
+- ~/workspace/Makefile: prune targets
 
 ## Decisions Made
 
-- Squash-merge detection: `merge-base --is-ancestor` + `gh pr list --state all` (not `--merged`)
-- JOB-31 redundant — JOB-32 is superset, one PR covers both
-- Branch hygiene friction flagged for retro — no post-merge cleanup ritual exists
+- sisyphus is the interview platform — drops "all Markdown, no runtime" constraint; gains voice drills
+- galactus prefix = GAL, sisyphus prefix = SIS
+- interview-voice absorbed, not kept as separate repo
+- `make prune` is the answer to branch cleanup friction — Ramsey runs it directly, guard not involved
+- Dependabot auto-merge correctly skips semver-major; GH Actions majors (low-risk) should get a separate policy
+- AIT-64-scaffold-vscode-extensions: keep (issue #64 open, 1 commit ahead)
 
 ## Open Threads
 
-- Post-merge cleanup ritual: candidate for retro proposal (`make branch-clean`, post-merge Action, or /wake sweep)
-- Issue scoping tighter before branching (JOB-31/32 lesson)
-- 2 new playground dependabot branches arrived during fetch
+- Galactus default branch is `spike/consolidate-claude-setup` — rename to `main` via gh API, then prune
+- Sisyphus branch JOB-33 — rename to SIS-* or merge as bulk update
+- GUA-98 (voice interview drill V1) should move to sisyphus board
+- Sisyphus dependabot PRs #29, #30 (major GH Actions bumps) — merge manually
+- Weekly retro overdue (last insights 08-04, last retro R8 08-05) — 7 days; insights refreshing in background
+- Dependabot policy: consider auto-merging GH Actions majors separately from library majors
+- Growth at 10 entries — synthesis due at /dream
 
 ## Immediate Next Steps
 
-1. Run the staged remote delete + local `-D` commands
-2. PR JOB-32, close #31 and #32
-3. Decide AIT-56 fate
-4. GUA-92 retire-pulse PR when ready
+1. Run `make prune` from ~/workspace (after galactus branch rename)
+2. Commit guacamayo changes (portfolio, skills, growth, dashboard, prune script)
+3. Commit sisyphus changes (rename + voice integration)
+4. Commit ~/.claude changes (prefix tables, prune script)
+5. Run `/workflow-retro` (overdue)
 
 ## Key Files
 
-- `.sounding/growth/growth.md:20-21` (2 friction entries)
-- `.sounding/reflections/2026-08-07_18-50.md`
+- `~/.claude/scripts/prune.sh` (new — cross-repo branch cleanup)
+- `~/workspace/Makefile:108-112` (prune targets)
+- `~/.claude/CLAUDE.md:241` (prefix table)
+- `~/.claude/refs/agile.md:20` (prefix table)
+- `guacamayo/.sounding/portfolio.md:12` (galactus entry)
+- `guacamayo/.claude/skills/wake/SKILL.md` (repo lists)
+- `sisyphus/CLAUDE.md:1` (renamed)
+- `sisyphus/pyproject.toml` (voice deps)

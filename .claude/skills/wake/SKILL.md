@@ -88,7 +88,7 @@ Check ALL active repos for open issues — the meta-session's job is the cross-c
 
 ```bash
 # Open issues — current board state
-for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
   echo "--- $repo ---"
   gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
 done
@@ -106,7 +106,7 @@ Present as a **cross-repo status table** grouped by repo, showing ALL open issue
 | Repo | # | Title | State | Note |
 |------|---|-------|-------|------|
 | guacamayo | 3 | Design skill trio | ready | plan doc written |
-| job-system | 15 | Ingest notes/ materials | backlog | |
+| sisyphus | 15 | Ingest notes/ materials | backlog | |
 | learn-ai-engineering | 34 | Learning skill | backlog | |
 
 Repos with zero open issues: list on one line ("**Clean**: librarian, atlas, playground, ...").
@@ -138,7 +138,7 @@ Surface PRs awaiting review or merge alongside the issues table — a PR that mo
 Orphaned worktrees mean spawned agents that finished (or died) without cleanup — stale branches with possibly uncommitted work:
 
 ```bash
-for repo in guacamayo job-system learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde; do
+for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
   [ -d ~/workspace/$repo/.git ] && { echo "--- $repo ---"; git -C ~/workspace/$repo worktree list; }
 done
 ```

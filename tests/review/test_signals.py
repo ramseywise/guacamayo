@@ -3,7 +3,12 @@
 import json
 import subprocess
 
-from review.signals import active_dimensions, detect_signals
+from review.signals import (
+    ALWAYS_ON_DIMENSIONS,
+    CONDITIONAL_DIMENSIONS,
+    active_dimensions,
+    detect_signals,
+)
 from tests.review.conftest import REPO_ROOT
 
 
@@ -90,33 +95,54 @@ class TestDetectSignalsSanyi:
         assert signals["has_sanyi_contracts"] is False
 
 
+NO_SIGNALS = {
+    "is_agent_code": False,
+    "is_pipeline_code": False,
+    "is_ml_code": False,
+    "has_sanyi_contracts": False,
+}
+
+
 class TestActiveDimensions:
     def test_no_signals_returns_base_dimensions(self):
-        signals = {"is_agent_code": False, "is_pipeline_code": False, "has_sanyi_contracts": False}
-        dims = active_dimensions(signals)
-        assert set(dims) == {"correctness", "safety", "structure", "wander"}
+        dims = active_dimensions(dict(NO_SIGNALS))
+        assert set(dims) == set(ALWAYS_ON_DIMENSIONS)
 
-    def test_agent_code_adds_agent_quality(self):
-        signals = {"is_agent_code": True, "is_pipeline_code": False, "has_sanyi_contracts": False}
-        dims = active_dimensions(signals)
-        assert "agent-quality" in dims
+    def test_agent_code_adds_runtime_and_safeguards(self):
+        dims = active_dimensions({**NO_SIGNALS, "is_agent_code": True})
+        assert "runtime" in dims
+        assert "safeguards" in dims
         # Always-on still present
-        assert "correctness" in dims
-        assert "safety" in dims
-        assert "structure" in dims
-        assert "wander" in dims
+        assert set(ALWAYS_ON_DIMENSIONS).issubset(dims)
+
+    def test_ml_code_adds_leakage(self):
+        dims = active_dimensions({**NO_SIGNALS, "is_ml_code": True})
+        assert "leakage" in dims
+
+    def test_leakage_absent_without_ml_signal(self):
+        assert "leakage" not in active_dimensions(dict(NO_SIGNALS))
 
     def test_sanyi_contracts_adds_contracts(self):
-        signals = {"is_agent_code": False, "is_pipeline_code": False, "has_sanyi_contracts": True}
-        dims = active_dimensions(signals)
+        dims = active_dimensions({**NO_SIGNALS, "has_sanyi_contracts": True})
         assert "contracts" in dims
 
-    def test_both_conditionals_active(self):
-        signals = {"is_agent_code": True, "is_pipeline_code": False, "has_sanyi_contracts": True}
-        dims = active_dimensions(signals)
-        assert "agent-quality" in dims
-        assert "contracts" in dims
-        assert len([d for d in dims if d in {"correctness", "safety", "structure", "wander"}]) == 4
+    def test_all_conditionals_active(self):
+        dims = active_dimensions(
+            {
+                **NO_SIGNALS,
+                "is_agent_code": True,
+                "is_ml_code": True,
+                "has_sanyi_contracts": True,
+            }
+        )
+        assert set(dims) == set(ALWAYS_ON_DIMENSIONS) | set(CONDITIONAL_DIMENSIONS)
+
+    def test_registry_covers_eleven_dimensions(self):
+        # The dimension vocabulary is reconciled with the galactus review-* family.
+        assert len(set(ALWAYS_ON_DIMENSIONS) | set(CONDITIONAL_DIMENSIONS)) == 11
+
+    def test_no_dimension_is_both_always_on_and_conditional(self):
+        assert not set(ALWAYS_ON_DIMENSIONS) & set(CONDITIONAL_DIMENSIONS)
 
 
 class TestDetectSignalsCLI:
@@ -133,7 +159,8 @@ class TestDetectSignalsCLI:
         assert result.returncode == 0
         data = json.loads(result.stdout)
         assert data["signals"]["is_agent_code"] is True
-        assert "agent-quality" in data["active_dimensions"]
+        assert "runtime" in data["active_dimensions"]
+        assert "safeguards" in data["active_dimensions"]
 
     def test_cli_detect_signals_from_stdin(self, tmp_path):
         f = tmp_path / "utils.py"
@@ -149,5 +176,6 @@ class TestDetectSignalsCLI:
         assert result.returncode == 0
         data = json.loads(result.stdout)
         assert data["signals"]["is_agent_code"] is False
-        assert "agent-quality" not in data["active_dimensions"]
+        assert "runtime" not in data["active_dimensions"]
+        assert "safeguards" not in data["active_dimensions"]
         assert "correctness" in data["active_dimensions"]
