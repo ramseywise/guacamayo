@@ -1,5 +1,5 @@
 ---
-name: contracts
+name: review-contracts
 description: >
   Contracts Dimension Checklist — dimension checklist read by the scan-contracts agent (.claude/agents/contracts.md).
   Reference material, not invoked directly.

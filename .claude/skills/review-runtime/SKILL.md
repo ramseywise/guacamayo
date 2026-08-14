@@ -1,5 +1,5 @@
 ---
-name: runtime
+name: review-runtime
 description: >
   Runtime Dimension Checklist — dimension checklist read by the scan-runtime agent (.claude/agents/runtime.md).
   Conditional dimension (agent-system code only). Reference material, not invoked directly.

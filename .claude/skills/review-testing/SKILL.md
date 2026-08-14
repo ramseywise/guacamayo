@@ -1,5 +1,5 @@
 ---
-name: testing
+name: review-testing
 description: >
   Testing Dimension Checklist — dimension checklist read by the scan-testing agent (.claude/agents/testing.md).
   Reference material, not invoked directly.

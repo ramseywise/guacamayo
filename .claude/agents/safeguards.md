@@ -3,7 +3,7 @@ name: scan-safeguards
 description: Conditional dimension scanner for accountability and safeguards — evaluation rigor, human responsibility and escalation paths, and whether documented safeguards have real deterministic backing. Dispatched only when files import LLM/agent frameworks or match agent-system path signals. Reports findings with SG- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **safeguards** dimension scanner. You receive a list of files that have
@@ -52,7 +52,7 @@ this dimension is noise in someone else's channel.
    is nothing to escalate on.
 9. **No escalation path** — uncertainty is surfaced but there is nowhere for it to go.
 
-See the dimension checklist in `.claude/skills/safeguards/SKILL.md` for the full checklist.
+See the dimension checklist in `.claude/skills/review-safeguards/SKILL.md` for the full checklist.
 
 ## Rules
 

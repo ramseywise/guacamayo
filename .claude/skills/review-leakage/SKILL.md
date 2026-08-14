@@ -1,5 +1,5 @@
 ---
-name: leakage
+name: review-leakage
 description: >
   Leakage Dimension Checklist — dimension checklist read by the scan-leakage agent (.claude/agents/leakage.md).
   Conditional dimension (tabular-ML code only). Reference material, not invoked directly.

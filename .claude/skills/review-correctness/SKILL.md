@@ -1,5 +1,5 @@
 ---
-name: correctness
+name: review-correctness
 description: >
   Correctness Dimension Checklist — dimension checklist read by the scan-correctness agent (.claude/agents/correctness.md).
   Reference material, not invoked directly.

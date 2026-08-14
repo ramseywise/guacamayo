@@ -1,5 +1,5 @@
 ---
-name: safeguards
+name: review-safeguards
 description: >
   Safeguards Dimension Checklist — dimension checklist read by the scan-safeguards agent
   (.claude/agents/safeguards.md). Conditional dimension (agent-system code only).

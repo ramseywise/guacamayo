@@ -1,5 +1,5 @@
 ---
-name: safety
+name: review-safety
 description: >
   Safety Dimension Checklist — safeguards, secrets/PII, security, privacy and data,
   reliability, and performance/scale. Read by the scan-safety agent (.claude/agents/safety.md).
