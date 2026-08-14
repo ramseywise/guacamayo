@@ -127,25 +127,56 @@ Report explicitly across the full board (never silent on empty categories):
 
 Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
 
-#### Resolve issue claims before reporting state (added 2026-08-12)
+#### Consistency report (replaces the 2026-08-12 prose rule)
 
-An issue body is a cache, and it rots faster than the code it describes. Before reporting
-any issue's state — **especially "not started"** — verify what the issue asserts:
+An issue body is a cache, and it rots faster than the code it describes — labels most of
+all. Do **not** re-derive whether the board's claims hold; run the check and read its
+output. A conformance claim must be produced by invoking the enforcement, never by
+re-deriving its rules.
 
-- **Resolve every path an issue names before counting against it.** If the path does not
-  exist, that is evidence the *issue* is stale, not that the work is absent. A count
-  against a non-existent directory returns 0 and is indistinguishable from untouched work.
-  Confirm the real path from the repo's CLAUDE.md layout block or by listing the parent,
-  then re-run the count.
+```bash
+uv run --project ~/workspace/guacamayo telemetry --consistency
+```
+
+Then read `~/workspace/guacamayo/.sounding/telemetry/consistency.json` and render its
+`inconsistencies` array under the board (`kind`, `repo`, `issue`, `detail`, `evidence`):
+
+| Kind | Repo | # | Claimed | Found instead |
+|------|------|---|---------|---------------|
+| plan-issue-drift | guacamayo | 103 | plan reads EXECUTED | issue is still open |
+
+Report the coverage line alongside it — `issues_checked`, the length of `repos_checked`,
+and `coverage.unmatchable_plans`:
+
+> Checked 17 issues across 10 repos; 3 inconsistencies; 100 plans join to no issue.
+
+**A plan the checker could not evaluate must never be presentable as a plan that passed**,
+so state the unmatchable count even when the table is empty. Zero findings is a result
+worth one line; a silent table is not.
+
+The report is **advisory**. It describes; it does not gate a session, and it never edits
+either side of a disagreement.
+
+If the command fails, say so in one line and continue with the `gh` board above —
+orientation must not be blocked by its own instrumentation. Do not hand-substitute the
+check's judgement for its output: an unavailable check is unknown, not clean.
+
+**Why this is a command and not a rule** (2026-08-12, the failure that built it): three
+issues misreported in one wake — #32 "not started" while its artifact sat at
+`jobs/materials/prep/`, #18/#19 "0 briefs" counted against `jobs/briefs/`, a directory
+that never existed while 31 briefs sat in `jobs/backlog/`. A count against a non-existent
+path returns 0 and is indistinguishable from untouched work. The prose instruction that
+replaced it was itself the second attempt at that class of instruction — a skill rule is
+obeyed probabilistically, a subcommand either ran or did not, and its output is evidence
+rather than intention.
+
+Two judgements the report does not make, which stay yours:
+
 - **Labels are the weakest evidence on the board.** `in-progress` over zero artifacts and
-  `backlog` over shipped work are equally common. Never report the WIP count from labels alone.
+  `backlog` over shipped work are equally common. Never report the WIP count from labels
+  alone.
 - **If an issue's premise cites a decision that has since changed, say so** — it needs
   rewriting before anyone plans from it.
-
-Cost of skipping this, 2026-08-12: three issues misreported in one wake — #32 "not started"
-while its artifact sat at `jobs/materials/prep/`, #18/#19 "0 briefs" counted against
-`jobs/briefs/`, a directory that never existed while 31 briefs sat in `jobs/backlog/`.
-Two plan docs for finished work were one step away.
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
 
