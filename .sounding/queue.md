@@ -16,29 +16,24 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-08-02)
+## Live pick-up points (as of 2026-08-14)
 
-*Refreshed 2026-08-02 (/grow, ingest-only). GUA-63/#73 and guacamayo #69/#78 are gone from this list — closed, and #69/#78 verified on main by SHA ancestry. Five librarian issues closed overnight.*
+*Refreshed 2026-08-14 (/dream). Prior entries (status-enum arc, CLA guard-fix duplicates, librarian drain, LAE-115 worktree) all resolved or superseded — dropped.*
 
-**`~/.claude` (dotclaude) — STILL THE ONE REAL OWED ITEM (24h unchanged).** CLA-71 guard fix `2863fb4` is **still not on origin/main** (re-verified `merge-base --is-ancestor` on 08-02). It sits on **two identical branches** — `bug/risky-guard-variable-cd` and `CLA-8-insights-computed-columns` — with an empty diff between them and no upstream on either. `main` is behind 42. `risky_git_guard.sh` resolves a mid-chain `cd` (takes the LAST) and blocks `$VAR` targets without asserting a path it never resolved; suite 20 → 26 green.
-  => Next: Ramsey picks ONE branch, deletes the duplicate, pushes + ships.
+**ai-project-template — CI on main is RED and the fix is written but uncommitted.** Branch `bug/ml-shape-rag-promotion` holds a 2-file diff (`copier.yaml` 1060/1069/1663, `template/_scaffold/Makefile.jinja:187`) that fixes `test-render`'s ml_model job. Root cause: copier's `_scaffold/` staging→promotion split — cleanup tasks gated on capability flags, promotion tasks on shape flags, so an `ml_model` render that opts into `include_rag_agent` keeps three trees staged and then deletes them with the staging dir. Verified both directions (negative test reproduces CI; fixed tree passes all four assertions, rendered project 242 passed).
+  => Next: Ramsey commits + `make ship`. This unblocks every red `test-render` on AIT main.
 
-**`~/.claude` — new sprawl artifact.** `CLA-78-lint-parity` tip `92649ba` is **unlanded**, but a byte-equivalent commit `36be12e` reached origin/main from the `CLA-74-status-writers` branch. Third instance of the pattern (after AIT #40/#42 and the guard fix) — first one that is cross-issue.
-  => Next: delete or rebase `CLA-78-lint-parity`; its content is already on main.
+**galactus — remote `main` restored (2026-08-14).** `spike/consolidate-claude-setup` was renamed to `main` via the GitHub rename API: history preserved, PRs retargeted, redirects created, default set. Local `main` tracking. The merge audit runs again; 9 merged local branches deleted (12 → 3), worktrees 3 → 1.
+  => Next: 10 stale *remote* branches still need deleting (push-equivalent — Ramsey's call). List in `notes/handover.md`.
 
-**guacamayo status-enum arc — the live workstream.** #74 `in-review` (Status writers + PostToolUse validation hook), #75 `ready` (migrate plan-doc Status corpus, guacamayo first then 7 repos), #65 `ready` (canonical Status enum), #79 `backlog` (flip hook warn→reject, explicitly gated on #75). Local `main` is behind 12; checkout on `GUA-73-status-enum-design` (PR #80 merged); `GUA-63-session-id-findings` has a gone upstream.
-  => Next: order the arc. Note the drift that proves it: plan docs for #69 and #78 still read `IN PROGRESS` / `EXECUTED` while both issues are **closed** — left uncorrected on purpose as a test case for #74's hook.
+**Branch/stash residue — the standing cross-repo friction.** Branches are created per *attempt*, not per issue, and nothing closes them. After this session: AIT-63 and the 5 `salvage/*` branches deleted (salvage content still in AIT `stash@{0}`–`stash@{4}`, which are now its **only** copy). Still open: `AIT-62-ml-stage-layering` (ahead:3) and `AIT-64-scaffold-vscode-extensions` (ahead:2) need PRs or closure. Stashes: AIT 5, guacamayo 4, playground 1, librarian 1. Orphaned worktree: `/private/tmp/ait-pr74` (`AIT-70-sanyi-mv-fix`).
 
-**ai-project-template — ARC COMPLETE.** #40, #41, #42, #43, #44 all closed 2026-08-01 21:17. The standing DoD question ("close now or after merge?") is resolved by action. New backlog since: **#49** (60-min LLM starter kit — plan doc exists at `.claude/docs/plans/2026-08-01-49-llm-starter-kit.md`), **#50** (security/guards called by nothing, both languages), **#51** (extend unimported-module guard to the Python render).
+**guacamayo** — uncommitted `.sounding/` + `telemetry/` changes sitting on the already-merged `bug/friction-loop-capture-and-findings-pk` checkout.
+  => Next: cut a fresh branch before committing.
 
-**learn-ai-engineering** — LAE-30 resolved/discarded 08-01. Live now: an **empty worktree** at `/private/tmp/.../wt-lae-115` holding `LAE-115-case-study-code-test` under a `+` branch lock while zero commits ahead of origin/main. `LAE-28-docs-integration` is fully merged, remote gone, safe to delete.
-  => Next: prune the LAE-115 worktree unless a session is actively in it.
+**Open board counts** (08-14): ai-project-template 3 (#64 vscode extensions, #66 make lint-render, #71 deploy targets), galactus 3 (#4, #5, #11), guacamayo 2 (#104 parent `ready`, #106 rising-friction flag), sisyphus 1 (#33), learn-ai-engineering 1 (#106), playground 1 (#88). Clean: librarian, atlas, listen-wiseer, lebanese-blonde.
 
-**librarian — queue drained 8 → 3.** #57, #58, #59, #61, #75 all closed 2026-08-02 ~11:04. Remaining: #65 initiative "Dashboard as a contract" (`ready`), #85 (`/workflow-insights` reads computed factstore values, `backlog`), #60 (weekly friction cron emits empty analyses — fix or retire, `backlog`).
-
-**Open board counts** (08-02): guacamayo 8, job-system 3, ai-project-template 3, librarian 3, learn-ai-engineering 2, listen-wiseer 1, playground 1. Clean: atlas, lebanese-blonde.
-
-**guacamayo** — R7 ran 2026-08-01; not overdue. Growth accumulator at **15** (threshold 5) → **synthesis due at next /dream**. Insights last refreshed 08-01 23:24 (323 sessions); a fresh background run was spawned 08-02. **Bash antipatterns 28.99/session** — still the only metric moving the wrong way, and I added one to it this session (`grep ... scripts/quick-pr*`, zsh nomatch).
+**guacamayo ops** — synthesis ran 2026-08-14 (/dream, 17 entries). R10 spawned 2026-08-14 (background). Insights refreshed 2026-08-14 (596 sessions). Standing retro items: `tail`/exit-code-masking rule still missing from `~/.claude/rules/shell.md`; global CLAUDE.md still describes galactus as carrying `workflow-*` (renamed `proto-*` 08-11); **bash antipatterns 29.18/session** vs target 12; file-not-found errors +47 in 3 days (141 → 188); `git update-ref -d` bypasses `risky_git_guard.sh`'s `branch -D` block.
 
 ---
 

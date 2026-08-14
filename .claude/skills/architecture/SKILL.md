@@ -31,7 +31,9 @@ Per `~/.claude/refs/naming.md` role-based conventions:
 - Unused symbols: **use Grep to check callers** before claiming anything is unused
 - Copy-paste divergence: same logic in N places with slight variations
 - God objects / god functions (single class/function with excessive responsibility)
-- Nested conditionals beyond 3 levels without justification
+- Nested conditionals beyond 3 levels without justification — name the flattening
+  (early return, guard clause, extracted helper) rather than only the depth. Flag depth,
+  not style: an `else` or a `let` is not a finding when the alternative is more convoluted
 
 ## Architecture and Boundaries
 
