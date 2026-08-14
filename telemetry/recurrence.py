@@ -22,8 +22,16 @@ Trend (GUA-104b): `count` alone is a lifetime total, so a signature that fired
 5x in April and stopped is indistinguishable from one firing 5x this week --
 which means the friction report ranks by accumulated history, and history is
 dominated by whatever has been measured longest. `compute_period_counts` buckets
-the same groups by period and `rising` marks the recent surges, so a
+the same groups by period and `direction` marks the recent surges, so a
 newly-rising pattern no longer sorts last.
+
+Occurrence dating (GUA-109): those periods are keyed on each finding's `occurred`
+date -- when the cited code was last touched -- not on `date`, the day the sweep
+ran. Bucketing on the run date made the trend measure sweep scheduling rather than
+friction: one bulk sweep stamped 85 of 125 rows with a single day, so every
+signature it touched appeared to spike simultaneously. `direction` is three-valued
+for a related reason -- a boolean could not distinguish "this friction stopped"
+from "this friction never moved", which are opposite outcomes for a fix.
 """
 
 from __future__ import annotations
@@ -49,6 +57,18 @@ RECURRENCE_THRESHOLD = 3
 # not qualify but a 2->5 one does.
 RISING_MULTIPLIER = 1.5
 RISING_LOOKBACK = 3
+
+# Direction values (GUA-109). Strings rather than an enum: these are serialized into the
+# dashboard and read back from JSON, where an enum would only add a conversion step.
+DIRECTION_RISING = "rising"
+DIRECTION_FLAT = "flat"
+DIRECTION_FALLING = "falling"
+
+# Falling is the mirror of rising: the recent period must be below the prior mean by the
+# same multiplier. The extra gate is on the PRIOR mean, not the recent count -- a signature
+# has to have had real mass to be worth calling "falling", otherwise every 1 -> 0 signature
+# in the corpus reads as an improvement and drowns the ones that matter.
+FALLING_MIN_PRIOR_MEAN = RECURRENCE_THRESHOLD
 
 # Weekly is the comparison period: daily is too noisy to act on, monthly too
 # slow. A caller can override, but every default consumer uses this.
@@ -104,7 +124,16 @@ class RecurrenceGroup:
     # vs "is this getting worse" -- and a consumer that wants either must say
     # `promotable or rising` at its own call site, where the choice is visible.
     period_counts: dict[str, int] = field(default_factory=dict)
-    rising: bool = False
+    # GUA-109. A boolean could only say "surging or not", collapsing "this stopped
+    # happening" into the same value as "this never moved" -- so a fixed friction and a
+    # steady one were indistinguishable. `direction` separates them; `rising` stays as a
+    # derived property so #106's consumers keep working unchanged.
+    direction: str = DIRECTION_FLAT
+
+    @property
+    def rising(self) -> bool:
+        """Back-compat view of `direction` for pre-GUA-109 consumers."""
+        return self.direction == DIRECTION_RISING
 
 
 def _matched_keys(finding: dict[str, Any]) -> list[str]:
@@ -124,6 +153,20 @@ def _matched_keys(finding: dict[str, Any]) -> list[str]:
     return [f"unmatched:{category}:{repo}"]
 
 
+def _occurred_date(finding: dict[str, Any]) -> str:
+    """The date to trend on: `occurred` when present, else the run `date` (GUA-109).
+
+    The single date accessor, for the same reason `_matched_keys` is the single matcher:
+    `compute_period_counts` and `compute_recurrence` must never disagree about when a
+    finding happened, or the trend on a card would contradict the first/last-seen beside it.
+
+    The `date` fallback is what makes this safe to deploy against a partially-backfilled
+    corpus -- a row written before GUA-109 still lands in a period rather than vanishing
+    from the trend.
+    """
+    return str(finding.get("occurred") or finding.get("date") or "")
+
+
 def compute_period_counts(
     findings: list[dict[str, Any]], period: str = RISING_PERIOD
 ) -> dict[str, dict[str, int]]:
@@ -132,7 +175,8 @@ def compute_period_counts(
     Same grouping as `compute_recurrence` (shared `_matched_keys`, so the same
     all-matches policy), bucketed by `telemetry.periods.period_key`.
 
-    Findings with no `date` cannot be placed in a period and are excluded.
+    Bucketed on `occurred` (the friction date) falling back to `date` -- see
+    `_occurred_date`. Findings with neither cannot be placed in a period and are excluded.
     `compute_recurrence` already tolerates them via its `if date:` guard, but
     silently dropping rows from a trend calculation is exactly the kind of
     quiet gap that makes a flat line look like real evidence -- so the excluded
@@ -149,7 +193,7 @@ def compute_period_counts(
     unparseable = 0
 
     for finding in findings:
-        date = str(finding.get("date") or "")
+        date = _occurred_date(finding)
         if not date:
             undated += 1
             continue
@@ -174,30 +218,33 @@ def compute_period_counts(
     return counts
 
 
-def _is_rising(period_counts: dict[str, int], period: str, today: str) -> bool:
-    """Whether a signature's per-period counts show a recent surge.
+def _direction(period_counts: dict[str, int], period: str, today: str) -> str:
+    """Which way a signature's per-period counts are trending.
 
-    The most recent COMPLETE period must clear both gates:
+    Returns `rising`, `falling`, or `flat`. The most recent COMPLETE period is compared
+    against the mean of the `RISING_LOOKBACK` periods before it, counting a period with no
+    findings as a real zero rather than skipping it -- a signature that stopped firing must
+    read as falling, not as flat.
 
-    - `> RISING_MULTIPLIER x` the mean of the `RISING_LOOKBACK` periods before
-      it, counting a period with no findings as a real zero rather than
-      skipping it (a signature that stopped firing must read as falling, not
-      as flat);
-    - `>= RECURRENCE_THRESHOLD` in absolute terms, which suppresses 0 -> 1 as
-      an infinite rise.
+    - **rising**: recent `> RISING_MULTIPLIER x` the prior mean, AND recent
+      `>= RECURRENCE_THRESHOLD` in absolute terms, which suppresses 0 -> 1 as an
+      infinite rise.
+    - **falling**: recent `< prior mean / RISING_MULTIPLIER`, AND the prior mean was at
+      least `FALLING_MIN_PRIOR_MEAN` -- the mass gate is on the *prior* side, because what
+      makes a decline worth reporting is that there was something there to decline from.
+    - **flat**: everything else, including every signature with no counts at all.
 
-    The trailing period is excluded when incomplete (Open Question 5). A
-    three-day-old week is not a low week, and treating it as one is the single
-    most likely source of a false flag -- in both directions.
+    The trailing period is excluded when incomplete (Open Question 5). A three-day-old week
+    is not a low week, and treating it as one is the single most likely source of a false
+    flag -- in both directions, which matters more now that `falling` is also reportable.
 
-    "Most recent" is measured against `today`, NOT against the last period that
-    happens to have data. Reading it off the observed keys would make every
-    signature rising at its own final burst: a pattern that fired 5x in April
-    and stopped would compare that April week against the three empty weeks
-    before it and flag, which is precisely backwards.
+    "Most recent" is measured against `today`, NOT against the last period that happens to
+    have data. Reading it off the observed keys would make every signature rising at its own
+    final burst: a pattern that fired 5x in April and stopped would compare that April week
+    against the three empty weeks before it and flag, which is precisely backwards.
     """
     if not period_counts:
-        return False
+        return DIRECTION_FLAT
 
     # The last period that has fully elapsed as of `today`, whether or not this
     # signature fired in it. An absent key here is a real zero.
@@ -206,16 +253,19 @@ def _is_rising(period_counts: dict[str, int], period: str, today: str) -> bool:
         recent_key = previous_period_key(recent_key, period)
 
     recent = period_counts.get(recent_key, 0)
-    if recent < RECURRENCE_THRESHOLD:
-        return False
 
     prior_key = recent_key
     prior: list[int] = []
     for _ in range(RISING_LOOKBACK):
         prior_key = previous_period_key(prior_key, period)
         prior.append(period_counts.get(prior_key, 0))
+    prior_mean = sum(prior) / len(prior)
 
-    return recent > RISING_MULTIPLIER * (sum(prior) / len(prior))
+    if recent >= RECURRENCE_THRESHOLD and recent > RISING_MULTIPLIER * prior_mean:
+        return DIRECTION_RISING
+    if prior_mean >= FALLING_MIN_PRIOR_MEAN and recent < prior_mean / RISING_MULTIPLIER:
+        return DIRECTION_FALLING
+    return DIRECTION_FLAT
 
 
 def compute_recurrence(
@@ -232,10 +282,14 @@ def compute_recurrence(
     it is still visible in the output rather than silently dropped. Findings
     missing both `title` and `category` fall back to `"unmatched:unknown:{repo}"`.
 
-    Each group also carries `period_counts` at `period` and a `rising` flag
-    derived from them (GUA-104b). `rising` is computed against `today`
+    Each group also carries `period_counts` at `period` and a `direction`
+    derived from them (GUA-104b, three-valued since GUA-109; `rising` remains
+    available as a property). `direction` is computed against `today`
     (defaulting to the real current date) so the incomplete trailing period can
     be excluded; pass it explicitly to make a trend test deterministic.
+
+    Periods and `first_seen`/`last_seen` are keyed on each finding's `occurred` date, not
+    the date its sweep ran -- see `_occurred_date`.
 
     Groups are sorted rising-first, then by count descending, pattern_key
     ascending as a tiebreak. A signature getting worse is more actionable than
@@ -249,7 +303,7 @@ def compute_recurrence(
         title = str(finding.get("title") or "")
         category = str(finding.get("category") or "unknown")
         repo = str(finding.get("repo") or "unknown")
-        date = str(finding.get("date") or "")
+        date = _occurred_date(finding)
 
         for key in _matched_keys(finding):
             bucket = buckets.setdefault(
@@ -281,7 +335,7 @@ def compute_recurrence(
             sample_titles=bucket["titles"][:_MAX_SAMPLE_TITLES],
             promotable=bucket["count"] >= RECURRENCE_THRESHOLD,
             period_counts=dict(sorted(period_counts.get(key, {}).items())),
-            rising=_is_rising(period_counts.get(key, {}), period, today),
+            direction=_direction(period_counts.get(key, {}), period, today),
         )
         for key, bucket in buckets.items()
     ]
@@ -292,6 +346,7 @@ def compute_recurrence(
         groups=len(groups),
         promotable=sum(1 for g in groups if g.promotable),
         rising=sum(1 for g in groups if g.rising),
+        falling=sum(1 for g in groups if g.direction == DIRECTION_FALLING),
         findings=len(findings),
         period=period,
     )

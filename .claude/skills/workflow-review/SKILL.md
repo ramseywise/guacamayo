@@ -214,9 +214,9 @@ Produce the unified report:
 [1-2 sentence rationale]
 ```
 
-If plan doc exists, append the review section to the plan doc and set `Status: EXECUTED`
-on approval, plus `Review: pending` on the next line (`Review: passed` once the verdict is
-a pass). `Status:` carries exactly one enum member — no suffix.
+If a plan doc exists, append the review section to it, set `Status: EXECUTED`, and write
+`Review:` on the next line to the value this verdict maps to — see the verdict→`Review:`
+table in Stage 8. `Status:` and `Review:` each carry exactly one enum member, no suffix.
 
 ## Stage 8: Action (read-only default)
 
@@ -229,9 +229,20 @@ If authorized:
 - `request_changes` → `gh pr review <number> --request-changes -b "<summary>"`
 - `comment` → `gh pr review <number> --comment -b "<summary>"`
 
-For plan-doc mode (no PR): append `## Review` section to plan doc, and set `Status:` to a
-canonical enum member — `EXECUTED` + `Review: passed` when the verdict is `approve`,
-`EXECUTED` + `Review: pending` otherwise. Never write a free-text status.
+For plan-doc mode (no PR): append the `## Review` section to the plan doc, set `Status:` to
+`EXECUTED`, and set `Review:` by this table:
+
+| verdict | `Review:` | meaning |
+|---|---|---|
+| *(not run)* | `pending` | no review has concluded |
+| `approve` | `passed` | reviewed, accepted |
+| `comment` | `passed` | reviewed, accepted with non-blocking notes |
+| `request_changes` | `failed` | reviewed, rejected — findings outstanding |
+| `insufficient_context` | `blocked` | review ran and could not decide |
+
+`pending` means *no review concluded* — a verdict never writes it. Writing `pending` for a
+concluded review makes "rejected", "could not decide", and "nobody has looked" the same
+token, which is the defect this table exists to remove. Never write a free-text status.
 
 ## Boundaries
 
