@@ -39,6 +39,7 @@ Full schema: `review/docs/finding-schema.md`
 | safety | SF- | safety |
 | testing | TE- | testing |
 | silent-failure | SI- | silent-failure |
+| performance | PF- | performance |
 | contracts | CT- | contracts (conditional: SANYI.md present) |
 | runtime | RT- | runtime (conditional: agent code) |
 | safeguards | SG- | safeguards (conditional: agent code) |

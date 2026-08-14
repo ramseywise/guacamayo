@@ -87,9 +87,11 @@ else is execution at varying granularity.
 │                                 # safety, testing, silent-failure, performance, wander + conditional
 │                                 # runtime, safeguards, leakage, contracts) — the review package's
 │                                 # LLM half. Vocabulary is reconciled with galactus's review-* family
-├── skills/                       # genesis (inert), wake, grow, dream — the identity lifecycle —
-│                                 # plus review dimension checklists + shared scan rules (agent-preloaded).
-│                                 # Nothing generic lives here; global ~/.claude is canonical
+├── skills/                       # genesis (inert), meta-wake, meta-grow, meta-dream — the identity
+│                                 # lifecycle — plus meta-insights/meta-retro (metacognition), the
+│                                 # review-* dimension checklists + review-shared scan rules
+│                                 # (agent-preloaded), and review-defense (plan war game, not a
+│                                 # dimension). Nothing generic lives here; global ~/.claude is canonical
 ├── docs/                         # plans/ (one dated doc per work item), research/, state/ (cross-repo
 │                                 # workstream state, ex-global memory). Plans are git-ignored;
 │                                 # tooling-ledger + insights-log live in .sounding/ (committed)
