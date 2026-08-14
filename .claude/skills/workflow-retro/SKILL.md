@@ -108,15 +108,37 @@ Read what exists; skip gracefully what doesn't. Note which sources you actually 
    from telemetry.recurrence import compute_recurrence
    f = [json.loads(l) for l in open('.claude/docs/review-findings.jsonl') if l.strip()]
    for g in compute_recurrence(f):
-       if g.promotable:
-           print(f'{g.pattern_key}\tn={g.count}\trepos={g.repos}\t{g.first_seen}->{g.last_seen}\t{g.sample_titles}')
+       if g.promotable or g.rising:
+           signal = 'rising' if g.rising else ''
+           signal = f'{signal}+promotable' if (g.rising and g.promotable) else (signal or 'promotable')
+           print(f'{g.pattern_key}\t[{signal}]\tn={g.count}\tby_period={g.period_counts}\trepos={g.repos}\t{g.first_seen}->{g.last_seen}\t{g.sample_titles}')
    "
    ```
 
-   Every group with `promotable: true` (count >= `RECURRENCE_THRESHOLD`, currently 3)
-   is a **candidate finding automatically** — no judgement call about whether it recurs;
-   the count already decided that. Carry the group's `pattern_key` into the finding so
-   the report and the ledger row are traceable back to the corpus.
+   A group is a **candidate finding automatically** if it is `promotable` **or** `rising`
+   — no judgement call about whether it recurs; the signal already decided that. Carry the
+   group's `pattern_key` **and which signal fired** into the finding so the report and the
+   ledger row are traceable back to the corpus.
+
+   The two signals answer different questions and are **not** interchangeable:
+
+   | Signal | Means | Reads |
+   |---|---|---|
+   | `promotable` | count >= `RECURRENCE_THRESHOLD` (3) — has happened enough to matter | lifetime total |
+   | `rising` | most recent complete week > 1.5× the mean of the 3 weeks before it, and >= 3 absolute | recent trend |
+
+   A `rising` group that is not yet `promotable` is a friction **starting** to bite —
+   propose a cheaper intervention (a warn-hook, not a rule) and set a shorter metric
+   window. A `promotable` group that is not `rising` has plateaued or is being fixed;
+   say which, rather than re-proposing last window's hook.
+
+   **Caveat, verified 2026-08-14 (GUA-104b):** `date` on a finding is the date the
+   *review run* emitted it, not the date the friction occurred, and review runs are
+   bursty — 85 of the 125 live rows share `2026-08-04`. So on today's corpus nearly
+   every promotable group also reads as `rising`, and the flag adds no discrimination.
+   **Do not treat `rising` as evidence on the live corpus until findings carry an
+   occurrence date.** The rule itself is unit-tested and correct on per-occurrence dates;
+   the gap is data collection. Prefer `promotable` for promotion decisions today.
 
    **Read the report, not the rotating pass log** (D5). `.hook-pass-log.jsonl` rotates on
    roughly a five-day window, so counting against it silently undercounts anything older —
@@ -142,6 +164,7 @@ Per finding, emit exactly this shape:
 - Enforcement level: hook | skill/protocol | CLAUDE.md/rules | MEMORY.md
 - Metric: <type>:<signal> <threshold> (see ledger Experiment Tracking section for types)
 - Pattern key: <recurrence pattern_key, or — if not from the recurrence report>
+- Recurrence signal: promotable | rising | promotable+rising | — (see Step 1.6)
 - Promotion target: warn-hook | skill | rule | ledger-only
 - Hook template (if warn-hook): <full fenced hook script, ready for human review>
 - Deploy: PROPOSED — Ramsey applies. This loop never writes ~/.claude/hooks/ or settings.json.

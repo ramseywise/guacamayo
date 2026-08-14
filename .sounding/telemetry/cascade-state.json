@@ -1,10 +1,10 @@
 {
-  "compacts": 37,
+  "compacts": 38,
   "grows_due": 12,
   "grows_acked": 2,
   "insights_due": 3,
   "retro_due": 1,
-  "last_compact": "2026-08-14T14:42:00Z",
+  "last_compact": "2026-08-14T16:20:29Z",
   "history": [
     {
       "ts": "2026-08-12T09:30:08Z",
@@ -152,6 +152,10 @@
     },
     {
       "ts": "2026-08-14T14:42:00Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T16:20:29Z",
       "repo": "guacamayo"
     }
   ]
