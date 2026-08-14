@@ -137,9 +137,10 @@ class TestActiveDimensions:
         )
         assert set(dims) == set(ALWAYS_ON_DIMENSIONS) | set(CONDITIONAL_DIMENSIONS)
 
-    def test_registry_covers_eleven_dimensions(self):
+    def test_registry_covers_twelve_dimensions(self):
         # The dimension vocabulary is reconciled with the galactus review-* family.
-        assert len(set(ALWAYS_ON_DIMENSIONS) | set(CONDITIONAL_DIMENSIONS)) == 11
+        # 12 as of 2026-08-14, when performance was ported from galactus.
+        assert len(set(ALWAYS_ON_DIMENSIONS) | set(CONDITIONAL_DIMENSIONS)) == 12
 
     def test_no_dimension_is_both_always_on_and_conditional(self):
         assert not set(ALWAYS_ON_DIMENSIONS) & set(CONDITIONAL_DIMENSIONS)

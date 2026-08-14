@@ -26,9 +26,9 @@ frontmatter > skill-text spawn instructions > this ref (session choice is Ramsey
 
 | Tier | Skills | Why |
 |------|--------|-----|
-| **Fable** | `/workflow-plan`, `/workflow-research` (synthesis phases), `/workflow-review`, `/code-review` (level 2+), `/workflow-retro`, `/sanyi` (esp. audit), `/design-sprint`, `/design-initiative`, `/design-prototype`, `/skill-creator`, `/mcp-builder` (design phases), multi-file refactors with tricky dependencies | Verdicts, architecture, design, contract judgment, changes to the tooling itself — errors compound; fable is the top judgment tier |
+| **Fable** | `/workflow-plan`, `/workflow-research` (synthesis phases), `/workflow-review`, `/code-review` (level 2+), `/meta-retro`, `/sanyi` (esp. audit), `/design-sprint`, `/design-initiative`, `/design-prototype`, `/skill-creator`, `/mcp-builder` (design phases), multi-file refactors with tricky dependencies | Verdicts, architecture, design, contract judgment, changes to the tooling itself — errors compound; fable is the top judgment tier |
 | **Opus (5)** | Default for all other sessions; ad-hoc work; any fable-tier skill when fable is unavailable | Session default — strong judgment without fable-tier cost |
-| **Sonnet** | `/workflow-execute`, `/code-debug`, `/git-pr`, `/github-projects`, `/workflow-insights`, `/design-prototype` (spike execution), `/code-review` level:1 | Plan is already made or task is bounded; needs competence, not maximal judgment |
+| **Sonnet** | `/workflow-execute`, `/code-debug`, `/git-pr`, `/github-projects`, `/meta-insights`, `/design-prototype` (spike execution), `/code-review` level:1 | Plan is already made or task is bounded; needs competence, not maximal judgment |
 | **Any / haiku-ok** | `/git-commit`, `/workflow-research` fan-out mode (its sub-agents are haiku by design), `/keybindings-help` | Mechanical or already delegating downward |
 
 `/code-review` level:3 graduates to fable (full sanyi audit inside).
@@ -46,8 +46,8 @@ frontmatter > skill-text spawn instructions > this ref (session choice is Ramsey
 
 | Tier | Skills | Why |
 |------|--------|-----|
-| **Fable, always** | `/dream` (synthesis/transform pass) | Identity transforms; voice preservation is the most judgment-dense operation in the setup — cheap compression is how identity dies politely |
-| **Any** | `/wake`, `/grow` | Read/append capture — no transforms by design |
+| **Fable, always** | `/meta-dream` (synthesis/transform pass) | Identity transforms; voice preservation is the most judgment-dense operation in the setup — cheap compression is how identity dies politely |
+| **Any** | `/meta-wake`, `/meta-grow` | Read/append capture — no transforms by design |
 
 ## Rules of thumb
 
@@ -56,8 +56,8 @@ frontmatter > skill-text spawn instructions > this ref (session choice is Ramsey
 - Spawned agents with a defined plan: **haiku or sonnet** per task complexity. Observe;
   upgrade if the agent reframes rather than executes.
 - Fan-out research batches (haiku agents) don't care what the parent session runs.
-- /workflow-plan, /workflow-review, /code-review (L2+), /workflow-retro, /sanyi audit,
-  /dream synthesis, /design-* → fable (judgment-dense), invoked explicitly per skill.
+- /workflow-plan, /workflow-review, /code-review (L2+), /meta-retro, /sanyi audit,
+  /meta-dream synthesis, /design-* → fable (judgment-dense), invoked explicitly per skill.
 - /workflow-execute runs in a FRESH session per item (plan doc as input) — never as a
   continuation of the planning session (~5k fresh context beats compacted-150k).
 - Never let a sub-agent's confident output skip main-model verification — model choice
