@@ -224,6 +224,7 @@ def to_board_json(
     records: list[BoardRecord],
     skipped_repos: list[dict[str, str]],
     repos_checked: list[str],
+    heartbeat: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """The JSON payload `_run_board` writes and `/wake` reads.
 
@@ -235,6 +236,12 @@ def to_board_json(
     partially-refreshed board's staleness is measured from its oldest record, which is
     the most conservative and correct choice. If `records` is empty and the issue list
     was non-empty, `EmptyInputError` should have been raised by the caller before here.
+
+    `heartbeat` carries per-run liveness metadata: `started_at`, `finished_at`,
+    `exit`, `duration_s`. Written on every successful run so a reader can detect a
+    stopped job without waiting for the staleness threshold. On failure, `_run_board`
+    writes a minimal failure envelope (not via this function) so `exit` is non-zero.
+    A missing heartbeat key means the board was written before GUA-118.
     """
     from telemetry.__main__ import EmptyInputError
 
@@ -252,6 +259,7 @@ def to_board_json(
         "repos_checked": sorted(repos_checked),
         "skipped_repos": skipped_repos,  # required; empty list is still present
         "total_issues": len(records),
+        "heartbeat": heartbeat,  # None pre-GUA-118; dict with started_at/finished_at/exit/duration_s after
         "records": [
             {
                 "repo": r.repo,

@@ -7,12 +7,17 @@
 #   facts  daily — capture session JSONL into the fact table. No API key, cheap.
 #                  This is the one that matters: local JSONL rotates out in ~5
 #                  days, so a missed window is history lost for good.
+#   board  every 600s — snapshot open issues, PRs, and branch facts into
+#                  .sounding/telemetry/board.json so /wake reads state instead
+#                  of re-running gh sweeps. RunAtLoad so a reboot populates it
+#                  immediately rather than leaving a 10-minute hole.
 #
 # Scheduling is launchd, not crontab — cron does not fire while the Mac is asleep
 # and silently skips the window; launchd re-fires on wake. See
-# scripts/com.wiseer.guacamayo.telemetry.plist (Ramsey loads it manually).
+# scripts/com.wiseer.guacamayo.telemetry.plist and
+# scripts/com.wiseer.guacamayo.board.plist (Ramsey loads them manually).
 #
-# Usage: telemetry-cron.sh [facts]   (default: facts)
+# Usage: telemetry-cron.sh [facts|board]   (default: facts)
 
 set -euo pipefail
 
@@ -25,6 +30,7 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 # a shared log file is how a daily failure gets buried (librarian #60).
 case "${MODE}" in
     facts) LOG_NAME="telemetry-facts.log" ;;
+    board) LOG_NAME="telemetry-board.log" ;;
     *)     LOG_NAME="telemetry-unknown.log" ;;
 esac
 LOG_FILE="${REPO_DIR}/logs/${LOG_NAME}"
@@ -64,8 +70,9 @@ EXIT_CODE=0
 
 case "${MODE}" in
     facts) run_step facts uv run telemetry --facts || EXIT_CODE=$? ;;
+    board) run_step board uv run telemetry --board || EXIT_CODE=$? ;;
     *)
-        log "unknown mode: ${MODE} (expected facts)"
+        log "unknown mode: ${MODE} (expected facts or board)"
         exit 64
         ;;
 esac
