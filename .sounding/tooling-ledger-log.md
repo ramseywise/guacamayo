@@ -31,6 +31,91 @@ Graduated experiments. Append-only. Active hypotheses live in `tooling-ledger.md
 - F5: `PULL_STRATEGY` variable added to Makefile.common
 - F6: Worktree auto-cleanup → backlog issue #27
 
+## R10 — 2026-08-15
+
+Data: insights-log 2026-08-14 (641 sessions), recurrence report (145 findings, 36 groups,
+17 promotable / 10 rising / **0 falling**), growth.md (15 entries since 08-11 synthesis).
+
+### Graduated rows (3 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-27 | R4 F3: `lib.sh log_pass()` for exit-0 hook visibility | observability | failed | Metric `count-drop:unique-hooks-in-pass-log above 5 within 2 retros`, due 08-17. Re-derived 2026-08-15: 1000-entry `.hook-pass-log.jsonl` carries **2** unique hooks (`risky_git_guard` 993, `branch_guard` 7) — the row claimed 3 at R9; live count is 2. Two windows elapsed. Identical failure shape to the R2 `log_event` graduation (89 entries, only test_hook firing): the shared logger exists, hooks do not call it. Successor row opened with the re-wire scoped as a `~/.claude/hooks/` audit (D1, propose-only). |
+| 2026-08-05 | R8 F6: `~/.claude/docs/` reappearance (third occurrence) | workflow | verified | `absence:~/.claude/docs/-directory for 2 retro windows` — `ls -d ~/.claude/docs` → absent at both R9 and R10 checks. Writer patched upstream by LIB-94 (cartographer `data/cron/latest.json`); directory removed 2026-08-05. Window 2 clean; metric met. |
+| 2026-08-05 | R8 F3: dotclaude pre-push hook (ref-without-commit) | friction | verified | `absence:ref-without-commit-push-events for 2 retro windows` — `~/.claude/.git/hooks/pre-push` present and executable (Aug 5, 1924 bytes); blocks empty new refs + no-new-commit pushes, warns on staged work, LFS passthrough; planted-defect tested at install. Zero recurrences at R9 (window 1) and R10 (window 2) after three prior sightings. Metric met. |
+
+### R10 findings
+
+- **F1**: `review-architecture` checklist declares pre-rename `name: structure` — Check F BLOCKER, silent-failure class
+- **F2**: sub-issue linking never landed in `workflow-refine` — R7 F2 → R8 carry → **third window open**; the R8 row recorded it as met
+- **F3**: ledger presence/absence metrics were self-reported, not re-derived — F2 is the instance, this is the class
+- **F4**: `unmatched:` fallback now 8 promotable groups (up from 7), 52/145 findings — 47% of promotable signal is unsignatured; 4 rising
+- **F5**: R9's two hook templates (`hardcoded_config_warn`, `silent_swallow_warn`) still undeployed while both patterns rose to n=22 / n=14 — rows correctly parked per D1; Ramsey decision needed
+- **F6**: GUA-93 telemetry launchd job never loaded — metric unmeasurable 4 days past due, no `sessions.db` exists
+- **F7**: → graduated failed (above)
+- **F8**: R5 file-not-found 141 → 202 (+43%/3d), correlates with 64% parallel sessions; `growth.md:20` already names the mechanism
+- **F9**: growth-entry graduation — `risky_git_guard` `update-ref -d` bypass; three other entries triaged (one already landed, one → F8, one already in flight as GUA-115)
+
+### Method note (F3, the durable part)
+
+R10 re-ran every `presence:`/`absence:` metric mechanically instead of reading the Status
+column. That found F2 — a row marked "applied … both presence metrics met" whose second
+target had zero matches, undetected across two retro windows. **A row verified from its own
+Status column is unverified.** The correction is cheap (one grep per metric) and is proposed
+as a standing Step 0 clause.
+
+Second-order: the recurrence corpus reports **0 falling** groups against 10 rising. No
+intervention in the corpus is currently showing measured improvement — F5's undeployed
+templates target the top two, which is where that asymmetry is coming from.
+
+### R10 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F1): guacamayo `.claude/skills/architecture/SKILL.md`** — `name: structure` → `name: architecture`; description `scan-structure agent (.claude/agents/structure.md)` → `scan-architecture agent (.claude/agents/architecture.md)`.
+
+**P2 (F2): guacamayo `.claude/skills/workflow-refine/SKILL.md:152`** — replace with:
+```markdown
+For `needs-split` items, offer to create the sub-issues (labeled `backlog`), then link
+each to its parent via `addSubIssue` (template: `github-projects` SKILL.md:93). Sub-issues
+ride the parent's branch — no branch per sub-issue — and close via `Closes #N` in the
+parent's PR. A flat sibling issue with no parent link is the failure this step prevents.
+```
+
+**P3 (F3): guacamayo `.claude/skills/workflow-retro/SKILL.md` Step 0**, after item 1:
+```markdown
+3. **Re-derive, never re-read.** A row whose Status says "applied … metric met" is a
+   claim, not evidence. For `presence:`/`absence:` metrics, run the grep/ls that the
+   metric names and paste the command + output into the retro. A row verified from its
+   own Status column is unverified. (R10 F2: a row read "both presence metrics met"
+   while one target file had zero matches, undetected for two windows.)
+```
+
+**P4 (F8): `~/.claude/rules/shell.md`** — append to the git section:
+```markdown
+- The main checkout is shared state. Ramsey moves HEAD and edits files concurrently
+  (64% of sessions run 2–3 in parallel), so a multi-step git sequence that assumes the
+  branch it started on will silently operate on someone else's. Any operation longer
+  than one command goes in an isolated worktree addressed by `git -C`, never in the
+  live checkout. Suspect this first when a path that should exist reads as missing.
+```
+
+**P5 (F6): load the telemetry job** — Ramsey runs (launchd is user-session state):
+```bash
+cp ~/workspace/guacamayo/scripts/com.wiseer.guacamayo.telemetry.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+launchctl list | grep guacamayo.telemetry   # verify
+```
+
+**P6 (F9): `~/.claude/hooks/risky_git_guard.sh`** — extend the matcher to cover
+`update-ref -d refs/heads/` (equivalent to the already-blocked `branch -D`), or add an
+explicit acknowledged-override path. PROPOSED only per D1.
+
+**P7 (F5): deploy or decline** the two warn-hook templates from the 2026-08-10 friction-loop
+plan Step 5b. Both target patterns are rising+promotable and both metrics are now at risk
+(n=22 vs target 15; n=14 vs target 9). Declining is a valid answer — it closes the rows as
+`failed — declined` rather than leaving them parked indefinitely.
+
+---
+
 ## R9 — 2026-08-11
 
 ### Graduated rows (3 retired this retro)
