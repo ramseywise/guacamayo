@@ -32,9 +32,9 @@ REPO_ROOT = Path(_REPO_ROOT_STR)
 SCAN_AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
 SCAN_DIMS_DIR = REPO_ROOT / ".claude" / "skills"
 WANDER_AGENTS_DIR = REPO_ROOT / ".claude" / "agents"
-SCAN_SHARED_DIR = REPO_ROOT / ".claude" / "skills" / "shared"
+SCAN_SHARED_DIR = REPO_ROOT / ".claude" / "skills" / "review-shared"
 
-# The 10 finding-producing dimensions. `wander` is excluded — it emits questions,
+# The 11 finding-producing dimensions. `wander` is excluded — it emits questions,
 # not findings, and is asserted separately in TestWanderAgent.
 EXPECTED_DIMENSIONS = [
     "correctness",
@@ -47,6 +47,7 @@ EXPECTED_DIMENSIONS = [
     "safeguards",
     "silent-failure",
     "leakage",
+    "performance",
 ]
 
 # Dimension → ID prefix. Single source of truth for the parametrized prefix tests.
@@ -61,6 +62,7 @@ DIMENSION_PREFIXES = {
     "safeguards": "SG",
     "silent-failure": "SI",
     "leakage": "LK",
+    "performance": "PF",
 }
 
 
@@ -95,12 +97,12 @@ class TestDimensionSkillChecklists:
 
     @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
     def test_skill_md_exists(self, dimension):
-        skill_file = SCAN_DIMS_DIR / dimension / "SKILL.md"
+        skill_file = SCAN_DIMS_DIR / f"review-{dimension}" / "SKILL.md"
         assert skill_file.exists(), f"Missing dimension checklist: {skill_file}"
 
     @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
     def test_skill_md_references_agent(self, dimension):
-        skill_file = SCAN_DIMS_DIR / dimension / "SKILL.md"
+        skill_file = SCAN_DIMS_DIR / f"review-{dimension}" / "SKILL.md"
         content = skill_file.read_text()
         # Each SKILL.md should reference its agent name or the dimension name
         assert dimension in content.lower(), (

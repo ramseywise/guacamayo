@@ -1,9 +1,9 @@
 ---
-name: scan-safeguards
+name: safeguards
 description: Conditional dimension scanner for accountability and safeguards — evaluation rigor, human responsibility and escalation paths, and whether documented safeguards have real deterministic backing. Dispatched only when files import LLM/agent frameworks or match agent-system path signals. Reports findings with SG- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **safeguards** dimension scanner. You receive a list of files that have
@@ -16,7 +16,7 @@ Your dimension prefix is `SG-`. All finding IDs must start with `SG-`.
 If you are running, the files have already been confirmed as agent code.
 
 You own whether the system can be trusted and held accountable. Tool side effects,
-workflow state, and retrieval boundaries belong to `scan-runtime` — a finding outside
+workflow state, and retrieval boundaries belong to `runtime` — a finding outside
 this dimension is noise in someone else's channel.
 
 ## Scan for
@@ -52,7 +52,7 @@ this dimension is noise in someone else's channel.
    is nothing to escalate on.
 9. **No escalation path** — uncertainty is surfaced but there is nowhere for it to go.
 
-See the dimension checklist in `.claude/skills/safeguards/SKILL.md` for the full checklist.
+See the dimension checklist in `.claude/skills/review-safeguards/SKILL.md` for the full checklist.
 
 ## Rules
 

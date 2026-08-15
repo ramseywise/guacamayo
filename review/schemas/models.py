@@ -102,6 +102,7 @@ class Reporter(str, Enum):
     SAFEGUARDS = "safeguards"
     SILENT_FAILURE = "silent_failure"
     LEAKAGE = "leakage"
+    PERFORMANCE = "performance"
     WANDER = "wander"
 
 
@@ -128,6 +129,7 @@ REPORTER_ID_PREFIX: dict[str, str] = {
     Reporter.SAFEGUARDS: "SG",
     Reporter.SILENT_FAILURE: "SI",
     Reporter.LEAKAGE: "LK",
+    Reporter.PERFORMANCE: "PF",
     Reporter.WANDER: "WD",
 }
 

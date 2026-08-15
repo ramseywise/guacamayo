@@ -56,7 +56,7 @@ class _UnionFind:
 
 def find_duplicate_clusters(findings: list[ReviewFinding]) -> list[list[ReviewFinding]]:
     # Keyed on list index, not id: ids are only unique within a dimension's numbering
-    # (see .claude/skills/shared/SKILL.md), and a repair re-scan renumbers from 001, so
+    # (see .claude/skills/review-shared/SKILL.md), and a repair re-scan renumbers from 001, so
     # distinct findings routinely collide on id. Index keys conserve every finding.
     uf = _UnionFind(list(range(len(findings))))
     for i, f1 in enumerate(findings):
