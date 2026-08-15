@@ -129,6 +129,7 @@ _DIMENSION_TO_AGENT_FILE: dict[str, str] = {
     "safeguards": "safeguards",
     "silent-failure": "silent-failure",
     "leakage": "leakage",
+    "performance": "performance",
     "wander": "wander",
 }
 
@@ -158,6 +159,7 @@ _DIMENSION_TO_REPORTER: dict[str, Reporter] = {
     "safeguards": Reporter.SAFEGUARDS,
     "silent-failure": Reporter.SILENT_FAILURE,
     "leakage": Reporter.LEAKAGE,
+    "performance": Reporter.PERFORMANCE,
     "wander": Reporter.WANDER,
 }
 

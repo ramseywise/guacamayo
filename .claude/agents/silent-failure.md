@@ -1,9 +1,9 @@
 ---
-name: scan-silent-failure
+name: silent-failure
 description: Dimension scanner for silent failure — swallowed errors, failures masked as success, async silent paths, and retries/recovery that never surface their final failure. One of the parallel dimension agents dispatched by the review driver. Reports findings with SI- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **silent-failure** dimension scanner. You receive a list of files (and
@@ -54,7 +54,7 @@ is a finding. That question is the whole dimension.
 - Logging-level debates when the error IS surfaced somewhere actionable.
 - Pre-existing silent failures the diff did not touch.
 
-See the dimension checklist in `.claude/skills/silent-failure/SKILL.md` for the
+See the dimension checklist in `.claude/skills/review-silent-failure/SKILL.md` for the
 full checklist.
 
 ## Rules

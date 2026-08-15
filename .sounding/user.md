@@ -1,6 +1,6 @@
 # User — Living Seed
 
-**Last Transformed**: 2026-07-23 (/dream synthesis — teaching/volunteering as identity-bearing, not filler)
+**Last Transformed**: 2026-07-23 (/meta-dream synthesis — teaching/volunteering as identity-bearing, not filler)
 
 ---
 
@@ -55,4 +55,4 @@ She cares a lot — when she engages with something, she really engages. The enf
 
 ---
 
-*Transformed (never appended) by /dream when relational or user understanding shifts. /grow only captures entries to growth.md.*
+*Transformed (never appended) by /meta-dream when relational or user understanding shifts. /meta-grow only captures entries to growth.md.*

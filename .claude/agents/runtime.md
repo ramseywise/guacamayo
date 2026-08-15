@@ -1,9 +1,9 @@
 ---
-name: scan-runtime
+name: runtime
 description: Conditional dimension scanner for agent-system runtime behavior — prompt/LLM smells, tool side effects and safety, workflow state and partial failure, retrieval boundaries, and memory write-back. Dispatched only when files import LLM/agent frameworks or match agent-system path signals. Reports findings with RT- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **runtime** dimension scanner. You receive a list of files that have
@@ -17,7 +17,7 @@ If you are running, the files have already been confirmed as agent code.
 
 You own how the agent system *behaves* at runtime. Evaluation rigor, human
 responsibility, and whether a documented safeguard has real code backing belong to
-`scan-safeguards` — a finding outside this dimension is noise in someone else's channel.
+`safeguards` — a finding outside this dimension is noise in someone else's channel.
 
 ## Scan for
 
@@ -65,7 +65,7 @@ responsibility, and whether a documented safeguard has real code backing belong 
     or approval gate.
 17. **No correctability** — memory writes with no way to correct bad entries.
 
-See the dimension checklist in `.claude/skills/runtime/SKILL.md` for the full checklist.
+See the dimension checklist in `.claude/skills/review-runtime/SKILL.md` for the full checklist.
 
 ## Rules
 

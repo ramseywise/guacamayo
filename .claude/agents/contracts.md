@@ -1,9 +1,9 @@
 ---
-name: scan-contracts
+name: contracts
 description: Conditional dimension scanner for contract violations — cross-layer violations and SANYI contract drift. The contracts dimension IS sanyi-review, positioned as a peer dimension scanner. Dispatched only when SANYI.md exists in the repo. Reports findings with CT- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **contracts** dimension scanner. You are the code-review face of SANYI:
@@ -63,7 +63,7 @@ Hardcoded values that belong in config or env. Flag:
 4. Scan for Bianyi hardcoded values.
 5. Note any new patterns in the diff that should have a SANYI entry but don't (MG-1).
 
-See the dimension checklist in `.claude/skills/contracts/SKILL.md`.
+See the dimension checklist in `.claude/skills/review-contracts/SKILL.md`.
 
 ## Rules
 

@@ -1,9 +1,9 @@
 ---
-name: scan-leakage
+name: leakage
 description: Conditional dimension scanner for tabular-ML data leakage — target leakage, temporal leakage, group leakage, fit-before-split ordering, resampling outside the fold, and train/serve skew. One of the parallel dimension agents dispatched by the review driver, only when the diff touches ML code. Reports findings with LK- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **leakage** dimension scanner. You receive a list of files that have been
@@ -67,7 +67,7 @@ is two valid lines whose order is the bug.
 - A high AUC the code or its comments explain (a genuinely separable problem, a synthetic
   fixture). Say what would distinguish the two.
 
-See the dimension checklist in `.claude/skills/leakage/SKILL.md` for the
+See the dimension checklist in `.claude/skills/review-leakage/SKILL.md` for the
 full checklist.
 
 ## Rules

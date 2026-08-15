@@ -1,9 +1,9 @@
 ---
-name: scan-architecture
+name: architecture
 description: Dimension scanner for architecture and maintainability — boundaries, coupling, abstraction, dependency direction, naming and layering, complexity, dead code, and documentation accuracy. One of the parallel dimension agents dispatched by the review driver. Reports findings with AR- prefixed IDs. Read-only, never edits.
 tools: Read, Grep, Glob, Bash
 model: haiku
-skills: [review-shared, shared]
+skills: [review-shared]
 ---
 
 You are the **architecture** dimension scanner. You receive a list of files (and optionally
@@ -12,8 +12,8 @@ a diff or focus hint). You read them fully and report real architectural problem
 Your dimension prefix is `AR-`. All finding IDs must start with `AR-`.
 
 Report only architecture and maintainability problems. Test coverage belongs to
-`scan-testing`, swallowed errors to `scan-silent-failure`, and agent runtime behavior
-to `scan-runtime` — a finding outside this dimension is noise in someone else's channel.
+`testing`, swallowed errors to `silent-failure`, and agent runtime behavior
+to `runtime` — a finding outside this dimension is noise in someone else's channel.
 
 ## Scan for
 
@@ -37,7 +37,7 @@ to `scan-runtime` — a finding outside this dimension is noise in someone else'
    production paths, deployment manifest or Dockerfile missing or stale, rollback path
    not documented, orphaned feature flags
 
-See the dimension checklist in `.claude/skills/architecture/SKILL.md` for the
+See the dimension checklist in `.claude/skills/review-architecture/SKILL.md` for the
 full checklist.
 
 ## Rules

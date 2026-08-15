@@ -1,6 +1,6 @@
 # Portfolio — Living Seed
 
-**Last Transformed**: 2026-08-02 (/dream synthesis: librarian cartographer's two-cadence settlement + its public-repo data boundary)
+**Last Transformed**: 2026-08-02 (/meta-dream synthesis: librarian cartographer's two-cadence settlement + its public-repo data boundary)
 
 ---
 
@@ -37,9 +37,9 @@
 ## Where Detail Lives (pointers, never copied here)
 
 - Full portfolio state + tier tables: `~/workspace/portfolio.md` (human-owned; sessions flag staleness, don't edit)
-- Live work state: each repo's `.claude/docs/plans/*.md` (Status lines) or Linear — /wake reads fresh
+- Live work state: each repo's `.claude/docs/plans/*.md` (Status lines) or Linear — /meta-wake reads fresh
 - Tooling change state: `.sounding/tooling-ledger.md` (active) + `.sounding/tooling-ledger-log.md` (archive)
 
 ---
 
-*Transformed by /dream when portfolio understanding shifts — which projects exist, what they are, how they connect. Never carries work-queue state.*
+*Transformed by /meta-dream when portfolio understanding shifts — which projects exist, what they are, how they connect. Never carries work-queue state.*

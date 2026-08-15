@@ -1,6 +1,6 @@
 ---
 name: workflow-refine
-description: "Batch refinement — takes backlog issues through trio triage, DoR gating, and priority sort. Reads all backlog-labeled GitHub Issues, fan-out researches each, applies PM/designer/EM framing, checks Definition of Ready, and labels passing items as ready. The bridge between /workflow-retro (which produces backlog) and /workflow-plan (which scopes one ready item). Use when: 'refine backlog', 'triage issues', 'groom tickets', 'sprint plan', 'what's ready to work on', 'prioritize backlog', 'refinement pass', 'batch triage'. Aliases: /refine, /tix-groom, /sprint-plan."
+description: "Batch refinement — takes backlog issues through trio triage, DoR gating, and priority sort. Reads all backlog-labeled GitHub Issues, fan-out researches each, applies PM/designer/EM framing, checks Definition of Ready, and labels passing items as ready. The bridge between /meta-retro (which produces backlog) and /workflow-plan (which scopes one ready item). Use when: 'refine backlog', 'triage issues', 'groom tickets', 'sprint plan', 'what's ready to work on', 'prioritize backlog', 'refinement pass', 'batch triage'. Aliases: /refine, /tix-groom, /sprint-plan."
 disable-model-invocation: true
 allowed-tools: Read Bash Grep Glob Agent Write Edit
 ---
@@ -166,9 +166,9 @@ explaining the gap, or gets closed. Don't let issues sit in perpetual refinement
 - **This skill** (`/workflow-refine`): batch triage of backlog → ready. The grooming pass.
 - **`/workflow-research`**: deep investigation of ONE topic. Use when refine says "needs-research".
 - **`/workflow-plan`**: detailed implementation plan for ONE ready item. Use after refine promotes it.
-- **`/workflow-retro`**: produces backlog items from session friction. Feeds into this skill.
+- **`/meta-retro`**: produces backlog items from session friction. Feeds into this skill.
 
-Pipeline: `/workflow-retro` → backlog → **`/workflow-refine`** → ready → `/workflow-plan` → plan doc → `/workflow-execute`
+Pipeline: `/meta-retro` → backlog → **`/workflow-refine`** → ready → `/workflow-plan` → plan doc → `/workflow-execute`
 
 ## Exit
 
