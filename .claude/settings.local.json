@@ -3,7 +3,7 @@
   "cleanupPeriodDays": 30,
   "includeCoAuthoredBy": true,
   "env": {
-    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "50"
+    "CLAUDE_AUTOCOMPACT_PCT_OVERRIDE": "60"
   },
   "permissions": {
     "allow": [
@@ -74,18 +74,6 @@
             "command": "bash .claude/hooks/dream-ledger-gate.sh",
             "timeout": 10,
             "statusMessage": "Checking dream ledger gate..."
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash .claude/hooks/worktree-cleanup.sh",
-            "timeout": 15,
-            "statusMessage": "Cleaning up leftover worktrees..."
           }
         ]
       }

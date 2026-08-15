@@ -17,7 +17,7 @@ def test_pulse_script_deleted():
 
 
 def test_no_pulse_references_in_callers():
-    for rel in ("Makefile", ".claude/skills/grow/SKILL.md"):
+    for rel in ("Makefile", ".claude/skills/meta-grow/SKILL.md"):
         text = (REPO / rel).read_text()
         matches = [ln for ln in text.splitlines() if PULSE.search(ln)]
         assert not matches, f"{rel} still references pulse: {matches}"

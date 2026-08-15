@@ -48,7 +48,7 @@ only this session's outcome cannot recur.
 
 Do NOT edit identity files here. Capture is this skill's job. /meta-dream transforms.
 
-Process learnings (workflow/tooling rather than identity) will be picked up by `/retro` for graduation to global rules/skills/hooks.
+Process learnings (workflow/tooling rather than identity) will be picked up by `/meta-retro` for graduation to global rules/skills/hooks.
 
 ## 3. Cross-Session Ingest
 
@@ -134,19 +134,59 @@ Don't wait for it — continue with signal reads below using existing data. The 
 - `.sounding/tooling-ledger-log.md` last `## R` header → last retro date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`)
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
-- Did this session touch tooling (hooks, skills, rules, settings, global config)? → flag as `retro-worthy: true` in the signal summary. /meta-dream will use this flag to decide whether to run the actual retro at session close.
+- Did this session touch tooling (hooks, skills, rules, settings, global config)? → this is a retro trigger in its own right. Spawn the retro here (see the cascade section below) rather than flagging it for /meta-dream. /meta-dream re-checks the same condition from `git diff`, not from this summary, so a missed flag is recoverable — but a flag is not a handoff.
 - **Cascade ledger** — `.sounding/telemetry/cascade-state.json`, maintained by the PreCompact
   hook (`~/.claude/hooks/lifecycle_cascade.sh`). Compaction is the cadence signal: it fires on
   context pressure, so it tracks real work rather than wall-clock. Read it with
-  `jq -c '{compacts,grows_due,insights_due,retro_due}'`. The hook only counts — it cannot spawn
-  agents (hooks are shell, not agent contexts), so acting on the counters is this skill's job:
+  `jq -c '{compacts,grows_due,insights_due,retro_due,retro_acked}'`. The hook only counts — it
+  cannot spawn agents (hooks are shell, not agent contexts), so acting on the counters is this
+  skill's job:
   - `insights_due` > times insights has run since → the background `/meta-insights` spawn in
     Step 4a already covers this; note it in the signal summary.
-  - `retro_due` ≥ 1 and not yet acted on → surface "retro due (N compactions)" and set
-    `retro-worthy: true` so /meta-dream spawns `/meta-retro` at session close.
+  - **`retro_due > (retro_acked // 0)` → spawn `/meta-retro` here, in this skill.** Do not
+    defer it to /meta-dream. Compare due-vs-acked, never `retro_due >= 1`: the counter is cumulative,
+    so an unacked bare count is *always* true and therefore never actionable.
 
-  After acting on a tier, record it by bumping the matching `*_acked` key in the JSON (e.g.
-  `retro_acked`) so the next read compares due-vs-acked rather than re-firing on every read.
+  ### Spawning the retro from /meta-grow
+
+  The old design set `retro-worthy: true` in the prose signal summary and left /meta-dream to act on
+  it. That relay is the bug: the flag is text in one skill's output and /meta-dream reads files, not
+  transcripts, so the trigger died at the session boundary every time. Insights fires reliably
+  precisely because /meta-grow spawns it *itself* (Step 4a). Do the same for the retro.
+
+  ```
+  Agent(model: "sonnet", run_in_background: false)
+  prompt: |
+    Repo: ~/workspace/guacamayo
+    Task: Run /meta-retro. Read .sounding/insights/insights-log.md for latest insights
+    data, then propose config changes. Update .sounding/tooling-ledger.md (active
+    hypotheses) and .sounding/tooling-ledger-log.md (graduated experiments). Increment
+    retro number from the latest R# header in tooling-ledger-log.md.
+    Constraint: Read files before editing. Propose changes — do not auto-apply to
+    ~/.claude/ config. Stage results only — never commit or push; Ramsey reviews and commits.
+  ```
+
+  **Then verify it landed before acking — the agent's success report is not evidence.**
+
+  ```bash
+  grep "^## R.*$(date +%F)" .sounding/tooling-ledger-log.md
+  ```
+
+  If a header dated today is present, write the ack:
+
+  ```bash
+  STATE=.sounding/telemetry/cascade-state.json
+  RETRO_DUE=$(jq '.retro_due' "$STATE")
+  jq --argjson due "$RETRO_DUE" '.retro_acked = $due' "$STATE" > "${STATE}.tmp" && mv "${STATE}.tmp" "$STATE"
+  ```
+
+  If it is absent, leave the counter alone so /meta-dream retries at session close. Never ack an
+  unverified spawn — that is how the retro silently stops running while the ledger claims it ran.
+
+  Report the outcome in the signal summary as `Retro: [spawned and landed R# | spawned but no
+  R# landed — /meta-dream will retry | current (retro_acked: N)]`. The same due-vs-acked rule applies
+  to every tier: after acting, bump the matching `*_acked` key so the next read compares
+  due-vs-acked rather than re-firing on every read.
 
 ### Plan state (lightweight)
 ```bash
@@ -161,8 +201,7 @@ Present as a compact block:
 ```
 SIGNALS:
 - Insights: [last YYYY-MM-DD | refreshing in background]
-- Retro: [last R# YYYY-MM-DD | overdue N days]
-- Retro-worthy: [yes — reason | no]
+- Retro: [spawned and landed R# | spawned but no R# landed — /meta-dream will retry | current (retro_acked: N) | overdue N days]
 - Hypotheses: [N pending, M stale (>2wk)]
 - Growth: [N entries, synthesis {due at 5 | not yet}]
 - Plans changed: [list or "none since wake"]
@@ -170,7 +209,9 @@ SIGNALS:
 - Cross-session: [key findings or "no new sessions"]
 ```
 
-The `retro-worthy` flag is the handoff to /meta-dream. When /meta-dream sees this flag (or retro overdue >=7 days), it spawns `/meta-retro` at session close.
+There is no retro handoff to /meta-dream. This skill spawns the retro itself and acks
+`cascade-state.json`; /meta-dream re-reads that file and skips if `retro_due == retro_acked`.
+The summary line reports what happened — it does not ask another skill to act.
 
 ## 5. Refresh Dashboard
 

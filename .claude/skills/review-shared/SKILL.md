@@ -26,8 +26,24 @@ Fields:
 - `evidence_state`: verified | supported | hypothesis | question
 - `<PREFIX>-<NNN>`: dimension prefix + 3-digit number (e.g. `CR-001`, `SF-002`)
 - `file:line`: path and line number from the file scanned
+- `attribution`: set by the driver after a git join — `introduced` | `adjacent` | `pre_existing` | `unknown` (null until the driver runs the join). **Scanners do not set this field.**
 
 Full schema: `review/docs/finding-schema.md`
+
+### Attribution — branch join (GUA-115)
+
+The driver classifies every finding after dedup via `review/attribution.py`. Scanners
+read whole files and emit a file-level census; the join determines what the *branch*
+actually introduced.
+
+| `attribution` | Meaning | Verdict effect |
+|---|---|---|
+| `introduced` | cited line in a touched hunk AND blames to a branch commit | counts as a blocker |
+| `adjacent` | file touched, cited line was not in a touched hunk | **counts as a blocker** — the branch touched the file and may have added context around a real problem |
+| `pre_existing` | file not touched by the branch | reported under separate heading, never blocks |
+| `unknown` | git call failed or fact undeterminable | treated as blocking (tri-state: never silently clean) |
+
+**Scanners**: never set `attribution`. The driver sets it once after dedup.
 
 ## Dimension ID Prefixes
 
