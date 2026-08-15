@@ -140,12 +140,42 @@ one JSON line per finding to the review-findings file. Cartographer reads this f
 for dashboard aggregation.
 
 ```json
-{"id":"AK-001","source":"akira-scan","date":"2026-07-23","repo":"guacamayo","file":"src/foo.py","lines":"42-48","symbols":["load_config"],"title":"Unchecked None return","merge_impact":"blocker","evidence_state":"verified","category":"bugs","session_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}
+{"id":"AK-001","source":"akira-scan","date":"2026-07-23","occurred":"2026-07-09","occurred_source":"blame","repo":"guacamayo","file":"src/foo.py","lines":"42-48","symbols":["load_config"],"title":"Unchecked None return","merge_impact":"blocker","evidence_state":"verified","category":"bugs","session_id":"a1b2c3d4-e5f6-7890-abcd-ef1234567890"}
 ```
 
-Required fields: id, source, date, repo, file, title, merge_impact, evidence_state, category, session_id.
+Required fields: id, source, date, occurred, occurred_source, repo, file, title, merge_impact, evidence_state, category, session_id.
 Optional-but-expected: session_id is null when the invoking skill omits --session-id (pre-convention rows and skill invocations without the flag). Findings written after GUA-63 should always carry a non-null session_id.
 Optional: lines, symbols.
+
+### The two dates (GUA-109)
+
+A row carries two dates answering different questions. Confusing them is the defect this
+convention exists to prevent.
+
+| Field | Means | Use it for |
+|---|---|---|
+| `date` | **Run date** — when the review sweep ran | Provenance. It feeds `finding_uid`, so it is **immutable**: rewriting it orphans every existing factstore row |
+| `occurred` | **Friction date** — when the cited code was last touched | **All trending and recurrence bucketing** |
+
+**Trend on `occurred`, never on `date`.** A bulk sweep stamps hundreds of findings with one
+run date; bucketing on it measures when reviews were scheduled, not when friction happened.
+The live corpus had 85 of 125 rows on a single day, which made every signature appear to
+spike simultaneously and rendered the trend signal uninformative.
+
+`occurred` is a **last-touch date, not an introduction date** — it is resolved by blaming
+the cited line range, so a reformat that rewrites the line resets it. Finding the commit
+that *introduced* the friction needs a pickaxe search and is still ambiguous for multi-line
+findings; for trend shape, last-touch is sufficient.
+
+`occurred_source` records how the date was obtained, so the imprecision stays visible
+rather than being quietly assumed away:
+
+- `blame` — blamed the cited line range, or the file as a whole. The good case.
+- `head` — repo found but the line was not blameable (path gone, `file: n/a`); used HEAD's commit date.
+- `run` — no usable checkout; `occurred` mirrors `date`. Treat these rows as undated for trend purposes.
+
+Every row always has an `occurred`, so consumers need no null branch. Readers that
+predate GUA-109 should fall back to `date` when `occurred` is absent (`telemetry.recurrence._occurred_date`).
 Reduced rows (severity conflated into one field, missing id/source) break dashboard
 trending and cross-review dedup — write the full row or none.
 

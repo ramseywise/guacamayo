@@ -1,19 +1,11 @@
 {
-  "compacts": 38,
-  "grows_due": 12,
+  "compacts": 52,
+  "grows_due": 17,
   "grows_acked": 2,
-  "insights_due": 3,
+  "insights_due": 4,
   "retro_due": 1,
-  "last_compact": "2026-08-14T16:20:29Z",
+  "last_compact": "2026-08-14T19:29:00Z",
   "history": [
-    {
-      "ts": "2026-08-12T09:30:08Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-12T09:42:28Z",
-      "repo": "guacamayo"
-    },
     {
       "ts": "2026-08-12T17:01:50Z",
       "repo": "guacamayo"
@@ -156,6 +148,62 @@
     },
     {
       "ts": "2026-08-14T16:20:29Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:22:40Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:29:18Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:38:28Z",
+      "repo": "workspace"
+    },
+    {
+      "ts": "2026-08-14T17:39:46Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:43:51Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T17:50:52Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:06:40Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:12:38Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:16:27Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T18:23:11Z",
+      "repo": "tmp"
+    },
+    {
+      "ts": "2026-08-14T18:51:35Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T19:17:32Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T19:24:38Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-14T19:29:00Z",
       "repo": "guacamayo"
     }
   ]
