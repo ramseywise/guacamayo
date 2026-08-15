@@ -500,8 +500,15 @@ def test_live_corpus_new_signatures_reduce_unmatched_promotables() -> None:
     fallbacks -- the pattern table had no signature for those clusters.
 
     `unhandled-none-return` clears the threshold on the live corpus (n=3).
-    `god-module` now also clears the threshold (n=3 after corpus growth from 145
-    findings); both are correctly promotable.
+
+    `god-module` was n=2 when written -- one instance short, recorded rather than
+    papered over by loosening the regex. It reached n=3 on 2026-08-14 when the
+    corpus grew to 145 rows and supplied a genuine third instance ("God object:
+    dashboard.py (3493 lines) mixes unrelated concerns"), matched by the ORIGINAL
+    regex with no change to it. That is the outcome the n=2 pin was waiting for,
+    so the assertion now tracks the threshold instead of the literal count.
+    `test_god_module_does_not_match_expression_complexity` still pins the
+    exclusion that kept it at 2 in the first place.
     """
     rows: list[dict[str, Any]] = []
     for line in _LIVE_CORPUS.read_text(encoding="utf-8").splitlines():
@@ -516,3 +523,217 @@ def test_live_corpus_new_signatures_reduce_unmatched_promotables() -> None:
 
     assert groups["god-module"].count >= RECURRENCE_THRESHOLD
     assert groups["god-module"].promotable is True
+
+
+# --- GUA-115 signatures, derived from the 76 unmatched titles ----------------
+#
+# Each match test uses the real corpus titles the signature was derived from, so a
+# regex narrowed later fails here rather than silently dropping a live cluster.
+
+
+def test_unguarded_write_signature() -> None:
+    findings = [
+        _finding(title="Write-capable tool modifies wiki without user confirmation dialog"),
+        _finding(title="Unauthenticated writeback endpoint allows arbitrary wiki modifications"),
+        _finding(title="WebSocket endpoint lacks authentication and rate-limiting"),
+        _finding(title="Unconditional persistent write without opt-out or confirmation gate"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "unguarded-write")
+    assert matched.count == 4
+    assert matched.promotable is True
+
+
+def test_unguarded_write_does_not_match_protection_present() -> None:
+    """Absence of a gate, not the topic of gates.
+
+    These three titles sit in the live corpus and report protection that EXISTS.
+    The corpus carries no severity or polarity field, so the regex is the only
+    thing separating them from the real findings -- matching on topic words like
+    "path traversal" would count a working safeguard as friction and would have
+    taken `unguarded-write` from n=4 to n=7 on false positives.
+    """
+    findings = [
+        _finding(title="Path traversal protection in writeback endpoint", category="security"),
+        _finding(title="Comprehensive secret redaction in structured logging pipeline"),
+        _finding(
+            title="Private directory exclusion in wiki search prevents information disclosure"
+        ),
+    ]
+    groups = compute_recurrence(findings)
+    assert not any(g.pattern_key == "unguarded-write" for g in groups)
+
+
+def test_unbounded_growth_signature() -> None:
+    findings = [
+        _finding(title="Unbounded JSONL file append with no rotation or size limit"),
+        _finding(title="Unbounded query results loaded into memory"),
+        _finding(
+            title=(
+                "Graph expansion rebuilds the entire edge graph on every "
+                "expand=True request with no caching"
+            )
+        ),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "unbounded-growth")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_unbounded_growth_is_distinct_from_resource_leak() -> None:
+    """A bound never set is not a handle never released.
+
+    Both are "resources go wrong", but they take different fixes -- a cap/rotation
+    policy vs. a close/context-manager -- so folding them into one signature would
+    make the promoted pattern unactionable.
+    """
+    findings = [_finding(title="file handle leak on exception path, not closed")]
+    groups = compute_recurrence(findings)
+    keys = {g.pattern_key for g in groups}
+    assert "resource-leak" in keys
+    assert "unbounded-growth" not in keys
+
+
+def test_race_condition_signature() -> None:
+    findings = [
+        _finding(title="DuckDB concurrent table creation race condition"),
+        _finding(title="TOCTOU race condition in sweep file creation"),
+        _finding(title="Session filename collision risk at minute precision"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "race-condition")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_repeated_per_call_work_signature() -> None:
+    findings = [
+        _finding(title="N+1 glob traversals in page title lookup"),
+        _finding(title="Potential N+1 pattern in per-message cost computation"),
+        _finding(title="Inefficient per-call import of time module"),
+        _finding(title="Inline import of `time` module inside function"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "repeated-per-call-work")
+    assert matched.count == 4
+    assert matched.promotable is True
+
+
+def test_recompute_per_search_counts_in_both_overlapping_signatures() -> None:
+    """One live title is honestly both uncached AND recomputed per search.
+
+    Pinned because the overlap looks like a bug: under the all-matches policy it
+    is counted in each group deliberately, and "fixing" it by narrowing either
+    regex would drop a real instance from the other.
+    """
+    findings = [_finding(title="Graph expansion recomputes all typed edges on every search")]
+    keys = {g.pattern_key for g in compute_recurrence(findings)}
+    assert "unbounded-growth" in keys
+    assert "repeated-per-call-work" in keys
+
+
+def test_error_not_surfaced_signature() -> None:
+    findings = [
+        _finding(title="Subprocess errors logged but not surfaced to caller"),
+        _finding(title="Optional dependency degradation without client-side awareness"),
+        _finding(
+            title=(
+                "Error details are truncated and summary-only; "
+                "full context lost for root cause analysis"
+            )
+        ),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "error-not-surfaced")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_error_not_surfaced_is_distinct_from_silent_swallow() -> None:
+    """Logged-but-not-raised is not swallowed.
+
+    `silent-swallow` is about an error nobody recorded; this signature is about an
+    error that WAS recorded but never reached whoever could act on it. Same fix
+    family, different defect, and the corpus distinguishes them.
+    """
+    findings = [_finding(title="bare except suppresses the error silently")]
+    keys = {g.pattern_key for g in compute_recurrence(findings)}
+    assert "silent-swallow" in keys
+    assert "error-not-surfaced" not in keys
+
+
+def test_doc_implementation_mismatch_signature() -> None:
+    findings = [
+        _finding(title="Makefile test target documentation does not match implementation"),
+        _finding(title="schema_for docstring claims minLength is emitted; only maxLength is"),
+        _finding(
+            title=(
+                "Wander dispatch timing mismatch: always-on in code vs. 'when diff exists' in plan"
+            )
+        ),
+        _finding(
+            title=(
+                "Wander always-on unconditionally, but plan documentation says "
+                "'when diff scope exists'"
+            )
+        ),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "doc-implementation-mismatch")
+    assert matched.count == 4
+    assert matched.promotable is True
+
+
+def test_no_signature_added_for_vacuous_test_assertion() -> None:
+    """The signature that was NOT added, recorded so the omission is deliberate.
+
+    Only two live titles describe a vacuous assertion (both the `or True` defect).
+    A third candidate -- "exception-path test asserts close() only, not HTTP 500
+    surfaced" -- is a WEAK assertion, not a vacuous one, and stretching the regex
+    to cover it would be fitting to the n=3 threshold rather than to the friction.
+    Same call as `god-module`; revisit when the corpus supplies a real third.
+    """
+    findings = [
+        _finding(title="Test assertion always passes due to 'or True' clause"),
+        _finding(title="Tautological assertion with `or True` provides no validation"),
+        _finding(title="exception-path test asserts close() only, not HTTP 500 surfaced"),
+    ]
+    groups = {g.pattern_key for g in compute_recurrence(findings)}
+    assert not any(k.startswith(("vacuous", "tautolog")) for k in groups)
+
+
+@pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
+def test_live_corpus_gua115_signatures_clear_threshold() -> None:
+    """Every GUA-115 signature must earn its place on the real corpus.
+
+    Counts are pinned to what the 145-row corpus produced when they were derived.
+    A drop below threshold means a signature stopped describing real friction; a
+    rise is fine and only the floor is asserted.
+    """
+    groups = {g.pattern_key: g for g in compute_recurrence(_live_rows())}
+    expected = {
+        "unguarded-write": 4,
+        "unbounded-growth": 4,
+        "race-condition": 3,
+        "repeated-per-call-work": 5,
+        "error-not-surfaced": 3,
+        "doc-implementation-mismatch": 4,
+    }
+    for key, floor in expected.items():
+        assert key in groups, f"{key} matched nothing on the live corpus"
+        assert groups[key].count >= floor, f"{key} fell to {groups[key].count}, expected >= {floor}"
+        assert groups[key].promotable is True
+
+
+@pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
+def test_live_corpus_unmatched_share_drops() -> None:
+    """The point of the change: fewer findings sitting in `unmatched:` fallbacks.
+
+    Asserted as a ceiling on the unmatched share rather than an exact count, so
+    adding corpus rows does not break the suite -- only a regression in coverage does.
+    """
+    rows = _live_rows()
+    groups = compute_recurrence(rows)
+    unmatched = sum(g.count for g in groups if g.pattern_key.startswith("unmatched:"))
+    assert unmatched / len(rows) < 0.45

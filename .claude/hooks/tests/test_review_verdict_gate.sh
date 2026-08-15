@@ -164,6 +164,19 @@ run "ls -la"
 assert_allowed "ls (unrelated)"
 
 # -----------------------------------------------------------------------
+echo "=== (b2) ADVERSARIAL: phrase inside single-quoted string must PASS ==="
+# A git commit message or printf that embeds the phrase as data, not as an
+# invocation. The awk segment-matcher splits on [;&|]+; the whole command is
+# one segment whose leading token is 'git'/'printf', not 'gh', so the gate
+# must not fire even though the phrase appears in the argument.
+
+run "git commit -m 'reminder: run gh pr merge --squash to ship'"
+assert_allowed "phrase in single-quoted git commit message"
+
+run "printf '%s' 'step: gh pr merge'"
+assert_allowed "phrase as printf argument (single-quoted)"
+
+# -----------------------------------------------------------------------
 echo "=== (c) Loose glob: plan doc ABOUT review must NOT satisfy the gate ==="
 
 PLAN_ABOUT_REVIEW="$PLANS/2026-08-15-review-attribution.md"
