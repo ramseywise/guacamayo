@@ -3,6 +3,7 @@
 Usage:
     uv run telemetry --facts               # Refresh the fact table + inject dashboard regions
     uv run telemetry --consistency         # Emit the board-consistency report /wake renders
+    uv run telemetry --board               # Emit the board state snapshot /wake reads
 
 Ported from ramseywise/librarian tools/cartographer/__main__.py:147-458 (`_run_facts`)
 @ aa3166e (GUA-93), minus the derive-notes step (stays librarian) and the
@@ -37,8 +38,11 @@ def main() -> None:
     elif "--consistency" in sys.argv:
         sys.argv.remove("--consistency")
         _run_consistency()
+    elif "--board" in sys.argv:
+        sys.argv.remove("--board")
+        _run_board()
     else:
-        print("usage: telemetry [--facts | --consistency] [options]", file=sys.stderr)
+        print("usage: telemetry [--facts | --consistency | --board] [options]", file=sys.stderr)
         raise SystemExit(2)
 
 
@@ -163,6 +167,65 @@ def _fetch_open_prs(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]
     ]
 
 
+def _fetch_prs_for_board(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+    """All PRs (open + merged) for board column derivation.
+
+    Unlike `_fetch_open_prs` (which feeds `--consistency`), this fetches `--state all`
+    so the `merged` column can be derived from PRs that have already closed. `headRefName`
+    enables branch-name joins; `mergedAt` distinguishes merged from simply-closed.
+
+    Returns [] on any failure — the caller tracks `skipped_repos` per-repo.
+    Do NOT modify `_fetch_open_prs`; it is `--consistency`'s fetcher and must not change.
+    """
+    import json
+    import shutil
+    import subprocess
+
+    if not shutil.which("gh"):
+        return []
+    try:
+        out = subprocess.run(
+            [
+                "gh",
+                "pr",
+                "list",
+                "-R",
+                f"{owner}/{repo}",
+                "--state",
+                "all",
+                "--limit",
+                "100",
+                "--json",
+                "number,title,state,headRefName,body,mergedAt",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except (subprocess.SubprocessError, OSError):
+        return []
+    if out.returncode != 0 or not out.stdout.strip():
+        return []
+    try:
+        payload = json.loads(out.stdout)
+    except json.JSONDecodeError:
+        return []
+
+    return [
+        {
+            "repo": repo,
+            "number": pr.get("number", 0),
+            "title": pr.get("title", ""),
+            "state": (pr.get("state") or "").upper(),
+            "head_ref": pr.get("headRefName") or "",
+            "body": pr.get("body") or "",
+            "merged_at": pr.get("mergedAt") or None,
+        }
+        for pr in payload
+    ]
+
+
 def _collect_branch_facts(
     repo: str,
     repo_root: Path,
@@ -277,6 +340,181 @@ def _collect_branch_facts(
         )
 
     return facts
+
+
+def _run_board() -> None:
+    """Emit the board state snapshot `/wake` reads instead of re-running gh sweeps.
+
+    Derives one column per issue from issue state + PR state + branch facts. Write is
+    atomic (tmp + os.replace); no .tmp file survives a successful run.
+
+    Raises on a total gh failure — an empty board from a broken derivation is
+    byte-for-byte a board where every issue closed (the librarian#60 lesson).
+
+    The `skipped_repos` key is ALWAYS present in the output, even when empty. An absent
+    key is indistinguishable from "no repos were skipped", which makes a truncated board
+    presentable as a complete one.
+    """
+    import argparse
+    import json
+    import os
+    import shutil
+    import subprocess
+    from datetime import UTC, datetime
+    from pathlib import Path
+
+    import structlog
+
+    from telemetry import board as board_module
+    from telemetry.consistency import BranchFact
+    from telemetry.loop import collect_plan_docs
+
+    log = structlog.get_logger(__name__)
+
+    repo_root = Path(__file__).resolve().parents[1]
+    p = argparse.ArgumentParser(description="Emit the board state snapshot")
+    p.add_argument("--workspace", default="~/workspace", help="Root holding the active repo clones")
+    p.add_argument(
+        "--out",
+        default=str(repo_root / ".sounding" / "telemetry" / "board.json"),
+        help="Output path (wake reads this)",
+    )
+    p.add_argument(
+        "--repos",
+        default=",".join(ACTIVE_REPOS),
+        help="Comma-separated repos to check (default: wake's Phase 5 list)",
+    )
+    args = p.parse_args()
+
+    workspace = Path(args.workspace).expanduser()
+    repos = [r.strip() for r in args.repos.split(",") if r.strip()]
+
+    all_issues: list[dict] = []
+    skipped_repos: list[dict[str, str]] = []
+    repos_checked: list[str] = []
+
+    # Per-repo data buckets
+    prs_by_repo: dict[str, list[dict]] = {}
+    pr_fetch_ok_by_repo: dict[str, bool] = {}
+    branch_facts_by_repo: dict[str, list[BranchFact]] = {}
+
+    for repo in repos:
+        root = workspace / repo
+
+        # Branch facts
+        if root.is_dir():
+            branch_facts_by_repo[repo] = _collect_branch_facts(repo, root)
+        else:
+            branch_facts_by_repo[repo] = []
+
+        # Issues
+        issues = _fetch_issues_with_bodies(repo)
+
+        # Distinguish "no open issues" from "gh failed" by probing the repo if empty
+        fetch_failed = False
+        if not issues:
+            # Quick existence check: gh repo view returns 0 even for repos with no issues
+            if not shutil.which("gh"):
+                fetch_failed = True
+            else:
+                try:
+                    probe = subprocess.run(
+                        ["gh", "repo", "view", f"ramseywise/{repo}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=15,
+                        check=False,
+                    )
+                    fetch_failed = probe.returncode != 0
+                except (subprocess.SubprocessError, OSError):
+                    fetch_failed = True
+
+        if fetch_failed:
+            skipped_repos.append({"repo": repo, "reason": "gh issue fetch failed"})
+            log.warning("board.issue_fetch_failed", repo=repo)
+            continue
+
+        # PRs for board
+        prs = _fetch_prs_for_board(repo)
+        pr_ok = True
+        if not prs:
+            # Same probe: distinguish "no PRs" from "gh pr fetch failed"
+            if not shutil.which("gh"):
+                pr_ok = False
+            else:
+                try:
+                    probe = subprocess.run(
+                        ["gh", "repo", "view", f"ramseywise/{repo}"],
+                        capture_output=True,
+                        text=True,
+                        timeout=15,
+                        check=False,
+                    )
+                    pr_ok = probe.returncode == 0
+                except (subprocess.SubprocessError, OSError):
+                    pr_ok = False
+
+        if not pr_ok:
+            skipped_repos.append({"repo": repo, "reason": "gh PR fetch failed"})
+            log.warning("board.pr_fetch_failed", repo=repo)
+            # Still include issues but mark pr_fetch_ok=False so derivation uses undetermined
+            pr_fetch_ok_by_repo[repo] = False
+        else:
+            pr_fetch_ok_by_repo[repo] = True
+
+        prs_by_repo[repo] = prs
+        all_issues.extend(issues)
+        repos_checked.append(repo)
+
+    if not all_issues:
+        exc = EmptyInputError(
+            f"no issues fetched across {len(repos)} repos — refusing to write a board "
+            "on what is almost certainly a gh failure"
+        )
+        print(f"FATAL: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+    plans = collect_plan_docs(workspace)
+    plan_issues = {(d.repo, d.issue) for d in plans if d.issue is not None}
+
+    now_ts = datetime.now(UTC).isoformat()
+
+    records: list[board_module.BoardRecord] = []
+    for issue in all_issues:
+        repo = str(issue.get("repo") or "")
+        record = board_module.derive_column(
+            issue=issue,
+            prs_for_repo=prs_by_repo.get(repo, []),
+            branch_facts_for_repo=branch_facts_by_repo.get(repo, []),
+            plan_issues=plan_issues,
+            pr_fetch_ok=pr_fetch_ok_by_repo.get(repo, True),
+            collected_at=now_ts,
+        )
+        records.append(record)
+
+    payload = board_module.to_board_json(records, skipped_repos, repos_checked)
+
+    out_path = Path(args.out).expanduser()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = out_path.with_suffix(".tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+    os.replace(tmp_path, out_path)  # atomic
+
+    # Column breakdown for coverage line
+    col_counts: dict[str, int] = {}
+    for r in records:
+        col_counts[r.column] = col_counts.get(r.column, 0) + 1
+
+    col_str = " ".join(
+        f"{col}={col_counts.get(col, 0)}"
+        for col in ("closed", "merged", "in_review", "in_progress", "backlog", "undetermined")
+    )
+
+    print(
+        f"Board: {payload['total_issues']} issues across {len(repos_checked)} repos; "
+        f"{len(skipped_repos)} skipped -> {out_path}"
+    )
+    print(f"Columns: {col_str}")
 
 
 def _run_consistency() -> None:

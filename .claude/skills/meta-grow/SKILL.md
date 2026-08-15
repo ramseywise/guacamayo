@@ -65,28 +65,36 @@ Query librarian for sessions since last wake or last grow (whichever is more rec
 
 Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
 
-### GitHub Issues (always — fast, no librarian needed, cross-repo)
+### Board (lightweight — read the pre-computed file, no gh sweeps)
 
-```bash
-# Open issues — current board state
-for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
-  echo "--- $repo ---"
-  gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
-done
+```
+Read: .sounding/telemetry/board.json
 ```
 
+The grow read is lighter than wake — its purpose is to detect changes since session start, not
+do a full orientation.
+
+**If the file is absent**: note it in one line ("Board file not found — run `uv run telemetry --board`") and continue.
+
+**If the file is stale** (envelope `collected_at` older than 30 minutes): show the same banner as wake and
+surface the refresh command. Do NOT fall back to a live `gh` sweep — if the board is stale, say so.
+
+Render only the **delta** since /meta-wake read the same file:
+- Issues that appear in `board.json` with a `column` different from what wake reported
+  (compare by `issue_num + repo` key against wake's board context)
+- New issues not present at wake (these cannot appear unless the file has been refreshed since wake — note that)
+
+If nothing changed, one line: "Board unchanged since wake."
+
 ```bash
-# Recently closed issues — catches the in-review → closed transition
+# Recently closed issues — catches the in-review → closed transition since last wake
 # Use the date from /meta-wake or last /meta-grow (whichever is more recent) as the since cutoff
 gh search issues --author=ramseywise --state=closed --sort=updated \
   --updated=">YYYY-MM-DD" --json repository,number,title,closedAt --limit 20 2>/dev/null
 ```
 
-Present as a cross-repo status table (same format as /meta-wake). Compare to what /meta-wake saw and surface:
-- **New issues** created since session start
-- **Label changes** (something moved to ready, blocked, in-review)
-- **Closed issues** (work completed elsewhere) — from the `--state closed` query
-- **Repos with changes** get a table row; unchanged repos get a one-line summary
+This `gh search` call stays — it is the only path that catches issues closed since the last
+`--board` run without requiring a full refresh. Keep it; it is cheap (one call, not ten).
 
 If `gh` fails, skip gracefully.
 

@@ -91,79 +91,55 @@ Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open
 
 ### GitHub Issues board (cross-repo)
 
-Check ALL active repos for open issues — the meta-session's job is the cross-cutting view, not just this repo:
+The board is read from a pre-computed file — no `gh` sweeps in this phase.
 
-```bash
-# Open issues — current board state
-for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
-  echo "--- $repo ---"
-  gh issue list --repo "ramseywise/$repo" --state open --json number,title,labels --limit 20 2>/dev/null
-done
+```
+Read: .sounding/telemetry/board.json
 ```
 
-```bash
-# Recently closed issues — shows what shipped since last wake
-# Use the handover timestamp or fall back to 3 days
-gh search issues --author=ramseywise --state=closed --sort=updated \
-  --updated=">YYYY-MM-DD" --json repository,number,title,closedAt --limit 20 2>/dev/null
+**If the file is absent**: render one line and continue:
+
+> Board file not found — `uv run telemetry --board` has never run. Run it now or continue without board state.
+
+Never fall back to a live `gh issue list` or `gh pr list` sweep. That is the regression this phase exists to prevent.
+
+**If the file is present**, check staleness before rendering. Compare the envelope `collected_at`
+to the current datetime (from Phase 1). If older than 30 minutes:
+
+```
+⚠ Board stale (collected YYYY-MM-DDTHH:MMZ, N minutes ago). Run `uv run telemetry --board`
+to refresh. Showing last-known state.
 ```
 
-#### Render the columns — derive them, do not read them off labels
+This banner is unconditional — there is no "manual cadence" escape hatch. The noise is intentional
+until #118 installs a scheduled cadence.
 
-The board is presented in the **GitHub workflow's columns**, not in label order:
+**Always render `skipped_repos` before the board tables** — a truncated board must be visible before
+the content that is missing:
 
-> **backlog** (scope → research → plan → refine) → **in progress** → **in review** → **merged** → **closed**
+> Skipped: none  *(or)*  Skipped: galactus (gh fetch failed), sisyphus (gh fetch failed)
 
-Two of those columns have no label at all (`merged`, and the four backlog triage stages),
-and the labels that do exist rot faster than the work they describe. So the column is
-**derived from issue state + PR state**, and the label is treated as one weak input among
-several — never as the answer. Fetch PRs alongside issues so the join is possible:
+#### Render the board from `board.json`
 
-```bash
-for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
-  echo "--- $repo prs ---"
-  gh pr list --repo "ramseywise/$repo" --state all --json number,title,state,headRefName,body,mergedAt --limit 30 2>/dev/null
-done
-```
+Read `records` from the file. Each record carries:
+- `column` — the derived column (`closed` | `merged` | `in_review` | `in_progress` | `backlog` | `undetermined`)
+- `backlog_stage` — sub-stage when column is `backlog` (`scope` | `research` | `plan` | `refine` | `ready`)
+- `raw_label` — what the label says (may disagree with the derived column)
+- `evidence` — one-line justification for the derived column
 
-Join a PR to an issue two ways — by branch name (`{PREFIX}-{NUM}-slug`) and by a
-`Closes #N` / `Fixes #N` in the PR body. Then assign exactly one column per issue,
-**first match wins, top to bottom**:
-
-| Column | Derived from |
-|--------|--------------|
-| **closed** | issue state is CLOSED |
-| **merged** | issue OPEN but a joined PR has `mergedAt` — work landed, issue never closed. This is the drift column; it should be empty, and when it is not, that is the finding |
-| **in review** | a joined PR is OPEN |
-| **in progress** | a branch matching `{PREFIX}-{NUM}-` exists (local or remote) with no PR yet |
-| **backlog** | everything else — then sub-stage it below |
-
-Sub-stage the backlog by what artifact exists, since that is what the next command depends on:
-
-| Stage | Signal | Next command |
-|-------|--------|--------------|
-| scope | no plan doc, body is a problem statement | `/workflow-refine` (scope pass) |
-| research | plan doc exists with open questions, or issue says research needed | `/workflow-research` |
-| plan | scoped, no plan doc | `/workflow-plan` |
-| refine | plan doc exists, `Status: PLANNED`, DoR not met | `/workflow-refine` |
-| *(ready)* | DoR met — leaves backlog, awaits pickup | `/workflow-execute` |
-
-**A column that could not be derived is reported as undetermined, never as backlog.**
-Backlog is the default bucket, which makes it the one that silently absorbs every failed
-join — an issue whose PR lookup errored looks identical to an issue nobody has started.
-If `gh pr list` fails for a repo, say so per-repo and mark its issues `?`.
-
-Render one table per column (skip empty columns except **merged**, which is always
-reported so its emptiness is a stated result):
+Group records by `column`. Render one table per column using this format:
 
 | Repo | # | Title | Label says | Evidence |
 |------|---|-------|-----------|----------|
-| guacamayo | 118 | Install the clock | in-progress | branch GUA-118-…, no PR |
+| guacamayo | 118 | Install the clock | in-progress | branch GUA-118-…, is_ancestor=False |
 
-Show the **label alongside the derived column** — the disagreement is the signal.
-When they conflict, the derivation wins and the mismatch gets one line under the table.
+Column rendering rules:
+- **`merged`** is always reported, even when empty — its emptiness is a stated result, not a skip
+- Issues with `column == "undetermined"` render as `?` in a dedicated **Undetermined** section, never in backlog
+- The **backlog** table is sub-grouped by `backlog_stage`
+- The disagreement between `raw_label` and `column` is the signal — show both; the derivation wins
 
-Repos with zero open issues: list on one line ("**Clean**: librarian, atlas, playground, ...").
+Repos with zero non-closed issues: list on one line ("**Clean**: librarian, atlas, playground, ...").
 Blocked items come first, always, ahead of every column — or "Nothing blocked."
 
 Also surface **PLANNED plan docs without a matching issue** — these are unissued work.
