@@ -25,6 +25,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from review.attribution import attribute_findings
 from review.deduplication import find_duplicate_clusters
 from review.fingerprint import (
     finding_to_sweep_finding,
@@ -33,6 +34,7 @@ from review.fingerprint import (
 )
 from review.render import render_report
 from review.schemas.models import (
+    Attribution,
     MergeDecision,
     MergeImpact,
     Reporter,
@@ -775,6 +777,11 @@ async def _run_review_async(
     clusters = find_duplicate_clusters(all_findings)
     merged_findings: list[ReviewFinding] = [merge_cluster(c) for c in clusters]
 
+    # --- Stage 4b: branch attribution join ---
+    # Applied once after dedup so every merged finding carries an attribution field.
+    # One git diff call + one git rev-list call for the whole sweep.
+    merged_findings = attribute_findings(merged_findings, config.repo)
+
     # --- Stage 5: fingerprint + sweep persistence ---
     sweep_path: Path | None = None
     if config.save_sweep:
@@ -828,21 +835,38 @@ async def _run_review_async(
     wander_questions = [
         f.claim.observation for f in merged_findings if f.reporter == Reporter.WANDER
     ]
-    # Verdict: single implementation in review/verdict.py. Wander is excluded at
-    # this call site — it emits questions by construction, so counting it would
-    # make approve structurally unreachable.
+    # Verdict: single implementation in review/verdict.py. Two exclusions:
+    # 1. Wander — questions by construction, counting them makes approve unreachable.
+    # 2. Pre-existing — file not touched by this branch; never blocks merge.
+    #    adjacent and unknown findings ARE counted: adjacent means the file was touched
+    #    (the branch may have context around a real problem), and unknown means
+    #    attribution could not be determined — an undeterminable finding must not
+    #    silently stop blocking (tri-state rule from telemetry/consistency.py).
+    verdict_findings = [
+        f
+        for f in merged_findings
+        if f.reporter != Reporter.WANDER and f.attribution != Attribution.PRE_EXISTING
+    ]
     merge_decision = derive_merge_decision(
-        [f for f in merged_findings if f.reporter != Reporter.WANDER],
+        verdict_findings,
         dispatch_failed=bool(errors),
     )
+    # Findings included in the main report (non-pre-existing). Pre-existing are
+    # rendered under their own heading and never contribute to the verdict.
+    pre_existing_findings = [
+        f for f in merged_findings if f.attribution == Attribution.PRE_EXISTING
+    ]
+    report_findings = [f for f in merged_findings if f.attribution != Attribution.PRE_EXISTING]
+    n_pre_existing = len(pre_existing_findings)
     report = ReviewReport(
-        findings=merged_findings,
+        findings=report_findings,
         merge_decision=merge_decision,
         reporter_dispatch=result.dispatch,
         overall_understanding=(
             f"Driver run over {len(files)} file(s), "
             f"{len(dimensions)} dimension(s). "
-            f"{len(merged_findings)} finding(s) after dedup."
+            f"{len(merged_findings)} finding(s) after dedup "
+            f"({n_pre_existing} pre-existing, not in verdict)."
         ),
         dod_assessment=(
             "All validation gates passed."
@@ -858,6 +882,7 @@ async def _run_review_async(
         "wander_questions": wander_questions,
         "repo": str(config.repo),
         "diff_scope": f"{len(files)} file(s)",
+        "pre_existing_findings": [f.model_dump() for f in pre_existing_findings],
     }
     # Static analysis result — passed separately from findings so it never enters dedup
     if sa_result is not None:

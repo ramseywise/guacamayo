@@ -4764,3 +4764,109 @@
 {"ts":"2026-08-15T11:54:13Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
 {"ts":"2026-08-15T11:54:27Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
 {"ts":"2026-08-15T11:54:50Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-15T11:55:54Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:55:54Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:55:54Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:06Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:06Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:06Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:11Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:16Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:16Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:31Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:31Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:31Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:52Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:52Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:52Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:56:53Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase2-ml-fraud-poc.md"}
+{"ts":"2026-08-15T11:57:36Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/pocs/ml/fraud/tests/test_summary.py"}
+{"ts":"2026-08-15T11:57:36Z","hook":"docs_drift_warn","exit_code":0,"repo":"galactus","context":"/Users/wiseer/workspace/galactus/pocs/ml/fraud/tests/test_summary.py"}
+{"ts":"2026-08-15T11:58:19Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-galactus/memory/MEMORY.md"}
+{"ts":"2026-08-15T11:58:19Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-galactus/memory/MEMORY.md"}
+{"ts":"2026-08-15T11:58:36Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-15T11:58:36Z","hook":"task_complete_check","exit_code":0,"repo":"galactus","context":"pass"}
+{"ts":"2026-08-15T12:07:25Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/schemas/models.py"}
+{"ts":"2026-08-15T12:07:34Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/schemas/models.py"}
+{"ts":"2026-08-15T12:07:53Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-guacamayo/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:08:17Z","hook":"task_complete_check","exit_code":2,"repo":"guacamayo","context":"FORMAT ISSUES (run ruff format):.nunformatted: File would be reformatted   --> review/schemas/models.py:30:32    |29  |    -     INTRODUCED = .introduced.    # cited line in a touched hunk AND bla"}
+{"ts":"2026-08-15T12:08:23Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/attribution.py"}
+{"ts":"2026-08-15T12:08:53Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:09:01Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:09:11Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:09:28Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:09:31Z","hook":"task_complete_check","exit_code":2,"repo":"guacamayo","context":"FORMAT ISSUES (run ruff format):.nunformatted: File would be reformatted   --> review/driver.py:848:41    |847 |         for f in merged_findings    -         if f.reporter != Reporter.WANDER    "}
+{"ts":"2026-08-15T12:09:54Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:10:15Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-15T12:10:24Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/driver.py"}
+{"ts":"2026-08-15T12:10:33Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/render.py"}
+{"ts":"2026-08-15T12:10:42Z","hook":"docs_drift_warn","exit_code":0,"repo":"guacamayo","context":"/Users/wiseer/workspace/guacamayo/review/render.py"}
+{"ts":"2026-08-15T12:13:16Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/wake/SKILL.md"}
+{"ts":"2026-08-15T12:13:26Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:13:26Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:13:45Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-guacamayo/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:14:00Z","hook":"task_complete_check","exit_code":2,"repo":"guacamayo","context":"FORMAT ISSUES (run ruff format):.nunformatted: File would be reformatted   --> review/driver.py:859:24    |858 |     ]    -     report_findings = [    -         f for f in merged_findings if f.at"}
+{"ts":"2026-08-15T12:14:04Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:12Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-15T12:14:14Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:22Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:31Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:38Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:44Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:51Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:14:57Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:15:01Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:15:01Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/shared/SKILL.md"}
+{"ts":"2026-08-15T12:15:06Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:15:12Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:16:48Z","hook":"memory_duplication_guard","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:16:48Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:16:48Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:17:09Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-galactus/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:17:09Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-galactus/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:17:27Z","hook":"risky_git_guard","exit_code":2,"repo":"guacamayo","context":"git commit blocked (target=/Users/wiseer/workspace/guacamayo/.claude/worktrees/agent-ae929857)"}
+{"ts":"2026-08-15T12:18:52Z","hook":"task_complete_check","exit_code":2,"repo":"guacamayo","context":"LINT ERRORS (run ruff check --fix):.nI001 [*] Import block is un-sorted or un-formatted  --> tests/review/test_attribution.py:18:1   |16 |   ...17 |18 | / from __future__ import annotations19 | "}
+{"ts":"2026-08-15T12:19:31Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}
+{"ts":"2026-08-15T12:20:05Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-120-dashboard-metrics.md"}
+{"ts":"2026-08-15T12:20:05Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-120-dashboard-metrics.md"}
+{"ts":"2026-08-15T12:20:45Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /tmp/gua113-body.md"}
+{"ts":"2026-08-15T12:21:20Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /tmp/gua118-body.md"}
+{"ts":"2026-08-15T12:21:57Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /tmp/gua120-body.md"}
+{"ts":"2026-08-15T12:23:48Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-guacamayo/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:29:33Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:33Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:33Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:39Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:49Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:54Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:29:59Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase4-dry-run-modes.md"}
+{"ts":"2026-08-15T12:30:26Z","hook":"memory_duplication_guard","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:30:26Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:30:26Z","hook":"docs_hygiene","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/CLAUDE.md"}
+{"ts":"2026-08-15T12:30:32Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:30:41Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:30:50Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:30:57Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-118-install-the-clock.md"}
+{"ts":"2026-08-15T12:31:19Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:31:19Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:31:28Z","hook":"plan_status_validate","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:31:28Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/docs/plans/2026-08-15-gua-113-board-contract.md"}
+{"ts":"2026-08-15T12:31:48Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:31:49Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:31:49Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:31:49Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:31:59Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/workspace/guacamayo/.claude/skills/shared/SKILL.md"}
+{"ts":"2026-08-15T12:32:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:11Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:18Z","hook":"docs_hygiene","exit_code":0,"repo":"guacamayo","context":"pass: /Users/wiseer/.claude/projects/-Users-wiseer-workspace-guacamayo/memory/MEMORY.md"}
+{"ts":"2026-08-15T12:32:37Z","hook":"plan_transition_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:37Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:37Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:32:42Z","hook":"plan_status_validate","exit_code":0,"repo":"galactus","context":"pass: /Users/wiseer/workspace/galactus/.claude/docs/plans/2026-08-11-gal-4-phase3-ai-evals-extraction.md"}
+{"ts":"2026-08-15T12:37:33Z","hook":"risky_git_guard","exit_code":2,"repo":"guacamayo","context":"git commit blocked (target=/Users/wiseer/workspace/guacamayo)"}
+{"ts":"2026-08-15T12:39:14Z","hook":"task_complete_check","exit_code":0,"repo":"guacamayo","context":"pass"}

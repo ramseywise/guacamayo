@@ -1,27 +1,11 @@
 {
-  "compacts": 107,
-  "grows_due": 35,
+  "compacts": 111,
+  "grows_due": 37,
   "grows_acked": 3,
-  "insights_due": 8,
-  "retro_due": 2,
-  "last_compact": "2026-08-15T11:51:00Z",
+  "insights_due": 9,
+  "retro_due": 3,
+  "last_compact": "2026-08-15T12:27:45Z",
   "history": [
-    {
-      "ts": "2026-08-14T19:47:52Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T19:50:06Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T19:53:36Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T19:56:59Z",
-      "repo": "guacamayo"
-    },
     {
       "ts": "2026-08-14T19:59:20Z",
       "repo": "guacamayo"
@@ -204,6 +188,22 @@
     },
     {
       "ts": "2026-08-15T11:51:00Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T12:05:06Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T12:16:09Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T12:17:09Z",
+      "repo": "galactus"
+    },
+    {
+      "ts": "2026-08-15T12:27:45Z",
       "repo": "guacamayo"
     }
   ]
