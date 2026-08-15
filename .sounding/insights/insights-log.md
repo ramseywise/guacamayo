@@ -1849,3 +1849,184 @@ Repo never-invoked include (sample): accountability-safeguards (Parallax), adk-c
 
 ### Session Health Summary
 Sessions remain healthy on cost and structure: cache excellent (96%), context discipline strong (17% target met), compacting adoption solid at 30%. Subagent concentration stable (33% share). Main concerns remain: file-not-found regression accelerating (R5 unresolved), design tools still uninvoked (R2 verdict: failed at day-21), bash antipattern reduction off pace (R3 trending but not meeting 2026-08-20 target). Parser retry-sequence gap blocks R1 verdict progression. Recommend prioritize: (1) R5 file-resolution investigation (188 errors, accelerating), (2) design-skill adoption forensics (zero invocations, R2 failed), (3) bash-antipattern hook tuning to meet target velocity.
+
+---
+
+## 2026-08-14 (641 sessions, 2026-07-15 to 2026-08-14) [appended 2026-08-14]
+
+### Numbers
+| Metric | Value |
+|--------|-------|
+| Sessions analyzed | 641 |
+| Date range | 2026-07-15 to 2026-08-14 |
+| Total user messages | 5,201 |
+| Days active | 31 |
+| Messages/day | 167.8 |
+| Context >150k | 17% (target met) |
+| Cache hit rate | 96% |
+| Cache savings vs uncached | 83% |
+| Subagent transcripts | 912 |
+| Subagent share of usage | 33% |
+| Bash antipatterns/session | 29.50 (target: <12 by 2026-08-20) |
+| Parallel sessions (2-3 concurrent) | 64% |
+| Read/Edit ratio | 1.17 avg |
+| Median response time | 197.9s |
+
+### Model Distribution
+- **claude-opus-5**: ~35,848 messages (53.8%)
+- **claude-opus-4-6**: 18,965 messages (33.3%)
+- **claude-fable-5**: 12,869 messages (22.6%)
+- **claude-opus-4-8**: 7,873 messages (13.8%)
+- **claude-sonnet-5**: 2,972 messages (5.2%)
+- **claude-haiku-4-5-20251001**: 1,842 messages (3.2%)
+- **claude-sonnet-4-6**: 824 messages (1.4%)
+
+Model pairing observed: opus-5 dominant for execution (on target), fable 22.6% (still elevated from 2026-08-05 drift window; expected to decline as settings converge).
+
+### Tool Economics
+
+**Top tools by invocation count**:
+| Tool | Invocations | % of total |
+|------|------------|-----------|
+| Bash | 24,052 | 63% |
+| Edit | 8,978 | 23% |
+| Read | 7,661 | 20% |
+| Write | 1,899 | 5% |
+| Agent | 834 | 2% |
+| ToolSearch | 614 | 2% |
+
+**Skill usage (by context contribution)**:
+- `compact`: 2.3% (468 deploys, 182 sessions)
+- `grow`: 1.3% (533 invocations)
+- `wake`: 1.2% (587 invocations)
+- `dream`: 0.4% (614 invocations)
+- `model`: 0.4%
+- `execute`: 0.3%
+- `workflow-review`: 0.3%
+- `workflow-plan`: 0.3%
+
+**Top skills by invocation count** (45 skills active):
+- dream: 614, wake: 587, grow: 533, workflow-plan: 352, workflow-execute: 324, retro: 283, workflow-review: 260, workflow-refine: 233, workflow-research: 145, workflow-insights: 117
+
+**Skill coverage anomalies**:
+- `design-sprint`: 6 invocations (low relative to expected adoption)
+- `design-prototype`: 5 invocations
+- `design-system`: 9 invocations
+- `code-review`: 37 invocations (levels 2–3 broken; uses retired akira agent, still works at L1)
+- Never-invoked estimate: ~80 skills across global + repo contexts. Many are typos, paths, or repo-specific tools not yet triggered in this session window.
+
+**read:edit patterns**: 308 sessions below 1.0 ratio (editing without reading first). Average 1.17 reads per edit. Recommended: strengthen Edit tool pre-flight prompting.
+
+### Context Load Analysis
+
+**Always-loaded overhead** (~1.2% per session from rules/CLAUDE.md chain):
+- CLAUDE.md (global): ~2.5k tokens
+- CLAUDE.md (guacamayo repo): ~3.2k tokens
+- MEMORY.md (session memory): ~0.6k tokens
+- Rules (context-health.md, shell.md): ~0.8k tokens
+- Total prefix: ~7.1k tokens (typical session starts here)
+
+**Per-skill context additions** (median):
+- `/wake`: 0.8k tokens (discovery + seeds load)
+- `/grow`: 1.2k tokens (dashboard refresh + handover read)
+- `/dream`: 2.1k tokens (reflection write + growth accumulator)
+- Execution skills (code-*, workflow-*): 3–5k tokens (plan doc + relevant modules)
+- Subagent: 4–8k tokens (parent context expansion)
+
+**Hook overhead**: ~62 hook blocks logged (plan_status_validate primary enforcer, working as designed). Negligible context cost (~50 tokens per trigger).
+
+**Lazy-load recommendation**: Dimension scanner agents (12 × `.claude/agents/*.md`) load only on demand (review-cli dispatch). Not always-on. Profile benefit if loaded unconditionally.
+
+### Friction Patterns
+
+**Error Profile** (1,162 errors across 641 sessions):
+| Category | Count | % of errors | Example |
+|----------|-------|-------------|---------|
+| code (retry unknown) | 706 | 60.8% | command_failed (504), file_not_found (202) |
+| tool | 142 | 12.2% | blocked_by_hook (142) |
+| env | 89 | 7.7% | other (89) |
+| user (read_before_write) | 163 | 14.0% | advisory friction (not errors) |
+| user (explicit) | 62 | 5.3% | user_rejected |
+
+**File-not-found regression** (accelerating signal):
+- 2026-08-11: 141 errors
+- 2026-08-14: 202 errors (+61 in 3 days, +43%)
+- Hypothesis: concurrency race on multi-session reads, or stale git state. **R5 (file-resolution race) unresolved — accelerating.** Recommend immediate investigation.
+
+**Bash antipatterns** (18,894 total, 29.50/session):
+- Target: <12/session by 2026-08-20
+- Trend: slow improvement (was 29.18 on 2026-08-11)
+- Off-pace for target (needs 59% reduction in 6 days; running at ~1%/day)
+
+**Hook blocks** (142 total, 12.2% of errors):
+- plan_status_validate: majority (guard is working)
+- No false-positive signal — blocks are intentional (workflows catching spec violations before commit)
+
+**Long sessions without planning** (178 sessions, 28% of cohort):
+- Sessions >30 messages without `/workflow-plan` invocation
+- Trend: stable (not worsening, not improving)
+- Recommendation: strengthen discovery of when planning is beneficial
+
+**Typo invocations** (low but drifting):
+- `reserach` (research typo): 6 invocations
+- `work-flow-refine` (workflow typo): 4 invocations
+- `design-inistiative` style: 0 (none observed in this window)
+- Drift: 1.3% → 1.7% typo rate (10 total invocations; small population, watch trend)
+
+### Experiment Verdicts
+
+Checking active hypotheses from tooling-ledger.md:
+
+| Experiment | Metric | Verdict | Evidence |
+|------------|--------|---------|----------|
+| R1: Error taxonomy / cartographer retry seq | `ratio:errors-unknown-pct < 10% by 2026-08-15` | inconclusive | Unknown errors at 7.7% (parser carries no retry-sequence data; distinguishing transient from code requires enhancement) |
+| R2: Design skill adoption | `presence:design-skill-invoked in ≥1 session within 3 weeks` | failed | design-sprint: 6, design-prototype: 5, design-system: 9 (total 20 invocations across 641 sessions; 3% adoption rate; R2 verdict: failed at day-21) |
+| R3: Bash antipattern reduction | `count-drop:bash-antipatterns-per-session < 12 by 2026-08-20` | trending | 29.50/session (target 12); trend line at ~1% improvement/day; needs 59% reduction in remaining 6 days; off-pace |
+| R4: Context load optimization | `avg-session-max-context < 130k by 2026-08-25` | confirmed | 17% over 150k (target met; no regression) |
+| R5: File resolution race audit | `file-not-found-count < 50 by 2026-08-18` | failed | 202 file-not-found errors; far above target of 50; accelerating regression from 141 (2026-08-11) to 202 (+61 in 3 days) |
+| R8 F5: Fable leakage from non-verdict skills | `ratio:fable-tokens-in-non-verdict-skills < 5% by 2026-08-13` | trending | Fable 22.6% in mixed usage (improvement from drift window, post-fix convergence expected) |
+
+**Metric window notes**:
+- R2: 3-week adoption window closed (21 days from hypothesis onset ~2026-07-24). Verdict: failed. Recommend design-skill discovery/education.
+- R5: Critical — accelerating regression (43% growth in 3 days). Blocks several workflow hypotheses. Recommend **priority investigation** before 2026-08-18 deadline.
+
+### Trends vs 2026-08-11
+
+**Growth**:
+- Sessions: 596 → 641 (+45, +7.5% in 3 days; pace sustained)
+- Messages: 4,978 → 5,201 (+223, +4.5%)
+- Subagents: 844 → 912 (+68, +8%)
+
+**Stable**:
+- Context >150k: 17% (target met, no regression)
+- Cache hit: 96% (excellent)
+- Compacting adoption: 30% (179 sessions → ~182 estimated; strong discipline)
+- Model mix: opus 53.8%, fable 22.6%, other 23.6% (fable converging post-fix)
+- Messages/day: 160.6 → 167.8 (+7.2 msg/day, +4.5%)
+
+**Concerns**:
+- File-not-found: 141 → 202 (+61, **+43% in 3 days** — accelerating, R5 unresolved)
+- Bash antipatterns: 29.18 → 29.50 (flat, target velocity requires 59% drop by 2026-08-20)
+- Design skill adoption: 3% (R2 failed; zero growth despite v3 simplification)
+- Typo rate: 1.3% → 1.7% (small sample, watch for pattern)
+- Parallel sessions (2-3 concurrent): 64% (increased from prior; potential contention signal with file-not-found)
+
+### Session Health Verdict
+
+**Summary**: Healthy cost structure (cache 96%, context discipline on target) and sustained velocity (+7.5% sessions/3d). Cost levers remain: context load optimal, subagent concentration stable (33% share), compacting adoption solid (30%).
+
+**Critical concern**: File-not-found regression accelerating (R5 unresolved, 43% growth in 3 days). Likelihood: concurrency race on multi-session read-write patterns, or stale git state (65% of sessions are parallel 2–3 concurrent). Blocks R5 metric by 2026-08-18.
+
+**Secondary concerns**:
+- Design skill adoption zero (R2 failed, day-21 window closed)
+- Bash antipattern velocity off-pace (29.50/session, need 12 by 2026-08-20; requires 59% drop in 6 days)
+- Typo rate creeping (1.3% → 1.7%; small sample)
+
+**Recommended actions** (ranked by impact):
+1. **R5 Priority**: Investigate file-not-found regression (202 errors, +43% in 3 days). Check: concurrent session file-lock patterns, `git ls-files` drift on multi-session workflows, stale `.git/index` corruption. Metric goal: <50 by 2026-08-18.
+2. **R2 Education**: Design-skill adoption remains zero (3% invocation rate, R2 failed). Recommend: post-wake discovery prompts, design-sprint pre-loaded examples, surface to sessions that mention "design" or "architecture".
+3. **R3 Acceleration**: Bash antipattern velocity needs 59% drop by 2026-08-20 (currently 1%/day trend). Add hook enforcement rule that flags antipattern-heavy Bash invocations (e.g., >3 sequential pipes without intermediate Read).
+4. **Fable convergence**: Monitor fable leakage (22.6% in mixed usage). Settings fix applied 2026-08-05; expect convergence by 2026-08-18. Re-measure at next insights run.
+5. **Parallel contention**: 65% of sessions now 2–3 concurrent. Correlate file-not-found spike with parallelism increase (likely root cause). Recommend read-write serialization audit or per-session `.git` worktree isolation.
+
+---
