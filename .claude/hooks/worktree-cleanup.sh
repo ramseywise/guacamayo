@@ -25,10 +25,20 @@ leftover=$(git worktree list --porcelain 2>/dev/null \
 [ -z "$leftover" ] && exit 0
 
 removed=0
+kept=0
 for wt in $leftover; do
   case "$wt" in
     */.worktrees/*|*/agent-*)
-      if git worktree remove --force "$wt" 2>/dev/null; then
+      # Never --force. A worktree holding uncommitted work is live work, not
+      # residue — an agent that is still running looks identical to one that
+      # died. Removing it destroys the diff with no recovery path (GUA-116:
+      # three in-flight agent worktrees were force-removed mid-run).
+      if [ -n "$(git -C "$wt" status --porcelain 2>/dev/null)" ]; then
+        echo "Kept worktree with uncommitted changes: $wt"
+        kept=$((kept + 1))
+        continue
+      fi
+      if git worktree remove "$wt" 2>/dev/null; then
         removed=$((removed + 1))
       fi
       ;;
@@ -37,6 +47,9 @@ done
 
 if [ "$removed" -gt 0 ]; then
   echo "Cleaned up $removed leftover worktree(s)."
+fi
+if [ "$kept" -gt 0 ]; then
+  echo "Left $kept worktree(s) in place — uncommitted work."
 fi
 
 exit 0

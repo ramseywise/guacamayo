@@ -1,0 +1,62 @@
+settings.json change required — apply by hand
+==============================================
+
+Move review-verdict-gate.sh from PostToolUse to PreToolUse.
+
+CURRENT (lines ~151-160 in ~/.claude/settings.json):
+
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/review-verdict-gate.sh",
+            "timeout": 10,
+            "statusMessage": "Checking review verdict..."
+          },
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/todo_write_nudge.sh",
+            ...
+          }
+        ]
+      },
+
+PROPOSED — extract review-verdict-gate.sh into a new PreToolUse entry:
+
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/review-verdict-gate.sh",
+            "timeout": 10,
+            "statusMessage": "Checking review verdict..."
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/hooks/todo_write_nudge.sh",
+            "timeout": 5,
+            "statusMessage": "Counting session Bash calls..."
+          }
+        ]
+      },
+      ... (leave all other PostToolUse entries unchanged)
+
+Then copy ~/.claude/hooks/proposed/review-verdict-gate.sh
+over ~/.claude/hooks/review-verdict-gate.sh.
+
+The proposed hook sources lib.sh from $(dirname "$0")/lib.sh, which
+resolves correctly when it lives at ~/.claude/hooks/review-verdict-gate.sh
+next to ~/.claude/hooks/lib.sh.
