@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wiseer.guacamayo.board</string>
+
+    <!-- Board snapshot every 600s (GUA-118). Runs `uv run telemetry --board` via
+         telemetry-cron.sh: open issues + PRs + branch facts -> board.json.
+         RunAtLoad=true so a reboot repopulates the board immediately rather than
+         leaving a 10-minute hole where /wake reads stale (or missing) state.
+         Separate from the facts job: a board crash must not take facts down with it —
+         facts loss is irreversible (JSONL rotates in ~5 days); board loss is not. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/wiseer/workspace/guacamayo/scripts/telemetry-cron.sh</string>
+        <string>board</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/wiseer/workspace/guacamayo</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.err</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+<!-- INSTALL (Ramsey's step — not done by the agent):
+     mkdir -p ~/workspace/guacamayo/logs
+     cp scripts/com.wiseer.guacamayo.board.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.board.plist
+
+     To run immediately after install (forces first board.json write):
+     launchctl start com.wiseer.guacamayo.board
+
+     To verify the job is loaded and its exit code:
+     launchctl list | grep guacamayo
+
+     To stop (negative-test — /wake should then report STALE after 30+ min):
+     launchctl unload ~/Library/LaunchAgents/com.wiseer.guacamayo.board.plist
+
+     To push the telemetry-state signal branch (required for Step 6 Actions channel):
+     git push origin telemetry-state
+-->

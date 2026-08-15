@@ -354,6 +354,12 @@ def _run_board() -> None:
     The `skipped_repos` key is ALWAYS present in the output, even when empty. An absent
     key is indistinguishable from "no repos were skipped", which makes a truncated board
     presentable as a complete one.
+
+    Heartbeat (GUA-118): every run — including failures — records `started_at`,
+    `finished_at`, `exit`, and `duration_s` in the output so a stopped or crashed job
+    leaves evidence it tried. On failure a minimal envelope with `exit != 0` is written
+    atomically, so the reader sees the failure rather than a stale board from the last
+    successful run.
     """
     import argparse
     import json
@@ -386,6 +392,33 @@ def _run_board() -> None:
     )
     args = p.parse_args()
 
+    out_path = Path(args.out).expanduser()
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+
+    run_started = datetime.now(UTC)
+    started_at = run_started.isoformat()
+
+    def _write_failure_envelope(exc: BaseException, exit_code: int = 1) -> None:
+        """Write a minimal heartbeat-only board.json so failures are visible."""
+        finished = datetime.now(UTC)
+        envelope = {
+            "collected_at": started_at,
+            "repos_checked": [],
+            "skipped_repos": [],
+            "total_issues": 0,
+            "heartbeat": {
+                "started_at": started_at,
+                "finished_at": finished.isoformat(),
+                "exit": exit_code,
+                "duration_s": round((finished - run_started).total_seconds(), 2),
+                "error": str(exc),
+            },
+            "records": [],
+        }
+        tmp = out_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps(envelope, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp, out_path)
+
     workspace = Path(args.workspace).expanduser()
     repos = [r.strip() for r in args.repos.split(",") if r.strip()]
 
@@ -398,107 +431,123 @@ def _run_board() -> None:
     pr_fetch_ok_by_repo: dict[str, bool] = {}
     branch_facts_by_repo: dict[str, list[BranchFact]] = {}
 
-    for repo in repos:
-        root = workspace / repo
+    try:
+        for repo in repos:
+            root = workspace / repo
 
-        # Branch facts
-        if root.is_dir():
-            branch_facts_by_repo[repo] = _collect_branch_facts(repo, root)
-        else:
-            branch_facts_by_repo[repo] = []
-
-        # Issues
-        issues = _fetch_issues_with_bodies(repo)
-
-        # Distinguish "no open issues" from "gh failed" by probing the repo if empty
-        fetch_failed = False
-        if not issues:
-            # Quick existence check: gh repo view returns 0 even for repos with no issues
-            if not shutil.which("gh"):
-                fetch_failed = True
+            # Branch facts
+            if root.is_dir():
+                branch_facts_by_repo[repo] = _collect_branch_facts(repo, root)
             else:
-                try:
-                    probe = subprocess.run(
-                        ["gh", "repo", "view", f"ramseywise/{repo}"],
-                        capture_output=True,
-                        text=True,
-                        timeout=15,
-                        check=False,
-                    )
-                    fetch_failed = probe.returncode != 0
-                except (subprocess.SubprocessError, OSError):
+                branch_facts_by_repo[repo] = []
+
+            # Issues
+            issues = _fetch_issues_with_bodies(repo)
+
+            # Distinguish "no open issues" from "gh failed" by probing the repo if empty
+            fetch_failed = False
+            if not issues:
+                # Quick existence check: gh repo view returns 0 even for repos with no issues
+                if not shutil.which("gh"):
                     fetch_failed = True
+                else:
+                    try:
+                        probe = subprocess.run(
+                            ["gh", "repo", "view", f"ramseywise/{repo}"],
+                            capture_output=True,
+                            text=True,
+                            timeout=15,
+                            check=False,
+                        )
+                        fetch_failed = probe.returncode != 0
+                    except (subprocess.SubprocessError, OSError):
+                        fetch_failed = True
 
-        if fetch_failed:
-            skipped_repos.append({"repo": repo, "reason": "gh issue fetch failed"})
-            log.warning("board.issue_fetch_failed", repo=repo)
-            continue
+            if fetch_failed:
+                skipped_repos.append({"repo": repo, "reason": "gh issue fetch failed"})
+                log.warning("board.issue_fetch_failed", repo=repo)
+                continue
 
-        # PRs for board
-        prs = _fetch_prs_for_board(repo)
-        pr_ok = True
-        if not prs:
-            # Same probe: distinguish "no PRs" from "gh pr fetch failed"
-            if not shutil.which("gh"):
-                pr_ok = False
-            else:
-                try:
-                    probe = subprocess.run(
-                        ["gh", "repo", "view", f"ramseywise/{repo}"],
-                        capture_output=True,
-                        text=True,
-                        timeout=15,
-                        check=False,
-                    )
-                    pr_ok = probe.returncode == 0
-                except (subprocess.SubprocessError, OSError):
+            # PRs for board
+            prs = _fetch_prs_for_board(repo)
+            pr_ok = True
+            if not prs:
+                # Same probe: distinguish "no PRs" from "gh pr fetch failed"
+                if not shutil.which("gh"):
                     pr_ok = False
+                else:
+                    try:
+                        probe = subprocess.run(
+                            ["gh", "repo", "view", f"ramseywise/{repo}"],
+                            capture_output=True,
+                            text=True,
+                            timeout=15,
+                            check=False,
+                        )
+                        pr_ok = probe.returncode == 0
+                    except (subprocess.SubprocessError, OSError):
+                        pr_ok = False
 
-        if not pr_ok:
-            skipped_repos.append({"repo": repo, "reason": "gh PR fetch failed"})
-            log.warning("board.pr_fetch_failed", repo=repo)
-            # Still include issues but mark pr_fetch_ok=False so derivation uses undetermined
-            pr_fetch_ok_by_repo[repo] = False
-        else:
-            pr_fetch_ok_by_repo[repo] = True
+            if not pr_ok:
+                skipped_repos.append({"repo": repo, "reason": "gh PR fetch failed"})
+                log.warning("board.pr_fetch_failed", repo=repo)
+                # Still include issues but mark pr_fetch_ok=False so derivation uses undetermined
+                pr_fetch_ok_by_repo[repo] = False
+            else:
+                pr_fetch_ok_by_repo[repo] = True
 
-        prs_by_repo[repo] = prs
-        all_issues.extend(issues)
-        repos_checked.append(repo)
+            prs_by_repo[repo] = prs
+            all_issues.extend(issues)
+            repos_checked.append(repo)
 
-    if not all_issues:
-        exc = EmptyInputError(
-            f"no issues fetched across {len(repos)} repos — refusing to write a board "
-            "on what is almost certainly a gh failure"
-        )
+        if not all_issues:
+            exc = EmptyInputError(
+                f"no issues fetched across {len(repos)} repos — refusing to write a board "
+                "on what is almost certainly a gh failure"
+            )
+            _write_failure_envelope(exc)
+            print(f"FATAL: {exc}", file=sys.stderr)
+            raise SystemExit(1) from exc
+
+        plans = collect_plan_docs(workspace)
+        plan_issues = {(d.repo, d.issue) for d in plans if d.issue is not None}
+
+        now_ts = datetime.now(UTC).isoformat()
+
+        records: list[board_module.BoardRecord] = []
+        for issue in all_issues:
+            repo = str(issue.get("repo") or "")
+            record = board_module.derive_column(
+                issue=issue,
+                prs_for_repo=prs_by_repo.get(repo, []),
+                branch_facts_for_repo=branch_facts_by_repo.get(repo, []),
+                plan_issues=plan_issues,
+                pr_fetch_ok=pr_fetch_ok_by_repo.get(repo, True),
+                collected_at=now_ts,
+            )
+            records.append(record)
+
+        run_finished = datetime.now(UTC)
+        heartbeat = {
+            "started_at": started_at,
+            "finished_at": run_finished.isoformat(),
+            "exit": 0,
+            "duration_s": round((run_finished - run_started).total_seconds(), 2),
+            "error": None,
+        }
+
+        payload = board_module.to_board_json(records, skipped_repos, repos_checked, heartbeat)
+
+        tmp_path = out_path.with_suffix(".tmp")
+        tmp_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        os.replace(tmp_path, out_path)  # atomic
+
+    except SystemExit:
+        raise  # already handled above — failure envelope written before SystemExit
+    except Exception as exc:
+        _write_failure_envelope(exc)
         print(f"FATAL: {exc}", file=sys.stderr)
         raise SystemExit(1) from exc
-
-    plans = collect_plan_docs(workspace)
-    plan_issues = {(d.repo, d.issue) for d in plans if d.issue is not None}
-
-    now_ts = datetime.now(UTC).isoformat()
-
-    records: list[board_module.BoardRecord] = []
-    for issue in all_issues:
-        repo = str(issue.get("repo") or "")
-        record = board_module.derive_column(
-            issue=issue,
-            prs_for_repo=prs_by_repo.get(repo, []),
-            branch_facts_for_repo=branch_facts_by_repo.get(repo, []),
-            plan_issues=plan_issues,
-            pr_fetch_ok=pr_fetch_ok_by_repo.get(repo, True),
-            collected_at=now_ts,
-        )
-        records.append(record)
-
-    payload = board_module.to_board_json(records, skipped_repos, repos_checked)
-
-    out_path = Path(args.out).expanduser()
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = out_path.with_suffix(".tmp")
-    tmp_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
-    os.replace(tmp_path, out_path)  # atomic
 
     # Column breakdown for coverage line
     col_counts: dict[str, int] = {}

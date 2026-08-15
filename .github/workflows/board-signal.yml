@@ -1,0 +1,104 @@
+name: board-signal
+
+# Append a JSON signal line to the orphan `telemetry-state` branch when a PR or
+# issue event fires. The local board tick shallow-fetches this branch and folds
+# signals.jsonl into the `signals` array so remote events reach the board without
+# requiring a live gh sweep.
+#
+# Orphan branch, not main, so signal commits never pollute the commit graph.
+# Signals accumulate rather than being lost: chosen over repository_dispatch
+# because the events API is best-effort with retention limits — a job stopped
+# over a weekend would silently lose events, which is the exact failure class
+# this issue exists to prevent (see GUA-118 plan, OQ 3).
+#
+# Guard against dependabot: dependabot PRs already have their own workflow and
+# would otherwise write a signal commit per dependency bump. The board tracks
+# Ramsey's work, not bot churn.
+
+on:
+  pull_request:
+    types: [opened, closed, reopened]
+  issues:
+    types: [opened, closed, labeled, reopened]
+
+concurrency:
+  group: board-signal
+  cancel-in-progress: false  # never cancel — each signal is a unique event
+
+permissions:
+  contents: write
+
+jobs:
+  signal:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout telemetry-state branch
+        uses: actions/checkout@v4
+        with:
+          ref: telemetry-state
+          fetch-depth: 1
+
+      - name: Append signal line and commit
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_ACTION: ${{ github.event.action }}
+          ACTOR: ${{ github.actor }}
+          REPO: ${{ github.repository }}
+          # PR fields (empty for issues events)
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          # Issue fields (empty for PR events)
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          COLLECTED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          jq -nc \
+            --arg event      "$EVENT_NAME" \
+            --arg action     "$EVENT_ACTION" \
+            --arg actor      "$ACTOR" \
+            --arg repo       "$REPO" \
+            --arg pr_number  "$PR_NUMBER" \
+            --arg pr_title   "$PR_TITLE" \
+            --arg issue_num  "$ISSUE_NUMBER" \
+            --arg issue_title "$ISSUE_TITLE" \
+            --arg collected_at "$COLLECTED_AT" \
+            '{
+              event: $event,
+              action: $action,
+              actor: $actor,
+              repo: $repo,
+              pr_number: (if $pr_number != "" then ($pr_number | tonumber) else null end),
+              pr_title: (if $pr_title != "" then $pr_title else null end),
+              issue_number: (if $issue_num != "" then ($issue_num | tonumber) else null end),
+              issue_title: (if $issue_title != "" then $issue_title else null end),
+              collected_at: $collected_at
+            }' >> signals.jsonl
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add signals.jsonl
+          git commit -m "signal: $EVENT_NAME/$EVENT_ACTION at $COLLECTED_AT"
+
+      - name: Push with retry on concurrent conflict
+        # Two events racing would lose one without a retry loop. This retries
+        # up to 3 times with a short back-off; conflicts resolve by rebase.
+        run: |
+          pushed=0
+          for attempt in 1 2 3; do
+            if git push origin telemetry-state; then
+              echo "Push succeeded on attempt $attempt"
+              pushed=1
+              break
+            fi
+            echo "Push failed (attempt $attempt), rebasing and retrying..."
+            git fetch origin telemetry-state
+            git rebase origin/telemetry-state
+          done
+          # Without this, the step's exit code is the last `git rebase`'s — almost
+          # always 0 — so three failed pushes report GREEN and the signal is lost
+          # silently. That is the exact failure class this issue exists to prevent.
+          if [ "$pushed" -ne 1 ]; then
+            echo "::error::signal push failed after 3 attempts — event lost"
+            exit 1
+          fi
