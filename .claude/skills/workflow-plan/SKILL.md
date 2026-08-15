@@ -59,6 +59,11 @@ The active doc is the `.claude/docs/plans/` file matching the slug, else the mos
 1. Read the active doc's `## Research` section. If no doc exists, create one: `.claude/docs/plans/$DATE-$SLUG.md` (`YYYY-MM-DD`; prefix slug with `lin-<id>-` when a Linear issue exists) with a `Status: PLANNED` line. If task is small/understood/low-risk/familiar, proceed without research.
 2. Run `git status` and `uv run pytest --tb=no -q` for baseline.
 3. Read every file that will be touched before specifying changes.
+4. **Golden set (agent projects only)**: if the target repo has `data/evals/` AND
+   DESIGN.md § Behavioral Cases has non-placeholder rows, author the golden set before
+   the plan's steps are considered complete. Read
+   `references/golden-set-authoring.md` and write `data/evals/cases.jsonl`. Skip
+   silently for repos without `data/evals/` — this is not a universal phase.
 
 Append `## Plan` to the active doc. No SESSION.md — the dated filename and `Status:` line are the index.
 
