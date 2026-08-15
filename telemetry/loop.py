@@ -68,6 +68,9 @@ _ISSUE_FIELD_RE = re.compile(r"^[ \t]*(?:\*\*)?Issues?(?:\*\*)?:[ \t]*(.*)$")
 # a URL at all, and an ordered alternation keeps a `.../issues/42#issuecomment-99` link
 # resolving to the issue rather than the comment anchor.
 _ISSUE_NUM_RE = re.compile(r"(?:/issues/(\d+))|#(\d+)")
+# `#4 (phase 3)` — a plan executing one phase of a multi-phase issue legitimately leaves
+# the issue open; suppressing drift for these avoids false-positive terminal-plan rows.
+_PHASE_QUALIFIER_RE = re.compile(r"\(phase\s+(\d+)\)", re.IGNORECASE)
 
 # `AIT-22-research.md` -> ("AIT", 22)
 _FILENAME_REF_RE = re.compile(r"^([A-Z]{2,4})-(\d+)")
@@ -92,6 +95,7 @@ class PlanDoc:
     issue: int | None  # joined issue number, when derivable
     has_status: bool = False  # a Status: line exists, whatever it says
     missing_field: str = ""  # companion field the status requires but the doc lacks
+    phase: int | None = None  # `(phase N)` qualifier on the Issue: line, when present
 
     @property
     def conforming(self) -> bool:
@@ -159,7 +163,7 @@ def parse_plan_doc(path: Path, repo: str) -> PlanDoc:
     if required and not any(_field_re(required).match(ln) for ln in lines):
         missing = required
 
-    issue = _extract_issue(lines, path.name)
+    issue, phase = _extract_issue(lines, path.name)
     return PlanDoc(
         path=str(path),
         repo=repo,
@@ -168,11 +172,15 @@ def parse_plan_doc(path: Path, repo: str) -> PlanDoc:
         issue=issue,
         has_status=has_status,
         missing_field=missing,
+        phase=phase,
     )
 
 
-def _extract_issue(lines: list[str], filename: str) -> int | None:
-    """Issue number from an `Issue:` field, else from a `PREFIX-N-` filename.
+def _extract_issue(lines: list[str], filename: str) -> tuple[int | None, int | None]:
+    """Issue number (and optional phase qualifier) from an `Issue:` field or filename.
+
+    Returns ``(issue_number, phase)`` where ``phase`` is the integer from a
+    ``(phase N)`` qualifier, or ``None`` when absent.
 
     The field is matched in both live shapes: the shorthand (`#42`,
     `ramseywise/librarian#42`) and the full URL the plan-header convention writes
@@ -185,17 +193,25 @@ def _extract_issue(lines: list[str], filename: str) -> int | None:
     filename is also uninformative, and treating it as such loses a joinable doc
     silently — the failure mode this module exists to report.
 
+    The phase qualifier is only parsed from the `Issue:` field (not from filenames),
+    because filenames carry no phase information and the qualifier is meaningful only
+    when it accompanies a specific issue reference.
+
     Docs carrying neither shape simply do not join. That is reported as coverage
     rather than papered over — an unjoinable doc is not drift.
     """
     for line in lines:
         m = _ISSUE_FIELD_RE.match(line)
         if m:
-            for url_num, hash_num in _ISSUE_NUM_RE.findall(m.group(1)):
-                return int(url_num or hash_num)
+            field_value = m.group(1)
+            for url_num, hash_num in _ISSUE_NUM_RE.findall(field_value):
+                issue_num = int(url_num or hash_num)
+                phase_m = _PHASE_QUALIFIER_RE.search(field_value)
+                phase = int(phase_m.group(1)) if phase_m else None
+                return issue_num, phase
             break
     m = _FILENAME_REF_RE.match(filename)
-    return int(m.group(2)) if m else None
+    return (int(m.group(2)), None) if m else (None, None)
 
 
 def collect_plan_docs(workspace: Path) -> list[PlanDoc]:
@@ -277,6 +293,10 @@ def detect_drift(docs: list[PlanDoc], issues: list[dict[str, Any]]) -> list[Drif
         label = ", ".join(workflow) if workflow else "(none)"
 
         if doc.status in TERMINAL_STATUSES and state == "OPEN":
+            if doc.phase is not None:
+                # A plan executing phase N of a multi-phase issue legitimately leaves
+                # the issue open — later phases are still pending. Not drift.
+                continue
             drifts.append(
                 Drift(
                     repo=doc.repo,

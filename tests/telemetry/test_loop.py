@@ -363,3 +363,68 @@ def test_non_conforming_selects_only_bad_docs() -> None:
         path="r/b.md", repo="r", status="IN", suffix="PROGRESS", issue=None, has_status=True
     )
     assert loop.non_conforming([good, bad]) == [bad]
+
+
+# --- phase qualifier: suppresses false-positive terminal-plan drift --------------------
+
+
+def test_phase_qualifier_parses_from_issue_field(tmp_path: Path) -> None:
+    """``(phase 3)`` on the Issue: line sets doc.phase."""
+    doc = loop.parse_plan_doc(
+        _write(tmp_path, "a.md", "Status: EXECUTED\nReview: done\nIssue: #4 (phase 3)\n"),
+        "repo",
+    )
+    assert doc.issue == 4
+    assert doc.phase == 3
+
+
+def test_no_phase_qualifier_leaves_phase_none(tmp_path: Path) -> None:
+    """A plain ``Issue: #4`` carries no phase."""
+    doc = loop.parse_plan_doc(
+        _write(tmp_path, "a.md", "Status: EXECUTED\nReview: done\nIssue: #4\n"),
+        "repo",
+    )
+    assert doc.issue == 4
+    assert doc.phase is None
+
+
+def test_terminal_plan_with_open_issue_fires_without_phase() -> None:
+    """NEGATIVE TEST (change 2): the existing drift rule must still fire when no phase qualifier.
+
+    This is the pre-condition test: the suppression must not be so broad that it
+    swallows genuine drift where the phase qualifier is absent.
+    """
+    # Plain EXECUTED plan, no phase qualifier — should produce drift
+    doc = loop.PlanDoc(
+        path="r/p.md", repo="r", status="EXECUTED", suffix="", issue=1, has_status=True, phase=None
+    )
+    drifts = loop.detect_drift([doc], [_issue("OPEN")])
+    assert len(drifts) == 1
+    assert "still open" in drifts[0].reason
+
+
+def test_terminal_plan_with_open_issue_suppressed_by_phase_qualifier() -> None:
+    """NEGATIVE TEST (change 2): EXECUTED + open issue + phase qualifier must NOT produce drift.
+
+    This is the galactus/context-engineering-space shape: ``Status: EXECUTED`` on a plan
+    that declares ``Issue: #4 (phase 3)`` — the issue is legitimately open because phases
+    1 and 2 remain pending. Before this fix, detect_drift flagged it as drift.
+    """
+    doc = loop.PlanDoc(
+        path="r/p.md", repo="r", status="EXECUTED", suffix="", issue=4, has_status=True, phase=3
+    )
+    drifts = loop.detect_drift([doc], [_issue("OPEN", number=4)])
+    assert drifts == [], "phase-qualified plan must not produce drift against its open issue"
+
+
+def test_phase_qualifier_does_not_suppress_non_terminal_closed_issue_drift() -> None:
+    """Phase qualifier only suppresses terminal-plan/open-issue, not the reverse direction.
+
+    A non-terminal plan (PLANNED) whose issue is closed is still drift regardless of any
+    phase qualifier — the issue closing is the signal that work finished.
+    """
+    doc = loop.PlanDoc(
+        path="r/p.md", repo="r", status="PLANNED", suffix="", issue=4, has_status=True, phase=2
+    )
+    drifts = loop.detect_drift([doc], [_issue("CLOSED", number=4)])
+    assert len(drifts) == 1
