@@ -231,6 +231,15 @@ def render_report(data: dict) -> str:
         except (ValueError, TypeError, KeyError) as exc:
             parse_errors.append(str(exc))
 
+    # Pre-existing findings — rendered under a separate heading, never in verdict.
+    raw_pre_existing: list[dict] = data.get("pre_existing_findings", [])
+    pre_existing_findings: list[ReviewFinding] = []
+    for raw in raw_pre_existing:
+        try:
+            pre_existing_findings.append(ReviewFinding.model_validate(raw))
+        except (ValueError, TypeError, KeyError):
+            pass  # best-effort; parse errors here don't affect the verdict
+
     sorted_findings = _sort_findings(findings)
 
     # Header
@@ -268,6 +277,20 @@ def render_report(data: dict) -> str:
     if wander_questions:
         q_lines = "\n".join(f"- {q}" for q in wander_questions)
         sections.append(f"## Open Questions (Wander)\n\n{q_lines}")
+
+    # Pre-existing findings — not introduced by this branch, never block merge
+    if pre_existing_findings:
+        pe_sorted = _sort_findings(pre_existing_findings)
+        pe_detail_blocks = [_render_finding_detail(f) for f in pe_sorted]
+        pre_note = (
+            f"_{len(pre_existing_findings)} finding(s) in files touched by this branch "
+            "but not on lines it introduced. These are **not counted in the verdict** — "
+            "they existed before this branch._"
+        )
+        sections.append(
+            f"## Pre-Existing Findings ({len(pre_existing_findings)})\n\n"
+            f"{pre_note}\n\n" + "\n".join(pe_detail_blocks)
+        )
 
     # DoD assessment
     if dod:

@@ -1,5 +1,5 @@
 {
-  "issues_checked": 17,
+  "issues_checked": 9,
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -13,34 +13,41 @@
     "sisyphus"
   ],
   "coverage": {
-    "unmatchable_plans": 100
+    "unmatchable_plans": 103
   },
   "counts_by_kind": {
     "label-artifact": 1,
-    "plan-issue-drift": 2
+    "plan-issue-drift": 3
   },
-  "total": 3,
+  "total": 4,
   "inconsistencies": [
     {
       "kind": "label-artifact",
-      "repo": "sisyphus",
-      "issue": 33,
+      "repo": "learn-ai-engineering",
+      "issue": 106,
       "detail": "labelled `ready`",
       "evidence": "no plan doc joins to this issue (ready implies DoR passed)"
     },
     {
       "kind": "plan-issue-drift",
-      "repo": "guacamayo",
-      "issue": 103,
-      "detail": "plan 2026-08-12-wake-consistency-check.md reads EXECUTED",
-      "evidence": "plan is EXECUTED but issue is still open (labels: ready)"
+      "repo": "galactus",
+      "issue": 4,
+      "detail": "plan 2026-08-14-context-engineering-space.md reads EXECUTED",
+      "evidence": "plan is EXECUTED but issue is still open (labels: (none))"
     },
     {
       "kind": "plan-issue-drift",
       "repo": "guacamayo",
-      "issue": 104,
-      "detail": "plan 2026-08-12-dashboard-time-buckets.md reads IN_PROGRESS",
-      "evidence": "plan is IN_PROGRESS but issue is not labelled in-progress/in-review (labels: ready)"
+      "issue": 109,
+      "detail": "plan 2026-08-14-gua-109-occurrence-date.md reads EXECUTED",
+      "evidence": "plan is EXECUTED but issue is still open (labels: refinement)"
+    },
+    {
+      "kind": "plan-issue-drift",
+      "repo": "guacamayo",
+      "issue": 111,
+      "detail": "plan 2026-08-14-gua-111-review-field-discrimination.md reads EXECUTED",
+      "evidence": "plan is EXECUTED but issue is still open (labels: backlog)"
     }
   ]
 }

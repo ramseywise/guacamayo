@@ -62,6 +62,10 @@ import structlog
 
 log = structlog.get_logger(__name__)
 
+# `{PREFIX}-{NUM}-{slug}` — the planned-branch convention.  bug/* and spike/* branches
+# are out of scope and must be skipped explicitly, not checked and quietly passed.
+_BRANCH_CONVENTION_RE = re.compile(r"^([A-Z]{2,4})-(\d+)-")
+
 # WIP limit from wake/SKILL.md:124 and ~/.claude/refs/agile.md.
 WIP_LIMIT = 3
 
@@ -83,6 +87,26 @@ class Inconsistency:
     def __post_init__(self) -> None:
         if not self.evidence.strip():
             raise ValueError(f"Inconsistency({self.kind}) requires non-empty evidence")
+
+
+@dataclass(frozen=True)
+class BranchFact:
+    """Pre-computed merge-state fact for one branch in one repo.
+
+    `is_ancestor` is:
+      - ``True``  — the branch tip is an ancestor of ``origin/main`` (i.e. merged)
+      - ``False`` — the branch tip is NOT an ancestor (i.e. not yet merged)
+      - ``None``  — the question could not be asked (origin/main did not resolve,
+                    the repo has no remote, or git is absent); this is not a pass.
+
+    The caller (`__main__._collect_branch_facts`) owns all subprocess I/O; this
+    dataclass is the pure-function boundary.
+    """
+
+    repo: str
+    branch: str
+    issue_num: int  # parsed from the branch name via _BRANCH_CONVENTION_RE
+    is_ancestor: bool | None  # None = could not determine; never silently "clean"
 
 
 def check_label_artifact(
@@ -165,6 +189,85 @@ def check_label_artifact(
     return found
 
 
+def check_merged_branch_open_issue(
+    branch_facts: list[BranchFact],
+    issues: list[dict[str, Any]],
+) -> list[Inconsistency]:
+    """Branches whose tip is already an ancestor of origin/main while their issue is open.
+
+    A branch merged to main and an open issue are not inherently inconsistent — but
+    together they mean a board claim ("work in progress") is contradicted by a git fact
+    ("the branch already landed"). This is the highest-yield check on the board and
+    historically produced zero false positives (unlike path checking, which was removed
+    for the inverse reason — see the module docstring).
+
+    Two "could not evaluate" shapes produce their own finding rather than a silent pass:
+
+    * ``is_ancestor is None`` — origin/main did not resolve for this repo.  An empty
+      result from a git command that could not run reads as "nothing wrong", which is the
+      librarian#60 failure shape.  Non-resolution is reported once per repo, not once per
+      branch.
+
+    Branch scope: only branches matching ``{PREFIX}-{NUM}-{slug}``.  ``bug/*``,
+    ``spike/*``, ``main``, and bare feature names are skipped and counted; the skip count
+    is logged so the caller can distinguish "no findings" from "nothing was checked".
+    """
+    # Build (repo, issue_num) -> issue state index
+    open_issues: set[tuple[str, int]] = set()
+    for issue in issues:
+        if (issue.get("state") or "").upper() == "OPEN":
+            repo = str(issue.get("repo") or "")
+            num = issue.get("number")
+            if num is not None:
+                open_issues.add((repo, num))
+
+    found: list[Inconsistency] = []
+    resolution_failures: set[str] = set()  # repos where origin/main did not resolve
+    skipped = 0
+
+    for bf in branch_facts:
+        if bf.is_ancestor is None:
+            resolution_failures.add(bf.repo)
+            continue
+
+        if not bf.is_ancestor:
+            continue  # branch not merged — nothing to flag
+
+        # Branch is merged. Flag if the issue is still open.
+        if (bf.repo, bf.issue_num) in open_issues:
+            found.append(
+                Inconsistency(
+                    kind="merged-branch-open-issue",
+                    repo=bf.repo,
+                    issue=bf.issue_num,
+                    detail=f"branch `{bf.branch}` is an ancestor of origin/main",
+                    evidence=f"{bf.repo}#{bf.issue_num} is still OPEN after branch merged",
+                )
+            )
+
+    for repo in sorted(resolution_failures):
+        found.append(
+            Inconsistency(
+                kind="merged-branch-open-issue",
+                repo=repo,
+                issue=None,
+                detail="origin/main did not resolve",
+                evidence=(
+                    f"could not evaluate merged-branch/open-issue for {repo}: "
+                    "origin/main ref unresolvable — branch ancestry check skipped"
+                ),
+            )
+        )
+
+    log.info(
+        "consistency.merged_branch",
+        found=len(found),
+        skipped=skipped,
+        resolution_failures=len(resolution_failures),
+    )
+    return found
+
+
 _CLOSES_RE = re.compile(r"(?:closes|fixes|resolves)\s+#(\d+)", re.IGNORECASE)
 _HASH_RE = re.compile(r"#(\d+)")
 
@@ -196,6 +299,10 @@ def to_report(
     empty *without* the board being clean: no issues fetched, plans that join to
     no issue. A consumer that renders only `inconsistencies` can present a broken
     run as a clean one.
+
+    ``unmatchable_plans`` is promoted to a top-level key alongside ``total`` and
+    ``issues_checked`` so that a wake rendering only those three fields cannot hide
+    a corpus where 103 of 112 plans were unevaluable behind "0 findings".
     """
     by_kind: dict[str, int] = {}
     for item in inconsistencies:
@@ -203,6 +310,7 @@ def to_report(
 
     return {
         "issues_checked": issues_checked,
+        "unmatchable_plans": unmatchable_plans,
         "repos_checked": sorted(repos_checked),
         "coverage": {
             "unmatchable_plans": unmatchable_plans,

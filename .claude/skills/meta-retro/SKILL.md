@@ -108,15 +108,45 @@ Read what exists; skip gracefully what doesn't. Note which sources you actually 
    from telemetry.recurrence import compute_recurrence
    f = [json.loads(l) for l in open('.claude/docs/review-findings.jsonl') if l.strip()]
    for g in compute_recurrence(f):
-       if g.promotable:
-           print(f'{g.pattern_key}\tn={g.count}\trepos={g.repos}\t{g.first_seen}->{g.last_seen}\t{g.sample_titles}')
+       if g.promotable or g.direction != 'flat':
+           signal = '+'.join(filter(None, [
+               g.direction if g.direction != 'flat' else '',
+               'promotable' if g.promotable else '',
+           ])) or 'flat'
+           print(f'{g.pattern_key}\t[{signal}]\tn={g.count}\tby_period={g.period_counts}\trepos={g.repos}\t{g.first_seen}->{g.last_seen}\t{g.sample_titles}')
    "
    ```
 
-   Every group with `promotable: true` (count >= `RECURRENCE_THRESHOLD`, currently 3)
-   is a **candidate finding automatically** — no judgement call about whether it recurs;
-   the count already decided that. Carry the group's `pattern_key` into the finding so
-   the report and the ledger row are traceable back to the corpus.
+   A group is a **candidate finding automatically** if it is `promotable` **or** `rising`
+   — no judgement call about whether it recurs; the signal already decided that. A `falling`
+   group is not a candidate, but report it: it is evidence a past intervention worked. Carry the
+   group's `pattern_key` **and which signal fired** into the finding so the report and the
+   ledger row are traceable back to the corpus.
+
+   The two signals answer different questions and are **not** interchangeable:
+
+   | Signal | Means | Reads |
+   |---|---|---|
+   | `promotable` | count >= `RECURRENCE_THRESHOLD` (3) — has happened enough to matter | lifetime total |
+   | `direction` | which way the recent trend runs — `rising` \| `flat` \| `falling` | recent trend |
+
+   `direction` is computed on the most recent **complete** week against the mean of the 3
+   weeks before it (`rising`: > 1.5× and >= 3 absolute; `falling`: < that mean ÷ 1.5, with a
+   prior mean of at least 3 so a trailing-off one-off is not called an improvement; `flat`
+   otherwise). `group.rising` remains available as a boolean view of `direction == "rising"`.
+
+   - A **rising** group is a candidate finding **automatically** — it is getting worse now.
+     Rising but not yet `promotable` is a friction *starting* to bite: propose a cheaper
+     intervention (a warn-hook, not a rule) and set a shorter metric window.
+   - A **falling** group is being fixed. Say so, rather than re-proposing last window's hook.
+   - A **flat** + `promotable` group has plateaued — the count is real but nothing is moving.
+
+   **Findings carry `occurred` (GUA-109), so `rising` is evidence.** Recurrence buckets on
+   each finding's occurrence date — when the cited code was last touched — not on the date
+   its review run happened to fire. This replaces the GUA-104b caveat: run dates were bursty
+   (85 of 125 rows shared `2026-08-04`), so every promotable group used to read as rising and
+   the flag carried no information. Rows whose `occurred_source` is `run` had no resolvable
+   checkout and fall back to the run date — treat those as undated for trend purposes.
 
    **Read the report, not the rotating pass log** (D5). `.hook-pass-log.jsonl` rotates on
    roughly a five-day window, so counting against it silently undercounts anything older —
@@ -142,6 +172,7 @@ Per finding, emit exactly this shape:
 - Enforcement level: hook | skill/protocol | CLAUDE.md/rules | MEMORY.md
 - Metric: <type>:<signal> <threshold> (see ledger Experiment Tracking section for types)
 - Pattern key: <recurrence pattern_key, or — if not from the recurrence report>
+- Recurrence signal: promotable | rising | falling | rising+promotable | falling+promotable | — (see Step 1.6)
 - Promotion target: warn-hook | skill | rule | ledger-only
 - Hook template (if warn-hook): <full fenced hook script, ready for human review>
 - Deploy: PROPOSED — Ramsey applies. This loop never writes ~/.claude/hooks/ or settings.json.

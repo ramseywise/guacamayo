@@ -12,6 +12,7 @@ Ported from ramseywise/librarian tools/cartographer/__main__.py:147-458 (`_run_f
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 from typing import Any
 
 from telemetry.log_config import configure_logging
@@ -162,6 +163,122 @@ def _fetch_open_prs(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]
     ]
 
 
+def _collect_branch_facts(
+    repo: str,
+    repo_root: Path,
+) -> list[Any]:
+    """Pre-compute merge-state facts for all convention-matching branches in one repo.
+
+    Runs ``git branch -r`` to list remote branches, then
+    ``git merge-base --is-ancestor`` against ``origin/main`` for each matching one.
+    Returns a list of ``BranchFact`` objects.
+
+    Non-resolution of ``origin/main`` (the galactus case before 2026-08-14 when the
+    default branch was not main) yields BranchFacts with ``is_ancestor=None`` for
+    every matching branch — the caller turns those into explicit findings rather than
+    silent passes.
+
+    All exceptions are caught: this runs across 10 repos and must not abort on a repo
+    that is missing, has no remote, or has a detached HEAD.
+    """
+    import subprocess
+
+    from telemetry.consistency import _BRANCH_CONVENTION_RE, BranchFact
+
+    if not repo_root.is_dir():
+        return []
+
+    # Verify origin/main resolves before running any per-branch queries.
+    try:
+        verify = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "--verify", "--quiet", "origin/main"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        main_resolves = verify.returncode == 0 and bool(verify.stdout.strip())
+    except (subprocess.SubprocessError, OSError):
+        main_resolves = False
+
+    # List remote branches.
+    try:
+        out = subprocess.run(
+            ["git", "-C", str(repo_root), "branch", "-r", "--format=%(refname:short)"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        branch_lines = out.stdout.splitlines() if out.returncode == 0 else []
+    except (subprocess.SubprocessError, OSError):
+        branch_lines = []
+
+    # Also check local branches — a branch that has never been pushed still matters.
+    try:
+        out_local = subprocess.run(
+            ["git", "-C", str(repo_root), "branch", "--format=%(refname:short)"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+            check=False,
+        )
+        local_lines = out_local.stdout.splitlines() if out_local.returncode == 0 else []
+    except (subprocess.SubprocessError, OSError):
+        local_lines = []
+
+    # Strip remote prefix (e.g. "origin/GUA-114-foo" -> "GUA-114-foo")
+    seen_names: set[str] = set()
+    branch_names: list[str] = []
+    for raw in branch_lines + local_lines:
+        name = raw.strip()
+        # Strip "origin/" prefix from remote refs
+        name = name.removeprefix("origin/")
+        if name in ("main", "HEAD", "") or name in seen_names:
+            continue
+        seen_names.add(name)
+        branch_names.append(name)
+
+    facts: list[BranchFact] = []
+    for branch in branch_names:
+        m = _BRANCH_CONVENTION_RE.match(branch)
+        if not m:
+            # bug/*, spike/*, or non-convention names — explicitly out of scope
+            continue
+        issue_num = int(m.group(2))
+
+        if not main_resolves:
+            facts.append(
+                BranchFact(repo=repo, branch=branch, issue_num=issue_num, is_ancestor=None)
+            )
+            continue
+
+        try:
+            result = subprocess.run(
+                [
+                    "git",
+                    "-C",
+                    str(repo_root),
+                    "merge-base",
+                    "--is-ancestor",
+                    branch,
+                    "origin/main",
+                ],
+                capture_output=True,
+                timeout=15,
+                check=False,
+            )
+            is_ancestor = result.returncode == 0
+        except (subprocess.SubprocessError, OSError):
+            is_ancestor = None
+
+        facts.append(
+            BranchFact(repo=repo, branch=branch, issue_num=issue_num, is_ancestor=is_ancestor)
+        )
+
+    return facts
+
+
 def _run_consistency() -> None:
     """Emit the board-consistency report `/wake` renders instead of re-deriving.
 
@@ -181,8 +298,10 @@ def _run_consistency() -> None:
     from pathlib import Path
 
     from telemetry.consistency import (
+        BranchFact,
         Inconsistency,
         check_label_artifact,
+        check_merged_branch_open_issue,
         to_report,
     )
     from telemetry.loop import collect_plan_docs, detect_drift
@@ -208,10 +327,12 @@ def _run_consistency() -> None:
     issues: list[dict[str, Any]] = []
     prs: list[dict[str, Any]] = []
     repo_roots: dict[str, Path] = {}
+    branch_facts: list[BranchFact] = []
     for repo in repos:
         root = workspace / repo
         if root.is_dir():
             repo_roots[repo] = root
+            branch_facts.extend(_collect_branch_facts(repo, root))
         issues.extend(_fetch_issues_with_bodies(repo))
         prs.extend(_fetch_open_prs(repo))
 
@@ -230,6 +351,7 @@ def _run_consistency() -> None:
     findings: list[Inconsistency] = []
 
     findings.extend(check_label_artifact(issues, prs, plan_issues))
+    findings.extend(check_merged_branch_open_issue(branch_facts, issues))
 
     # Plan<->issue drift is loop.py's, already bidirectional. Folded in as
     # Inconsistency rows so wake renders one table, not two.
@@ -256,7 +378,12 @@ def _run_consistency() -> None:
     out_path.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     by_kind = ", ".join(f"{k}={v}" for k, v in sorted(report["counts_by_kind"].items())) or "none"
-    print(f"Consistency: {report['total']} findings ({by_kind}) -> {out_path}")
+    # Coverage leads: unmatchable_plans beside total means a reader cannot mistake
+    # "0 findings from 9 of 112 plans" for "board is clean".
+    print(
+        f"Consistency: {report['total']} findings ({by_kind}); "
+        f"{unmatchable_plans} of {len(plans)} plans unevaluable -> {out_path}"
+    )
     print(
         f"Coverage: {len(issues)} issues across {len(repo_roots)} repos; "
         f"{unmatchable_plans} plans join to no issue"

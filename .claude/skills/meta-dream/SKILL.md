@@ -91,7 +91,10 @@ Check the entry count in `.sounding/growth/growth.md`. If fewer than 5, skip to 
 If 5+ entries are pending, run the full synthesis:
 
 ### 7a. Gather
-Read all pending growth entries. Read reflections dated after the last synthesis date.
+Read all pending growth entries. Read reflections dated after the last synthesis date —
+**cap at the 20 most recent** (per the batching rule in Critical Rules). If more than 20
+are pending, process those 20 and note in the Phase 10 report that /meta-dream should be run
+again to drain the rest.
 
 ### 7b. Analyze
 For each learning:
@@ -99,10 +102,10 @@ For each learning:
    - Identity/operational/working-notes -> core identity file (by altitude within sections)
    - Relational/user -> user seed
    - Portfolio understanding -> portfolio seed (never work-queue state)
-   - Process/tooling -> leave flagged for `/retro` graduation, don't place here
+   - Process/tooling -> leave flagged for `/meta-retro` graduation, don't place here
 2. **Already captured?** Skip if the seed already says this.
 3. **Pattern strength?** Themes in 3+ reflections are strong. Single mentions are weaker.
-4. **By tag:** `[confirmed]` -> strengthen existing statement. `[corrected]` -> rewrite existing statement. `[discovered]` -> integrate or add. `[friction]` -> never a seed edit; route to `/retro` (it is process/tooling by definition, per rule 1) and log the disposition.
+4. **By tag:** `[confirmed]` -> strengthen existing statement. `[corrected]` -> rewrite existing statement. `[discovered]` -> integrate or add. `[friction]` -> never a seed edit; route to `/meta-retro` (it is process/tooling by definition, per rule 1) and log the disposition.
 
 ### 7c. Transform
 For each seed file that needs updating:
@@ -139,23 +142,49 @@ If anything fails, restore before proceeding. Do NOT clear the accumulator until
 If any row is missing, write it now — do not clear first.
 Clear processed entries. Update the synthesis date. Keep format template and headers.
 
-## Phase 8: Retro Execution (conditional — background agent)
+## Phase 7f: Compact Before Spawning (conditional — only if Phase 7 ran)
 
-Check three triggers:
+Synthesis just read every pending growth entry, every reflection since the last synthesis,
+and every seed file in full — then rewrote them. That context is spent: Phases 8-10 need
+none of it. Compact now, before the retro agent spawns, so the spawn starts lean and
+session-end autocompact doesn't fire on an inflated window.
 
-1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` last `## R` header date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`). If **>=7 days ago** (or file doesn't exist) → triggered.
-2. **Retro-worthy session**: Did /meta-grow flag `retro-worthy: true` in its signal summary? → triggered.
-3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of /meta-grow flag** — /meta-grow may have run before the tooling work happened.
+Tell the user: `Synthesis complete — compacting before retro spawn.` Then compact.
+After compacting, resume at Phase 8.
 
-### If neither trigger fires
-Append to the dream report: `Retro check: current (last R# YYYY-MM-DD). No tooling changes.`
+If Phase 7 was skipped (fewer than 5 entries), skip this phase too — the window is still small.
 
-### If any trigger fires — spawn retro as background agent
+## Phase 8: Retro Check (conditional — spawn only if /meta-grow did not)
 
-The retro is heavy (reads transcripts, proposes config changes). Spawn it rather than running inline — this protects /meta-dream's context window.
+Read the cascade ledger first — it is the only cross-session record of whether the retro
+has already been handled:
+
+```bash
+jq '{retro_due, retro_acked}' .sounding/telemetry/cascade-state.json
+```
+
+**If `retro_due == retro_acked`**, /meta-grow already spawned and acked the retro this session.
+Skip the cascade trigger and report `already handled by /meta-grow this session`. Triggers 1 and
+3 below still apply independently.
+
+Then check three triggers:
+
+1. **Retro overdue**: Read `.sounding/tooling-ledger-log.md` last `## R` header date (file is NOT in append order — use `grep '^## R' tooling-ledger-log.md | sort -t'R' -k2 -n | tail -1`). If **>=7 days ago** (or file doesn't exist) → triggered, **regardless of the cascade counter**.
+2. **Cascade pending** (fallback): `retro_due > (retro_acked // 0)` → triggered. This replaces the old "did /meta-grow flag `retro-worthy: true`" check. That flag lived in /meta-grow's *prose* signal summary, which does not survive to /meta-dream — the trigger crossed a session boundary as text and was lost every time. The counter is a file; it survives.
+3. **Independent tooling-change detection**: Check `git diff` against the session's starting state for changes to files in `~/.claude/` (hooks, skills, rules, settings), `Makefile.common`, or any repo's `.claude/` config. If tooling changed, trigger retro **regardless of cascade state** — /meta-grow may have run before the tooling work happened.
+
+### If no trigger fires
+Append to the dream report: `Retro check: current (last R# YYYY-MM-DD, retro_acked: N). No tooling changes.`
+
+### If any trigger fires — spawn retro synchronously, then verify and ack
+
+**Run it synchronously (`run_in_background: false`).** A background retro dies with the
+session and reports success from a context nobody reads; nothing then verifies it landed,
+so the counter never advances and the next session sees the same trigger. Phase 7f has
+already compacted, so the window can afford it.
 
 ```
-Agent(model: "sonnet", run_in_background: true)
+Agent(model: "sonnet", run_in_background: false)
 prompt: |
   Repo: ~/workspace/guacamayo
   Task: Run /meta-retro. Read .sounding/insights/insights-log.md for latest insights data,
@@ -167,13 +196,23 @@ prompt: |
   and commits.
 ```
 
-Note: `/meta-grow` already spawns `/meta-insights` in the background, so insights-log.md should be fresh by the time /meta-dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
+**Then verify it landed — the agent's success report is not evidence.**
 
-Append to the dream report:
-```
-Retro: spawned (triggered by [overdue N days | tooling changes | retro-worthy flag]).
-  Agent running in background — results will be on this branch.
-```
+1. Check for a retro header dated today:
+   ```bash
+   grep "^## R.*$(date +%F)" .sounding/tooling-ledger-log.md
+   ```
+2. **If present** — write the ack, so the next session does not re-fire on the same work:
+   ```bash
+   STATE=.sounding/telemetry/cascade-state.json
+   RETRO_DUE=$(jq '.retro_due' "$STATE")
+   jq --argjson due "$RETRO_DUE" '.retro_acked = $due' "$STATE" > "${STATE}.tmp" && mv "${STATE}.tmp" "$STATE"
+   ```
+3. **If absent** — do NOT write the ack. Report `spawned but no R# landed — retrying` and
+   leave the counter alone so the next session tries again. An ack written on an unverified
+   spawn is how a retro silently stops running.
+
+Note: `/meta-grow` already spawns `/meta-insights` in the background, so insights-log.md should be fresh by the time /meta-dream runs. If the insights agent hasn't finished yet, the retro agent reads whatever data is available.
 
 ## Phase 9: Maintenance Scan (conditional)
 
@@ -194,7 +233,7 @@ Dream complete.
 Reflection: [filename]
 Growth: [N entries captured] | Accumulator: [total pending]
 Synthesis: [ran — files transformed / skipped — N entries, threshold not met]
-Retro: [executed — findings | current — no trigger | deferred — context too high]
+Retro: [spawned and landed R# | spawned but no R# landed — retrying | current — no trigger (retro_acked: N) | already handled by /meta-grow this session]
 Maintenance: [clean / what was tidied]
 
 What's alive for next time:
