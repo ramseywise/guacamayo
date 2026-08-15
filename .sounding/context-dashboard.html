@@ -543,19 +543,30 @@ code {
 
   <!-- SESSION-SIGNALS — hand-maintained by /meta-grow. Not cartographer-owned. -->
   <div class="card" id="session-signals">
-    <div class="card-title">Session signals &mdash; last /grow 2026-08-14</div>
+    <div class="card-title">Session signals &mdash; session close /meta-dream 2026-08-15 18:18</div>
     <p class="card-note">
-      <strong>Growth:</strong> 15 entries since synthesis (3 added this session) &middot;
-      <strong>Insights:</strong> last run 2026-08-14 &middot;
-      <strong>Retro:</strong> last R9 2026-08-11 &mdash; <strong>due</strong> (retro_due 1, unacked) &middot;
-      <strong>Hypotheses:</strong> 40 rows
+      <strong>Growth:</strong> <strong>synthesis ran</strong> &mdash; 17 entries processed (12 merged into <code>sounding.md</code>, 4 &rarr; /meta-retro, 1 already captured), 19 disposition rows logged, accumulator cleared to <strong>0 pending</strong> &middot;
+      <strong>Insights:</strong> last run 2026-08-14 &mdash; 08-15 refresh spawn died on quota, appended nothing (verified non-destructive) &middot;
+      <strong>Retro:</strong> R10 landed 2026-08-15 &mdash; <strong>acked, not re-spawned</strong> (retro_due 3 / retro_acked 3) &middot;
+      <strong>Hypotheses:</strong> 45 rows
     </p>
     <p class="card-note">
-      <strong>Cascade:</strong> 59 compactions &middot; grows 19 due / 3 acked &middot; insights 4 due &middot; last compact 2026-08-14T19:50Z
+      <strong>Cascade:</strong> 119 compactions &middot; grows 39 due / 3 acked &middot; insights 9 due &middot; last compact 2026-08-15T14:54Z &middot; telemetry sinks now <strong>untracked</strong>
     </p>
     <p class="card-note">
-      <strong>Board:</strong> 9 open issues across 5 repos (guacamayo 2, galactus 4, sisyphus 1, learn-ai-engineering 1, playground 1); clean: librarian, atlas, ai-project-template, listen-wiseer, lebanese-blonde &middot;
-      <strong>Plans:</strong> GUA-109 occurrence-date &rarr; EXECUTED / review passed
+      <strong>Board:</strong> 7 open issues across 3 repos (guacamayo 5, sisyphus 1, playground 1) &mdash; <strong>galactus now clean</strong> (#20 and #23 closed; both merged without a <code>Closes #N</code> and the merge erased the branch the detector joins on) &middot;
+      guacamayo open: #120 ready, #119 backlog, #118 backlog, #117 bug, #113 ready &mdash; <strong>#113 and #117 are the same complaint</strong> (the board is a cache nothing keeps warm); #117 is the better pickup, a live guard emitting false positives
+    </p>
+    <p class="card-note">
+      <strong>Landed:</strong> guacamayo <strong>PR #124 merged <code>ee2502e</code></strong>, closing #109 / #111 / #114 / #115 / #116 &mdash; CONFLICTING was a push gap, then one real conflict in <code>.claude/skills/meta-retro/SKILL.md</code>; two conflicts vs one was a rename pair double-counted by the GitHub UI &middot;
+      galactus <code>main</code> repaired (duplicate <code>ml</code> key + truncated <code>uv.lock</code>), now <code>f7d407f</code> &middot;
+      8 branches deleted; telemetry sinks untracked via <code>git rm --cached</code> (the <code>.gitignore</code> rule was added after they entered the index, so it had done nothing) &middot;
+      <strong>Near-miss:</strong> <code>GUA-125</code>'s PR showed MERGED but <code>--is-ancestor</code> said no &mdash; it held the session's own /grow artifacts. Ported before deleting.
+    </p>
+    <p class="card-note">
+      <strong>Needs a decision:</strong> a parse check on <code>pyproject.toml</code>/<code>uv.lock</code> as its own <strong>pre-merge step</strong> (2 sessions open &mdash; no pytest case can cover a failure upstream of the test runner) &middot;
+      the dssg client-name exposure in a public repo (open since 2026-08-14) &middot;
+      Ramsey to commit <code>bug/untrack-telemetry</code>
     </p>
   </div>
 
