@@ -1,5 +1,6 @@
 {
-  "issues_checked": 9,
+  "issues_checked": 12,
+  "unmatchable_plans": 104,
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -13,41 +14,19 @@
     "sisyphus"
   ],
   "coverage": {
-    "unmatchable_plans": 103
+    "unmatchable_plans": 104
   },
   "counts_by_kind": {
-    "label-artifact": 1,
-    "plan-issue-drift": 3
+    "merged-branch-open-issue": 1
   },
-  "total": 4,
+  "total": 1,
   "inconsistencies": [
     {
-      "kind": "label-artifact",
-      "repo": "learn-ai-engineering",
-      "issue": 106,
-      "detail": "labelled `ready`",
-      "evidence": "no plan doc joins to this issue (ready implies DoR passed)"
-    },
-    {
-      "kind": "plan-issue-drift",
+      "kind": "merged-branch-open-issue",
       "repo": "galactus",
-      "issue": 4,
-      "detail": "plan 2026-08-14-context-engineering-space.md reads EXECUTED",
-      "evidence": "plan is EXECUTED but issue is still open (labels: (none))"
-    },
-    {
-      "kind": "plan-issue-drift",
-      "repo": "guacamayo",
-      "issue": 109,
-      "detail": "plan 2026-08-14-gua-109-occurrence-date.md reads EXECUTED",
-      "evidence": "plan is EXECUTED but issue is still open (labels: refinement)"
-    },
-    {
-      "kind": "plan-issue-drift",
-      "repo": "guacamayo",
-      "issue": 111,
-      "detail": "plan 2026-08-14-gua-111-review-field-discrimination.md reads EXECUTED",
-      "evidence": "plan is EXECUTED but issue is still open (labels: backlog)"
+      "issue": 23,
+      "detail": "branch `GAL-23-proto-pipeline-dry-run` is an ancestor of origin/main",
+      "evidence": "galactus#23 is still OPEN after branch merged"
     }
   ]
 }

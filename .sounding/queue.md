@@ -16,24 +16,25 @@ Legend: `=>` marks a pick-up point (decision / next step / verification owed).
 
 ---
 
-## Live pick-up points (as of 2026-08-14)
+## Live pick-up points (as of 2026-08-15)
 
-*Refreshed 2026-08-14 (/dream). Prior entries (status-enum arc, CLA guard-fix duplicates, librarian drain, LAE-115 worktree) all resolved or superseded — dropped.*
+*Refreshed 2026-08-15 (/grow). AIT `bug/ml-shape-rag-promotion` and the galactus main-rename entry are resolved — dropped.*
 
-**ai-project-template — CI on main is RED and the fix is written but uncommitted.** Branch `bug/ml-shape-rag-promotion` holds a 2-file diff (`copier.yaml` 1060/1069/1663, `template/_scaffold/Makefile.jinja:187`) that fixes `test-render`'s ml_model job. Root cause: copier's `_scaffold/` staging→promotion split — cleanup tasks gated on capability flags, promotion tasks on shape flags, so an `ml_model` render that opts into `include_rag_agent` keeps three trees staged and then deletes them with the staging dir. Verified both directions (negative test reproduces CI; fixed tree passes all four assertions, rendered project 242 passed).
-  => Next: Ramsey commits + `make ship`. This unblocks every red `test-render` on AIT main.
+**galactus — `main` was unbuildable, now FIXED (2026-08-15).** A duplicate `ml` key in `pyproject.toml` and a truncated `uv.lock` made `uv run` fail repo-wide from PR #25 until the repair merged. `origin/main` is now `f7d407f`; both files parse. Fix branch merged and deleted. Local branches: `main` + `GAL-23-proto-pipeline-dry-run`.
+  => Standing follow-up: a **parse check on `pyproject.toml`/`uv.lock` as its own pre-merge step**. No pytest case can cover this — the failure is upstream of the test runner.
 
-**galactus — remote `main` restored (2026-08-14).** `spike/consolidate-claude-setup` was renamed to `main` via the GitHub rename API: history preserved, PRs retargeted, redirects created, default set. Local `main` tracking. The merge audit runs again; 9 merged local branches deleted (12 → 3), worktrees 3 → 1.
-  => Next: 10 stale *remote* branches still need deleting (push-equivalent — Ramsey's call). List in `notes/handover.md`.
+**guacamayo — PR #124: a push gap that became a one-file conflict.** CONFLICTING was never a merge problem — remote `GUA-103-wake-consistency-check` was 5 ahead / 21 behind because local `6207e0e` was never pushed; the push is still a **fast-forward, no force**. Then PR #126 merged (15:55Z), `main` moved `4e1ad47` → `b5e10aa`, and `git merge-tree` now reports exactly **one** conflict: `.claude/skills/meta-retro/SKILL.md`. Sides are disjoint and both wanted — GUA-103 renames `workflow-retro` → `meta-retro`; main (#126) adds Check B item (5) doc↔config drift and fixes the insights path. Resolution pre-built at `/tmp/meta-retro-resolved.md` (verified: 0 markers, both sides, 0 residual `workflow-*` names).
+  => Next: commit the `.sounding/` churn (it blocks the checkout), then `git merge origin/main` on GUA-103, drop in the resolved file, commit, push.
 
-**Branch/stash residue — the standing cross-repo friction.** Branches are created per *attempt*, not per issue, and nothing closes them. After this session: AIT-63 and the 5 `salvage/*` branches deleted (salvage content still in AIT `stash@{0}`–`stash@{4}`, which are now its **only** copy). Still open: `AIT-62-ml-stage-layering` (ahead:3) and `AIT-64-scaffold-vscode-extensions` (ahead:2) need PRs or closure. Stashes: AIT 5, guacamayo 4, playground 1, librarian 1. Orphaned worktree: `/private/tmp/ait-pr74` (`AIT-70-sanyi-mv-fix`).
+**guacamayo — #125 CLOSED (2026-08-15).** PR #126 merged its work without a `Closes #125`. Verified by content before closing: all 6 files byte-identical on `origin/main` by blob SHA. Branch `GUA-125-port-workflow-skill-updates` is now stale.
 
-**guacamayo** — uncommitted `.sounding/` + `telemetry/` changes sitting on the already-merged `bug/friction-loop-capture-and-findings-pk` checkout.
-  => Next: cut a fresh branch before committing.
+**Branch residue.** Deleted this session: galactus `GAL-20-*`, `GAL-4-*`, `spike/prototype-genesis-ml`, `bug/galactus-pyproject-duplicate-ml-key`; guacamayo `GUA-115-finding-attribution`; `~/.claude` `CLA-14-*`. Held deliberately: galactus `GAL-23-proto-pipeline-dry-run` — merged to main, but `2026-08-15-gal-23-hitl-gradient.md` (`Status: REFINED`, `Epistemic: UNTESTED`) names it as the branch for work that was **re-scoped today**. A branch merged to main is evidence about code, not about whether the issue's question was answered.
 
-**Open board counts** (08-14): ai-project-template 3 (#64 vscode extensions, #66 make lint-render, #71 deploy targets), galactus 3 (#4, #5, #11), guacamayo 2 (#104 parent `ready`, #106 rising-friction flag), sisyphus 1 (#33), learn-ai-engineering 1 (#106), playground 1 (#88). Clean: librarian, atlas, listen-wiseer, lebanese-blonde.
+**guacamayo — tracked telemetry files block branch hygiene.** Hooks write `.sounding/telemetry/*.jsonl` and `cascade-state.json` every session and they are tracked, so `git checkout main` aborts and ordinary cleanup needs a stash. `git fetch origin main:main` is the workaround for fast-forwarding a ref without a checkout.
 
-**guacamayo ops** — synthesis ran 2026-08-14 (/dream, 17 entries). R10 spawned 2026-08-14 (background). Insights refreshed 2026-08-14 (596 sessions). Standing retro items: `tail`/exit-code-masking rule still missing from `~/.claude/rules/shell.md`; global CLAUDE.md still describes galactus as carrying `workflow-*` (renamed `proto-*` 08-11); **bash antipatterns 29.18/session** vs target 12; file-not-found errors +47 in 3 days (141 → 188); `git update-ref -d` bypasses `risky_git_guard.sh`'s `branch -D` block.
+**Open board counts** (08-15, after closing #125): guacamayo 5, galactus 4, sisyphus 1, playground 1. Clean: learn-ai-engineering, librarian, atlas, ai-project-template, listen-wiseer, lebanese-blonde. Consistency checker: 1 finding (galactus#23 merged-branch-open-issue); 104 of 168 plans join to no issue. Close candidates pending confirmation: galactus #23, galactus #20 (PR #26 merged 08-15, no `Closes` reference). guacamayo #117 stays open until `~/.claude` `CLA-19-retro-recurrence` (5 ahead, unpushed) lands.
+
+**guacamayo ops** — R10 landed 2026-08-15; cascade acked (`retro_due` 3 / `retro_acked` 3). Insights last ran 2026-08-14 — the 08-15 refresh spawn **died on quota exhaustion**, appended nothing (verified: 0 deletions, nothing staged). Growth accumulator at **31 entries** since the 08-11 synthesis; its `Entries Since: 15` header is stale. Standing retro items unchanged: `tail`/exit-code-masking rule missing from `~/.claude/rules/shell.md`; bash antipatterns 29.18/session vs target 12; `git update-ref -d` bypasses `risky_git_guard.sh`'s `branch -D` block.
 
 ---
 

@@ -543,19 +543,23 @@ code {
 
   <!-- SESSION-SIGNALS — hand-maintained by /meta-grow. Not cartographer-owned. -->
   <div class="card" id="session-signals">
-    <div class="card-title">Session signals &mdash; last /grow 2026-08-14</div>
+    <div class="card-title">Session signals &mdash; last /grow 2026-08-15</div>
     <p class="card-note">
-      <strong>Growth:</strong> 15 entries since synthesis (3 added this session) &middot;
-      <strong>Insights:</strong> last run 2026-08-14 &middot;
-      <strong>Retro:</strong> last R9 2026-08-11 &mdash; <strong>due</strong> (retro_due 1, unacked) &middot;
-      <strong>Hypotheses:</strong> 40 rows
+      <strong>Growth:</strong> 33 entries since synthesis (8 added this session) &mdash; <strong>synthesis overdue</strong> &middot;
+      <strong>Insights:</strong> last run 2026-08-14 &mdash; refresh spawn died on quota (resets 17:20) &middot;
+      <strong>Retro:</strong> R10 landed 2026-08-15 &mdash; acked (retro_due 3 / retro_acked 3) &middot;
+      <strong>Hypotheses:</strong> 45 rows
     </p>
     <p class="card-note">
-      <strong>Cascade:</strong> 59 compactions &middot; grows 19 due / 3 acked &middot; insights 4 due &middot; last compact 2026-08-14T19:50Z
+      <strong>Cascade:</strong> 119 compactions &middot; grows 39 due / 3 acked &middot; insights 9 due &middot; last compact 2026-08-15T14:54Z
     </p>
     <p class="card-note">
-      <strong>Board:</strong> 9 open issues across 5 repos (guacamayo 2, galactus 4, sisyphus 1, learn-ai-engineering 1, playground 1); clean: librarian, atlas, ai-project-template, listen-wiseer, lebanese-blonde &middot;
-      <strong>Plans:</strong> GUA-109 occurrence-date &rarr; EXECUTED / review passed
+      <strong>Board:</strong> 11 open issues across 4 repos (guacamayo 5, galactus 4, sisyphus 1, playground 1) &mdash; #125 closed after PR #126 merged without a <code>Closes</code>; clean: learn-ai-engineering, librarian, atlas, ai-project-template, listen-wiseer, lebanese-blonde &middot;
+      <strong>Consistency:</strong> 1 finding (galactus#23 merged-branch-open-issue); 104 of 168 plans unevaluable
+    </p>
+    <p class="card-note">
+      <strong>Unblocked:</strong> galactus <code>origin/main</code> was unbuildable (duplicate <code>ml</code> key + truncated <code>uv.lock</code>) &mdash; <strong>FIXED</strong>, now <code>f7d407f</code>, both files parse; fix branch merged and deleted &middot;
+      guacamayo PR #124: CONFLICTING was a push gap (<code>6207e0e</code> never pushed; push is still a fast-forward), but PR #126 merging at 15:55Z moved main to <code>b5e10aa</code> and created one real conflict &mdash; <code>.claude/skills/meta-retro/SKILL.md</code>, disjoint sides, resolution pre-built at <code>/tmp/meta-retro-resolved.md</code>
     </p>
   </div>
 
