@@ -1,16 +1,20 @@
-"""Tests for the board column derivation (GUA-113).
+"""Tests for the board column derivation (GUA-113) and heartbeat (GUA-118).
 
 Standing rule: **never ship a guard without a negative test.** Every checker is tested
 in both directions — input containing the defect must produce the expected column, and
 clean input must not produce false positives.
 
-Two required negative tests per the plan DoD:
+Required negative tests per the plan DoD:
     - test_derive_column_undetermined_on_none_ancestor  (is_ancestor=None must not → in_progress)
     - test_derive_column_undetermined_on_pr_fetch_failure  (pr_fetch_ok=False must not → backlog)
+    - test_heartbeat_on_failure  (GUA-118: crashed run must record exit != 0 in board.json)
+    - test_heartbeat_exit_zero_on_success  (positive direction — proves heartbeat guard is not always-on)
 """
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -404,3 +408,168 @@ def test_is_ancestor_true_branch_does_not_produce_in_progress() -> None:
     )
     # Branch is merged but no open PR — falls through to backlog (no undetermined trigger)
     assert record.column != "in_progress"
+
+
+# ---------------------------------------------------------------------------
+# Heartbeat (GUA-118) — negative test: failure leaves evidence, not silence
+# ---------------------------------------------------------------------------
+
+
+def test_heartbeat_on_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """NEGATIVE TEST: a crashed _run_board run must write board.json with exit != 0.
+
+    Without the heartbeat guard, a mid-run exception writes nothing — the previous
+    (stale) board.json survives untouched and the reader has no way to know the job
+    failed. With the guard, the exception is caught, a failure envelope is written
+    atomically, and the reader sees heartbeat.exit != 0 rather than silently stale data.
+
+    Planting the defect: we force `collect_plan_docs` (called mid-run after issues and
+    PRs are fetched) to raise RuntimeError. Before the guard: board.json is absent or
+    stale. After the guard: board.json exists with heartbeat.exit == 1.
+
+    This proves the guard catches failures that would otherwise leave no evidence.
+    """
+    from telemetry import __main__ as cli
+
+    out_path = tmp_path / "board.json"
+
+    # Minimal issue list — enough to pass the EmptyInputError guard
+    def _fake_issues(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+        if repo == "guacamayo":
+            return [
+                {
+                    "repo": "guacamayo",
+                    "number": 1,
+                    "title": "open issue",
+                    "state": "OPEN",
+                    "labels": "",
+                    "body": "",
+                }
+            ]
+        return []
+
+    def _fake_prs_for_board(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+        return []
+
+    def _fake_collect_branch_facts(repo: str, repo_root: Path) -> list[Any]:
+        return []
+
+    # Simulate a fetch being ok so we pass the EmptyInputError guard
+    def _fake_repo_view_ok(*args: Any, **kwargs: Any) -> Any:
+        class R:
+            returncode = 0
+
+        return R()
+
+    # Plant the defect: collect_plan_docs raises after issues are fetched but before write
+    def _boom(*args: Any, **kwargs: Any) -> None:
+        raise RuntimeError("injected failure: simulating a mid-run crash")
+
+    monkeypatch.setattr(cli, "_fetch_issues_with_bodies", _fake_issues)
+    monkeypatch.setattr(cli, "_fetch_prs_for_board", _fake_prs_for_board)
+    monkeypatch.setattr(cli, "_collect_branch_facts", _fake_collect_branch_facts)
+
+    # collect_plan_docs is imported inside _run_board's local block and called as
+    # `loop.collect_plan_docs` where loop = the telemetry.loop module. Patch the
+    # attribute on that module so the call inside _run_board sees the bomb.
+    import telemetry.loop as loop_module
+
+    monkeypatch.setattr(loop_module, "collect_plan_docs", _boom)
+
+    # _run_board is called by main() after --board is already stripped from sys.argv.
+    # Simulate that: pass only the subcommand-specific flags.
+    monkeypatch.setattr(
+        "sys.argv",
+        ["telemetry", "--out", str(out_path), "--repos", "guacamayo"],
+    )
+
+    # Without the heartbeat guard: SystemExit(1) with no board.json written.
+    # With the guard: SystemExit(1) AND board.json with heartbeat.exit == 1.
+    with pytest.raises(SystemExit) as exc_info:
+        cli._run_board()
+
+    assert exc_info.value.code != 0, (
+        "A mid-run crash must exit non-zero so the caller knows the job failed"
+    )
+
+    # The central assertion: board.json must exist with heartbeat.exit != 0.
+    # Without the heartbeat guard this file would not exist (no evidence of the failure).
+    assert out_path.exists(), (
+        "HEARTBEAT GUARD MISSING: a crashed _run_board left no board.json. "
+        "The reader cannot distinguish 'job never ran' from 'job crashed mid-run'. "
+        "The heartbeat guard must write a failure envelope even on exception."
+    )
+
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert "heartbeat" in payload, "board.json must always carry a 'heartbeat' key"
+    hb = payload["heartbeat"]
+    assert hb is not None, "heartbeat must not be null on a failed run"
+    assert hb.get("exit") != 0, (
+        f"heartbeat.exit should be non-zero on failure, got {hb.get('exit')!r}. "
+        "A zero exit on a crashed run makes the job look healthy from the outside."
+    )
+    assert hb.get("error") is not None, (
+        "heartbeat.error must carry the exception message so the failure is diagnosable"
+    )
+    assert "injected failure" in str(hb.get("error")), (
+        f"heartbeat.error should name the injected failure, got {hb.get('error')!r}"
+    )
+
+
+def test_heartbeat_exit_zero_on_success(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Positive direction: a successful _run_board writes heartbeat.exit == 0.
+
+    Proves the heartbeat guard is not always-on — a healthy run must not look like a
+    failure. Without this test, test_heartbeat_on_failure could pass even if
+    _write_failure_envelope is called unconditionally.
+    """
+    from telemetry import __main__ as cli
+    from telemetry.loop import PlanDoc
+
+    out_path = tmp_path / "board.json"
+
+    def _fake_issues(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+        if repo == "guacamayo":
+            return [
+                {
+                    "repo": "guacamayo",
+                    "number": 42,
+                    "title": "healthy issue",
+                    "state": "OPEN",
+                    "labels": "backlog",
+                    "body": "",
+                }
+            ]
+        return []
+
+    def _fake_prs(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
+        return []
+
+    def _fake_branch_facts(repo: str, repo_root: Path) -> list[Any]:
+        return []
+
+    def _fake_plan_docs(workspace: Path) -> list[PlanDoc]:
+        return []
+
+    import telemetry.loop as loop_module
+
+    monkeypatch.setattr(cli, "_fetch_issues_with_bodies", _fake_issues)
+    monkeypatch.setattr(cli, "_fetch_prs_for_board", _fake_prs)
+    monkeypatch.setattr(cli, "_collect_branch_facts", _fake_branch_facts)
+    monkeypatch.setattr(loop_module, "collect_plan_docs", _fake_plan_docs)
+
+    monkeypatch.setattr(
+        "sys.argv",
+        ["telemetry", "--out", str(out_path), "--repos", "guacamayo"],
+    )
+
+    # Must not raise
+    cli._run_board()
+
+    assert out_path.exists(), "A successful run must write board.json"
+    payload = json.loads(out_path.read_text(encoding="utf-8"))
+    assert "heartbeat" in payload
+    hb = payload["heartbeat"]
+    assert hb is not None
+    assert hb.get("exit") == 0, f"heartbeat.exit should be 0 on success, got {hb.get('exit')!r}"
+    assert hb.get("error") is None, "heartbeat.error should be null on a successful run"
