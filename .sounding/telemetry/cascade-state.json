@@ -1,31 +1,11 @@
 {
-  "compacts": 113,
-  "grows_due": 37,
+  "compacts": 118,
+  "grows_due": 39,
   "grows_acked": 3,
   "insights_due": 9,
   "retro_due": 3,
-  "last_compact": "2026-08-15T13:02:01Z",
+  "last_compact": "2026-08-15T14:32:33Z",
   "history": [
-    {
-      "ts": "2026-08-14T20:05:42Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T20:08:05Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T20:10:40Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T20:13:41Z",
-      "repo": "guacamayo"
-    },
-    {
-      "ts": "2026-08-14T20:16:39Z",
-      "repo": "guacamayo"
-    },
     {
       "ts": "2026-08-14T20:19:20Z",
       "repo": "guacamayo"
@@ -204,6 +184,26 @@
     },
     {
       "ts": "2026-08-15T13:02:01Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T13:26:50Z",
+      "repo": "tmp"
+    },
+    {
+      "ts": "2026-08-15T13:56:28Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T14:07:08Z",
+      "repo": ".claude"
+    },
+    {
+      "ts": "2026-08-15T14:24:28Z",
+      "repo": "guacamayo"
+    },
+    {
+      "ts": "2026-08-15T14:32:33Z",
       "repo": "guacamayo"
     }
   ]

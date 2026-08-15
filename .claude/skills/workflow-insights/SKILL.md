@@ -26,13 +26,15 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
 
 3. Run the insights engine:
    ```
-   python3 ~/.claude/scripts/insights.py --output ~/workspace/guacamayo/.sounding/insights/insights-report-$(date +%F).html
+   python3 ~/.claude/scripts/insights.py --output ~/workspace/guacamayo/.sounding/insights/insights-report.html
    ```
-   Dated filename, in `.sounding/insights/` beside `insights-log.md` — reports accumulate
-   there. Then repoint the stable alias:
-   ```
-   ln -sf insights-report-$(date +%F).html ~/workspace/guacamayo/.sounding/insights/insights-report.html
-   ```
+   **Pass the bare filename — do not date it here.** `librarian/shared/parser.py:1377` appends
+   today's date to the stem itself and then symlinks the name you passed to the dated file
+   (`parser.py:1450-1453`), so a dated argument yields
+   `insights-report-2026-08-14-2026-08-14.html` — a doubling already visible in
+   `.sounding/insights/`. Reports accumulate there beside `insights-log.md`, and
+   `insights-report.html` is repointed by the parser — no manual `ln -sf` step.
+
    For dry-run: `python3 ~/.claude/scripts/insights.py --dry-run`
 
 4. Once complete (non-dry-run), open the report:
@@ -111,10 +113,36 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
    - **Execution skill compliance rate** (% of execution-intent sessions invoking ≥1 skill)
    - **Spawned-agent-type distribution** (from parent Agent tool calls — compare to cost attribution)
 
-   **Failure attribution** — classify each error event using this lookup table.
-   The parser emits `tool_errors` as counts by error name with no retry-sequence data,
-   so `transient` vs `code` cannot be distinguished at the signal level; merge them
-   into `code (retry unknown)` for v1 and note the limitation.
+   **Failure attribution** — do NOT classify error events by hand. Attribution is
+   computed at parse time (LIB-57) into five per-session columns on the `sessions`
+   table of the cartographer factstore: `errors_code`, `errors_env`, `errors_tool`,
+   `errors_unknown`, `bash_antipatterns` (`librarian/tools/cartographer/factstore.py:118-122`,
+   written at `factstore.py:759-763`). `errors_code + errors_env + errors_tool +
+   errors_unknown` sums to `tool_error_count`; `bash_antipatterns` mirrors the parser's
+   own per-session count.
+
+   Read them by summing, against the factstore (default
+   `~/workspace/librarian/data/sessions.db`, `--store` in cartographer):
+
+   ```
+   sqlite3 -header ~/workspace/librarian/data/sessions.db "
+     SELECT SUM(errors_code) AS code, SUM(errors_env) AS env,
+            SUM(errors_tool) AS tool, SUM(errors_unknown) AS unknown,
+            SUM(bash_antipatterns) AS bash_antipatterns
+     FROM sessions;"
+   ```
+
+   Add a `WHERE date >= '<YYYY-MM-DD>'` clause to scope to the reporting window.
+
+   Classification happens at parse time by necessity, not preference: the parser
+   reduces raw `tool_result` error text to an error-kind count dict and discards the
+   text, so attribution cannot be recovered post-hoc from an existing row. Backfill
+   requires re-parsing retained JSONL (~15-day retention ceiling) — sessions older than
+   that carry NULL/0 in these columns rather than a real zero. Say so when the window
+   reaches back further than retention.
+
+   *Reference — how the columns are computed.* This table documents the parse-time
+   classification; it is NOT a procedure to run. Do not re-derive categories from it.
 
    | Signal combination | Category | Code |
    |--------------------|----------|------|
@@ -127,11 +155,13 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
    | Quota / rate-limit message in error text | env | `env` |
    | `other` | unknown | `unknown` |
 
-   Note: `spec` errors (correct execution, wrong outcome) are deferred to v2 — they
-   require session-level success detection not yet present in the parser output.
-
-   Unclassified errors (no signal combination matches) → report as `unknown`; do not
-   force-fit. A high `unknown` rate means the lookup table needs expansion.
+   Two limitations still hold and should be noted in the report: `transient` vs `code`
+   is indistinguishable (the parser carries no retry sequence, so both land in
+   `errors_code`), and `spec` errors (correct execution, wrong outcome) are not
+   classified at all — they need session-level success detection the parser does not
+   emit. Unrecognised error kinds fall to `errors_unknown` rather than being force-fit
+   (`factstore.py:208`); a high `unknown` share means the parse-time taxonomy needs
+   expansion — report it as a taxonomy gap, and fix it in the parser, not here.
 
    Emit a table:
    | Category | Count | % of errors | Example |
@@ -141,28 +171,63 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
    | tool     | N     | N%          | ... |
    | unknown  | N     | N%          | ... |
 
+   The `Example` column is not in the columns — the per-session counts carry no
+   exemplar. Pull examples from the run's `tool_errors` breakdown, or leave the column
+   as `—`; never invent one.
+
    Then: 1-2 sentence remediation note per non-zero category (skip `unknown` — flag it
    instead as a taxonomy gap). `env` errors → infrastructure/config action; `tool` errors
    → hook or MCP config action; `code` errors → skill/hook/workflow action.
 
-10. **Experiment check** — read `~/workspace/guacamayo/.sounding/tooling-ledger.md`
-    (active hypotheses; graduated rows in `tooling-ledger-log.md`). For each `hypothesis`
-    row with a typed Metric (not `—`), check
-    the session data against the metric:
-    - `absence:<signal>` — search sessions for the signal; 0 occurrences = confirmed
-    - `count-drop:<signal>` — count occurrences per session, compare to threshold
-    - `presence:<signal>` — search for the signal; any occurrence = confirmed
-    - `ratio:<metric>` — compute from session stats
+10. **Experiment check** — do NOT compute verdicts by hand. Scoring is deterministic
+    and already done: `librarian/tools/cartographer/verdicts.py` owns the arithmetic,
+    and each cartographer run appends one row per ledger experiment to the
+    `experiment_verdicts` table (`factstore.py:615-620`, appended at
+    `factstore.append_verdicts:657`, wired in `__main__.py:309-330`). Columns:
+    `experiment`, `date`, `metric`, `verdict`, `evidence`, plus `run_at`.
 
-    Also check legacy hypothesis rows (Metric = `—`) if their status text contains a
-    checkable signal (e.g., ">150k share", "dispatch correctly").
+    The table is append-only — PK `(experiment, date, run_at)` — so it carries verdict
+    *trajectory* across runs. `date` is the ledger hypothesis date, NOT the run date.
+    Query the latest `run_at` per `(experiment, date)`:
 
-    Report a table:
+    ```
+    sqlite3 -header ~/workspace/librarian/data/sessions.db "
+      SELECT v.experiment, v.date, v.metric, v.verdict, v.evidence
+      FROM experiment_verdicts v
+      JOIN (SELECT experiment, date, MAX(run_at) AS run_at
+            FROM experiment_verdicts GROUP BY experiment, date) latest
+        ON v.experiment = latest.experiment
+       AND v.date       = latest.date
+       AND v.run_at     = latest.run_at
+      ORDER BY v.date DESC;"
+    ```
+
+    Your job is interpretation, not measurement. Report the table as-is:
     ```
     | Experiment | Metric | Verdict | Evidence |
     ```
     Verdicts: `confirmed` (met threshold), `trending` (improving but not met),
     `inconclusive` (insufficient data), `failed` (metric violated).
+
+    **Read `inconclusive` correctly — it is the common case, and it is not a data
+    shortage.** Signal → measurement is a closed registry (`verdicts.py:229-235`),
+    currently five signals: `bash-antipatterns`, `p90-output-tokens`,
+    `execution-sessions-with-skills`, `top-session-cost-concentration`,
+    `fable-tokens-in-non-verdict-skills`. Ledger signals naming process/textual events
+    (e.g. `worktree-commit-blocks`, `flat-sibling-issues-without-parent-link`) have no
+    factstore column and score `inconclusive` with evidence saying exactly that —
+    deliberately, so an unobservable `absence:` claim never reads as a false
+    `confirmed`. Do not "resolve" those rows by searching sessions yourself; surface
+    them as **unmeasurable-by-construction** and, if a signal is worth measuring, the
+    fix is a new entry in `_SIGNAL_METRICS`, not a hand-derived verdict here.
+
+    Two further notes: legacy rows with Metric `—` score `inconclusive` ("no typed
+    metric to score") — `verdicts.py` does not attempt the prose heuristic, and neither
+    should you. A row with multiple metric clauses (joined by ` + `) is scored
+    pessimistically — the worst clause wins.
+
+    If the table is empty or stale, the cartographer run was skipped or `--no-verdicts`
+    was passed; re-run it rather than falling back to hand-scoring.
 
     Do NOT update the ledger — that's /retro's job. Just surface the verdicts.
 
@@ -176,7 +241,7 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     Rank by cost-weighted impact. The single biggest lever goes first.
 
 12. **Persist summary** — write the machine-readable output to
-    `~/workspace/guacamayo/.sounding/insights-log.md` (append a new dated section at the top — do NOT overwrite):
+    `~/workspace/guacamayo/.sounding/insights/insights-log.md` (append a new dated section at the top — do NOT overwrite):
 
     ```markdown
     # Insights Summary — [date]
@@ -198,7 +263,8 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     [the experiment table from step 10]
 
     ## Failure Attribution
-    [category table from Step 9 — counts, %, top example per category]
+    [category table from Step 9 — counts and %, summed from the errors_* columns;
+     example per category only where the run's tool_errors breakdown supplies one]
     [remediation notes per non-zero non-unknown category]
     [flag: transient vs code indistinguishable until parser emits retry sequences]
 

@@ -40,7 +40,10 @@ guacamayo identity-lifecycle (wake/grow/dream/genesis), repo project skills.
 **Check B — Settings schema (BLOCKER/WARN).** For `~/.claude/settings.json` and every repo
 settings file: (1) JSON validates, (2) wildcard syntax uses `Bash(cmd:*)` not
 `Bash(cmd *)`, (3) tool names in Allow/Deny/Ask rules exist (stale: `Task`→`Agent`,
-`SlashCommand`→`Skill`, `TodoRead`), (4) no secrets in settings.
+`SlashCommand`→`Skill`, `TodoRead`), (4) no secrets in settings, (5) doc↔config drift:
+the `model` value in `~/.claude/settings.json` matches the default named in
+`~/.claude/CLAUDE.md` ("Default session model") and `refs/models.md` — a decision that
+landed only in prose has not landed (the fable default ran 5 days undetected, R8 F1).
 
 **Check C — Memory staleness (WARN).** Read project memory files; flag stale state,
 duplicates, contradictions with current CLAUDE.md.
@@ -57,7 +60,7 @@ frontmatter matches the directory name. Mismatches break `/slash` dispatch silen
 
 Read what exists; skip gracefully what doesn't. Note which sources you actually used.
 
-1. **Insights summary**: read `~/workspace/guacamayo/.sounding/insights-log.md` first
+1. **Insights summary**: read `~/workspace/guacamayo/.sounding/insights/insights-log.md` first
    (written by `/workflow-insights` — contains experiment verdicts, recommendations, model/skill/tool
    economics, and trends). If it doesn't exist or is stale (>7 days), fall back to running
    `python3 ~/.claude/scripts/insights.py --dry-run` for fresh mechanical stats, or read
