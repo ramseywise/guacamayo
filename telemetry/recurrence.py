@@ -14,9 +14,9 @@ signatures are not mutually exclusive -- a title like "silent swallow with no
 timeout" is genuinely both a `silent-swallow` and a `missing-timeout` instance,
 and undercounting either would hide a real recurrence from retro. This is a
 deliberate divergence from the JSONL's own `category` field, which IS
-single-valued per finding. Verified against the live 125-row corpus: only 3
-findings match more than one pattern, so this choice has negligible effect on
-`RECURRENCE_THRESHOLD`-gated promotion in practice.
+single-valued per finding. Re-verified against the live 145-row corpus after the
+GUA-115 signatures landed: 4 findings match more than one pattern, so this choice
+still has negligible effect on `RECURRENCE_THRESHOLD`-gated promotion in practice.
 
 Trend (GUA-104b): `count` alone is a lifetime total, so a signature that fired
 5x in April and stopped is indistinguishable from one firing 5x this week --
@@ -92,6 +92,36 @@ PATTERNS: dict[str, str] = {
     "god-module": r"mixes multiple|multiple responsibilities|\d{3,}-line|god (module|object|class)",
     "unhandled-none-return": (
         r"unhandled (none|\w+ exception)|\bnone from\b|returns none|\bpnone\b|raises stopiteration"
+    ),
+    # Added 2026-08-15 (GUA-115): 76 of 145 corpus rows were `unmatched:` fallbacks.
+    # Derived by reading every unmatched title, same method as the 2026-08-10 pair.
+    # Each of these six clears RECURRENCE_THRESHOLD on its own phrasing -- none was
+    # widened to reach n=3 (see `god-module` and its pinning test for the precedent).
+    #
+    # Absence-of-gate only. The corpus carries no severity or polarity field, so the
+    # regex is the sole thing separating "no auth here" from "auth is present" --
+    # topic words like "path traversal" match both and are deliberately excluded.
+    "unguarded-write": (
+        r"(without|lacks|no) (user )?(confirmation|authentication|auth\b|opt-out|approval"
+        r"|rate-limit)|unauthenticated"
+    ),
+    # Work or storage that scales without a ceiling -- distinct from `resource-leak`,
+    # which is about a handle never released rather than a bound never set.
+    "unbounded-growth": (
+        r"unbounded|no rotation|no caching|recomputes all|entire \w+ \w+ on every"
+        r"|without (a )?(cap|limit)|no (size )?limit"
+    ),
+    "race-condition": r"race condition|\btoctou\b|collision risk",
+    # Repeated work per call/request. Overlaps `unbounded-growth` on one corpus title
+    # that is honestly both (recompute-per-search AND uncached); the all-matches policy
+    # counts it in each, which is the intended behaviour, not double-counting to fix.
+    "repeated-per-call-work": r"n\+1|per-call import|inline import|on every (search|request|call)",
+    # An error that was detected but never reached whoever could act on it.
+    "error-not-surfaced": (
+        r"not surfaced|logged but not|summary-only|without client-side awareness"
+    ),
+    "doc-implementation-mismatch": (
+        r"does not match implementation|in code vs\.|docstring claims|plan documentation says"
     ),
 }
 
