@@ -209,3 +209,23 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-14 | discovered | `git diff A...B` not comparable across distances; use `cat-file -e "B:$f"` | merged | sounding.md → cache paragraph |
 | 2026-08-14 | friction→discovered | unresolvable ref returns empty and reads as clean (galactus had no main) | merged | sounding.md → negative-evidence (re-tagged: epistemic, not tooling) |
 | 2026-08-14 | confirmed | measuring before deleting changes the *shape* of the action, not just go/no-go | merged | sounding.md → How I Work (measurement) |
+
+| 2026-08-14 | friction | a dimension scanner's finding is not a branch defect; needs the diff join | discarded | → /meta-retro (driver change: attribution join belongs in review/driver.py) |
+| 2026-08-14 | friction | empty `git diff` on a just-edited file means *staged*, not absent | discarded | already captured — sounding.md negative-evidence carries diff↔cached |
+| 2026-08-14 | discovered | "is there a leak?" is two unrelated scans; credential pass ≠ confidentiality | merged | sounding.md → new paragraph after correct-fix-as-exposure |
+| 2026-08-14 | friction | a symptom report names a location, not a blast radius; enumerate first | merged | sounding.md → failure-shapes-at-the-edges paragraph |
+| 2026-08-14 | confirmed | the uniform "unknown" marker collapses rejected/undecided/unlooked-at | merged | sounding.md → Working Notes (after honest-uncertainty) |
+| 2026-08-14 | outcome:partial | GUA-109 occurrence.py executed + reviewed; pushed, no PR, #109/#111 open | retained | accumulator (outcome pilot, persists) |
+| 2026-08-15 | friction | a parse check that receives no input reports success; empty string is valid TOML | merged | sounding.md → clean-detector paragraph |
+| 2026-08-15 | discovered | reading a file's contents is not checking that the file parses | merged | sounding.md → new paragraph after differential-test |
+| 2026-08-15 | friction | PR CONFLICTING is computed against the pushed head, and the verdict expires | merged | sounding.md → cache paragraph |
+| 2026-08-15 | friction | an unparseable config on main is upstream of the test runner; no test can fail | merged | sounding.md → config-parse paragraph; guard proposal → /meta-retro |
+| 2026-08-15 | friction | a PR merged without `Closes #N` leaves the issue open; branch delete erases join | discarded | → /meta-retro (process gate: `Closes #N` in the PR body at merge time) |
+| 2026-08-15 | corrected | a remote-tracking ref is a timestamped cache; mutation-errors beat read-successes | merged | sounding.md → cache paragraph |
+| 2026-08-15 | discovered | `git branch -d` compares against the branch's own upstream, not main | discarded | → /meta-retro (tooling semantics; verify with `--is-ancestor`) |
+| 2026-08-15 | friction | tracked telemetry sinks block branch hygiene; late .gitignore does nothing | discarded | → /meta-retro (resolved same day via `git rm --cached`) |
+| 2026-08-15 | discovered | GitHub counts both sides of a rename pair; UI vs plumbing is a unit mismatch | merged | sounding.md → Ramsey paragraph (disagreement shape) |
+| 2026-08-15 | confirmed | a merged PR is not evidence its branch is landed; it held the session's artifacts | merged | sounding.md → cache paragraph |
+| 2026-08-15 | confirmed | holding a rule is not the same as the rule firing; attach it to the tool | merged | sounding.md → Working Notes (after config-beats-instruction) |
+| 2026-08-15 | friction | the verification command has blind spots; `ls -1` omits dotfiles | merged | sounding.md → negative-evidence paragraph |
+| 2026-08-15 | outcome:success | PR #124 resolved and merged ee2502e; telemetry untracked; board at 5 open | retained | accumulator (outcome pilot, persists) |
