@@ -45,7 +45,12 @@ from telemetry.loop import (
     status_counts,
 )
 from telemetry.periods import DEFAULT_PERIOD, PERIODS, iso_week, period_key
-from telemetry.recurrence import compute_recurrence
+from telemetry.recurrence import (
+    DIRECTION_FALLING,
+    DIRECTION_FLAT,
+    DIRECTION_RISING,
+    compute_recurrence,
+)
 from telemetry.verdicts import parse_metric
 
 log = structlog.get_logger(__name__)
@@ -1530,14 +1535,25 @@ def parse_findings(path: Path) -> list[dict]:
     return findings
 
 
-def _rising_badge(rising: bool) -> str:
-    """Inline 'rising' badge for a recurrence row. Empty when not rising."""
-    if not rising:
+# Falling is rendered in the *good* colour: friction going down is the outcome the whole
+# report exists to produce, and colouring it like a warning would misread a fix as a
+# problem. Flat renders nothing -- a badge on every row is a badge that says nothing.
+_DIRECTION_STYLE: dict[str, str | None] = {
+    DIRECTION_RISING: "--bad",
+    DIRECTION_FALLING: "--good",
+    DIRECTION_FLAT: None,
+}
+
+
+def _direction_badge(direction: str) -> str:
+    """Inline trend badge for a recurrence row. Empty when flat or unrecognized."""
+    color = _DIRECTION_STYLE.get(direction)
+    if color is None:
         return ""
     return (
-        ' <span style="font-size:10px;font-weight:600;color:var(--bad);'
-        "border:1px solid var(--bad);border-radius:3px;padding:0 4px;"
-        'vertical-align:middle">rising</span>'
+        f' <span style="font-size:10px;font-weight:600;color:var({color});'
+        f"border:1px solid var({color});border-radius:3px;padding:0 4px;"
+        f'vertical-align:middle">{html.escape(direction)}</span>'
     )
 
 
@@ -1636,16 +1652,21 @@ def _render_review_findings(findings: list[dict] | None) -> str:
     # Recurring friction (GUA-100) -- named signature groups, not the reporter-
     # native category tag below. See telemetry/recurrence.py for the grouping
     # rationale (multi-match "all matches", unmatched -> category/repo fallback).
-    # A group reaches this table if it is promotable (lifetime count) OR rising
-    # (recent surge) -- the `or` lives here at the call site, not inside
+    # A group reaches this table if it is promotable (lifetime count) OR trending
+    # (rising or falling) -- the `or` lives here at the call site, not inside
     # RecurrenceGroup, so the two signals stay separately inspectable (GUA-104b
     # Open Question 3). compute_recurrence already sorts rising groups first.
+    # Falling groups are included deliberately (GUA-109): a friction that is being
+    # fixed is reportable evidence, and dropping it would make the table show only
+    # bad news.
     recurrence_html = ""
-    recurring_groups = [g for g in compute_recurrence(findings) if g.promotable or g.rising]
+    recurring_groups = [
+        g for g in compute_recurrence(findings) if g.promotable or g.direction != DIRECTION_FLAT
+    ]
     if recurring_groups:
         recurrence_rows = "".join(
             f"<tr><td>{html.escape(g.pattern_key)}"
-            f"{_rising_badge(g.rising)}</td><td>{g.count}</td>"
+            f"{_direction_badge(g.direction)}</td><td>{g.count}</td>"
             f"<td>{_period_sparkline(g.period_counts)}</td>"
             f"<td>{html.escape(', '.join(g.repos))}</td>"
             f"<td>{html.escape(g.first_seen)} → {html.escape(g.last_seen)}</td></tr>"
@@ -1655,9 +1676,13 @@ def _render_review_findings(findings: list[dict] | None) -> str:
             "<h4>Recurring friction</h4>"
             '<p class="note">A <span style="color:var(--bad);font-weight:600">rising</span> '
             "badge means the most recent complete week exceeded 1.5&times; the mean of the "
-            "three weeks before it (partial trailing weeks excluded). Rising groups sort "
+            "three weeks before it; "
+            '<span style="color:var(--good);font-weight:600">falling</span> means it dropped '
+            "below that mean by the same factor, from a base of at least three. Partial "
+            "trailing weeks are excluded and unbadged rows are flat. Rising groups sort "
             "first &mdash; a pattern getting worse is more actionable than one that has "
-            "been bad for a long time.</p>"
+            "been bad for a long time. Weeks are keyed on each finding's occurrence date "
+            "(when the code was last touched), not on the day its review ran.</p>"
             '<div class="table-view"><table>'
             "<thead><tr><th>Pattern</th><th>Count</th><th>By week</th><th>Repos</th>"
             "<th>First → last seen</th></tr></thead>"
