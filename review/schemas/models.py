@@ -14,6 +14,25 @@ class EvidenceState(str, Enum):
     QUESTION = "question"
 
 
+class Attribution(str, Enum):
+    """Branch attribution for a finding's cited line.
+
+    Classifies whether the branch under review introduced the cited line,
+    is merely adjacent to it, or the file was not touched at all.
+
+    ``unknown`` is the explicit tri-state for "could not determine" (git call
+    failed, line number absent, etc.). It intentionally does NOT map to
+    ``pre_existing`` — an undeterminable finding must not silently stop
+    blocking. See BranchFact.is_ancestor in telemetry/consistency.py for the
+    same pattern.
+    """
+
+    INTRODUCED = "introduced"  # cited line in a touched hunk AND blames to branch commit
+    ADJACENT = "adjacent"  # file touched, cited line was not in a touched hunk
+    PRE_EXISTING = "pre_existing"  # file not touched by the branch
+    UNKNOWN = "unknown"  # could not determine — does NOT count as pre_existing
+
+
 class MergeImpact(str, Enum):
     BLOCKER = "blocker"
     IMPORTANT = "important"
@@ -163,6 +182,9 @@ class ReviewFinding(BaseModel):
     basis: list[str] = Field(default_factory=list)
     comment_type: CommentType
     plan_step: int | None = None
+    attribution: Attribution | None = (
+        None  # set by driver after git join; None = not yet classified
+    )
 
     @field_validator("id")
     @classmethod
