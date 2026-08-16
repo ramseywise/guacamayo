@@ -135,6 +135,27 @@ own adversaries and writes to `.claude/docs/reviews/`. It never touches `Status:
 `references/claim-schema.md` is vendored from galactus's `decide-shared`; galactus is canon,
 so re-vendor rather than editing it here.
 
+### Telemetry — store ownership (D1, decided 2026-08-15, GUA-120)
+
+**librarian owns the sessions store and the session sync.** `~/workspace/librarian/data/sessions.db`
+is the source of truth for session data. **guacamayo owns everything derived from it** —
+state, insights, telemetry, and the dashboard.
+
+- The `--store` default at `telemetry/__main__.py` pointing at librarian's DB is
+  **intentional**, not an accident. It was moved there deliberately after a
+  guacamayo-local default caused a stale-store misdiagnosis on 2026-08-12; the in-tree
+  comment above it is the rationale.
+- The cross-repo read is **permanent and documented**. Accepted consequence: guacamayo's
+  dashboard does not work if librarian is not cloned.
+- `data/sessions.db.bak` is a **decoy store** — 701 rows, newest session 2026-08-04, stale
+  by content well before its mtime suggests. It is safe to delete; nothing should read it.
+
+**Metric fences.** A metric whose input column is sparsely populated must declare its frame
+rather than silently computing over whatever rows happen to have the column
+(`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era,
+`COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every
+tile renders the row count it was computed from.
+
 ---
 
 ## Settings
