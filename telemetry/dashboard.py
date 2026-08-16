@@ -91,6 +91,39 @@ JULY_ONLY_METRICS = {
     "errors_tool_total",
     "errors_unknown_total",
     "bash_antipatterns_p50",
+    # GUA-120: context pressure, cost-per-tool, mutation ratio — all read
+    # max_context / tool_counts, which are null in the note era.
+    "context_pressure_ratio",
+    "cost_per_tool",
+    "mutation_ratio",
+}
+
+# GUA-120: a fence narrower than JULY_ONLY_METRICS. `turns_since_last_compact`
+# is non-null only where `compacted=1`, and only in the July era -- 182 of 939
+# rows as of 2026-08-15, which is exactly the July+ compacted population, not a
+# sample of it. Computing over "the rows that happen to have the column" would
+# describe 44% of compaction events and render identically to one that described
+# all of them. These metrics are therefore restricted to July+ compacted
+# sessions and must render that sub-population, not the whole corpus, as their n.
+COMPACT_METRICS = {"compaction_yield"}
+
+# Tool names counted as mutations vs reads for `mutation_ratio`. Bash is
+# deliberately absent from both: it is read-or-write depending on the command
+# string, which `tool_counts` does not retain, so counting it either way would
+# be an attribution guess. The denominator is mutation + read calls, not all
+# calls, so excluding Bash removes it from both sides rather than diluting one.
+_MUTATION_TOOLS = frozenset({"Edit", "Write", "NotebookEdit", "MultiEdit"})
+_READ_TOOLS = frozenset({"Read", "Grep", "Glob", "NotebookRead"})
+
+# What the rendered n counts, per metric. The default ("sessions") is right for
+# every metric whose bucket is the whole fenced population; a metric with a
+# narrower frame must name it here, so the number on the tile cannot be read as
+# a corpus-wide count.
+_POPULATION_FRAME = {
+    "compaction_yield": "July+ compacted sessions",
+    "cost_per_tool": "sessions with ≥1 tool call",
+    "mutation_ratio": "sessions with tool counts",
+    "context_pressure_ratio": "sessions with max_context recorded",
 }
 
 # Top N tools to trend individually; everything else is aggregated as "other".
@@ -108,6 +141,13 @@ SAMPLING_FRAME = {
 }
 
 _CONTEXT_LIMIT = 150_000
+
+# GUA-120: the pressure threshold, deliberately below _CONTEXT_LIMIT. 150k is
+# where the 5x cost cliff has already been paid; 100k is where the global rule
+# (`~/.claude/rules/context-health.md`) says to compact. Measuring approach to
+# the cliff is a different question from measuring arrival at it, so this is a
+# second metric rather than a re-tuning of pct_over_150k.
+_CONTEXT_PRESSURE_FLOOR = 100_000
 
 
 @dataclass(frozen=True)
@@ -310,16 +350,92 @@ def _metric_value(metric: str, bucket: list[dict[str, Any]]) -> float | None:
             if (r.get("max_context") or 0) >= _CONTEXT_LIMIT
         )
         return round(100 * over_cost / total_cost, 2)
+    # GUA-120 Step 1: context pressure. Distinct from pct_over_150k -- that one
+    # measures the 5x cost cliff; this measures approach to it, so a session at
+    # 120k registers as pressure here and as nothing there.
+    if metric == "context_pressure_ratio":
+        values = [r["max_context"] for r in bucket if r.get("max_context") is not None]
+        if not values:
+            return None
+        return round(100 * sum(1 for v in values if v >= _CONTEXT_PRESSURE_FLOOR) / len(values), 2)
+    # GUA-120 Step 2: cost per tool call. Same filtered-bucket shape as
+    # tool_error_rate -- sessions with no tool calls are excluded from both the
+    # numerator and the denominator rather than counted as zero-cost work.
+    if metric == "cost_per_tool":
+        scored = [r for r in bucket if _tool_call_total(r) > 0]
+        if not scored:
+            return None
+        calls = sum(_tool_call_total(r) for r in scored)
+        if not calls:
+            return None
+        cost = sum(float(r.get("cost_units") or 0) for r in scored)
+        return round(cost / calls, 2)
+    # GUA-120 Step 3: mutation vs read. Denominator is mutation + read calls,
+    # not all tool calls -- tools that are neither (Task, WebFetch, Bash) would
+    # otherwise drag the ratio down as if they were reads.
+    if metric == "mutation_ratio":
+        mutations = 0
+        reads = 0
+        for row in bucket:
+            counts = _tool_counts(row)
+            mutations += sum(int(v) for k, v in counts.items() if k in _MUTATION_TOOLS)
+            reads += sum(int(v) for k, v in counts.items() if k in _READ_TOOLS)
+        total = mutations + reads
+        if not total:
+            return None
+        return round(100 * mutations / total, 2)
+    # GUA-120 Step 4: compaction yield. Median, not mean -- the distribution is
+    # right-skewed (a few very long post-compact runs), and a mean would report
+    # a typical session as longer than any typical session actually is. Rows are
+    # already fenced to July+ compacted by COMPACT_METRICS in build_series; the
+    # None-guard here covers a bucket that survived the fence with no column.
+    if metric == "compaction_yield":
+        values = [
+            float(r["turns_since_last_compact"])
+            for r in bucket
+            if r.get("turns_since_last_compact") is not None
+        ]
+        if not values:
+            return None
+        return _percentile(values, 50)
     raise ValueError(f"unknown metric: {metric}")
+
+
+def _tool_counts(row: dict[str, Any]) -> dict[str, int]:
+    """Parsed tool_counts JSON, or {} when absent or malformed."""
+    try:
+        counts = json.loads(row.get("tool_counts") or "{}")
+    except (TypeError, ValueError):
+        return {}
+    return counts if isinstance(counts, dict) else {}
 
 
 def _tool_call_total(row: dict[str, Any]) -> int:
     """Total tool invocations in a session, from the stored tool_counts JSON."""
-    try:
-        counts = json.loads(row.get("tool_counts") or "{}")
-    except (TypeError, ValueError):
-        return 0
-    return sum(int(v) for v in counts.values()) if isinstance(counts, dict) else 0
+    return sum(int(v) for v in _tool_counts(row).values())
+
+
+# GUA-120: which rows a metric actually computed over. `Point.n` counts bucket
+# size, which equals the scored count only when a metric reads a column every
+# row has -- so a tile rendering bucket size next to a filtered value overstates
+# its population the moment one row is null. Metrics with a narrower frame than
+# their bucket register the predicate here; everything else keeps bucket size.
+_SCORED_ROW: dict[str, Callable[[dict[str, Any]], bool]] = {
+    "context_pressure_ratio": lambda r: r.get("max_context") is not None,
+    "cost_per_tool": lambda r: _tool_call_total(r) > 0,
+    "mutation_ratio": lambda r: any(
+        k in _MUTATION_TOOLS or k in _READ_TOOLS for k in _tool_counts(r)
+    ),
+    "compaction_yield": lambda r: r.get("turns_since_last_compact") is not None,
+}
+
+
+def _scored_count(metric: str, bucket: list[dict[str, Any]]) -> int:
+    """Rows in `bucket` that contributed to `metric`'s value."""
+    predicate = _SCORED_ROW.get(metric)
+    if predicate is None:
+        return len(bucket)
+    return sum(1 for r in bucket if predicate(r))
 
 
 def _regime_bands(points: list[Point]) -> list[tuple[str, str, str]]:
@@ -358,7 +474,7 @@ def _period_points(rows: list[dict[str, Any]], metric: str, period: str) -> list
                 date=min(str(r["date"]) for r in bucket),
                 value=value,
                 regime=regime,
-                n=len(bucket),
+                n=_scored_count(metric, bucket),
                 bucket=key,
             )
         )
@@ -374,9 +490,15 @@ def build_series(metric: str, store: Path, period: str = "day") -> Series:
     before the telemetry boundary rather than imputing across it.
     """
     rows = _work_sessions(read_all(store))
-    july_only = metric in JULY_ONLY_METRICS
+    july_only = metric in JULY_ONLY_METRICS or metric in COMPACT_METRICS
     if july_only:
         rows = [r for r in rows if str(r["date"]) >= JULY_BOUNDARY]
+    # GUA-120: the narrower fence. Restricting to compacted sessions *before*
+    # bucketing is what makes the rendered n the sub-population's n -- filtering
+    # inside _metric_value would leave Point.n counting rows the metric did not
+    # describe, which is the exact misreading the fence exists to prevent.
+    if metric in COMPACT_METRICS:
+        rows = [r for r in rows if r.get("compacted")]
 
     if metric == "sessions_per_week":
         # Counts sessions per bucket; "per_week" is the metric's name, not its
@@ -694,6 +816,54 @@ _TIER2 = [
         "Validates or falsifies the '52% of spend' claim from insights-log.",
         "July-forward only; sessions without max_context excluded",
         "pct",
+    ),
+    # GUA-120 Step 1: approach to the cliff, not arrival at it.
+    (
+        "context_pressure_ratio",
+        "Context pressure ratio (% over 100k)",
+        "Share of sessions reaching the 100k compact-now threshold. Leads "
+        "% over 150k — pressure here becomes cost there.",
+        "July-forward only. Denominator: sessions with max_context recorded, not all sessions",
+        "pct",
+    ),
+]
+
+# GUA-120: work economics — what a unit of work costs, and what kind of work it
+# was. Separate from Tier 1 (cost per *session*) because a session is a
+# container, not a unit of work: two sessions of equal cost can do very
+# different amounts of it.
+_TIER_WORK = [
+    (
+        "cost_per_tool",
+        "Cost per tool call",
+        "Cost units per tool invocation. Falling = the same work for less; "
+        "rising = more reasoning per action, which is not automatically worse.",
+        "July-forward only. Sessions with zero tool calls are excluded from both "
+        "the numerator and the denominator, not counted as zero-cost",
+        "cost",
+    ),
+    (
+        "mutation_ratio",
+        "Mutation vs read ratio (%)",
+        "Share of file-touching tool calls that write rather than read. Low = "
+        "heavy exploration; high = editing with little context gathering.",
+        "July-forward only. Denominator is mutation + read calls only. Bash is "
+        "excluded from both sides — tool_counts does not retain the command, so "
+        "classifying it either way would be a guess",
+        "pct",
+    ),
+    (
+        "compaction_yield",
+        "Compaction yield (turns after compact, p50)",
+        "Median human turns a session runs after compacting. Higher = compaction "
+        "bought more work; near-zero = the session ended anyway and the compact was wasted.",
+        "July+ compacted work sessions only — the tile renders its own n; this "
+        "note does not restate it, because a hardcoded count goes stale against a "
+        "live store. The column is null on every pre-July compacted session "
+        "(not backfillable, so they are excluded rather than imputed), and "
+        "meta-sessions are excluded here as everywhere. Median, not mean: the "
+        "distribution is right-skewed",
+        "count",
     ),
 ]
 
@@ -1066,6 +1236,21 @@ def _panel_body(panel: Panel, color: str, span: int, widest: int, unit: str = "c
     return _svg_line(panel.points, color, width=width, unit=unit)
 
 
+def _population_line(series: Series) -> str:
+    """The rendered n: how many rows the plotted values were computed from.
+
+    GUA-120's DoD requirement, and the fix for the defect that issue names --
+    a tile computed over the rows that happen to carry a sparse column renders
+    identically to one computed over the whole corpus. Summing Point.n is
+    correct because buckets partition the fenced rows: each row lands in exactly
+    one (period, regime) bucket, and a bucket whose value is None is dropped
+    from `points`, so the total counts contributing rows only.
+    """
+    total = sum(p.n for p in series.points)
+    frame = _POPULATION_FRAME.get(series.metric, "sessions")
+    return f'<p class="population">n = {total:,} {html.escape(frame)}</p>'
+
+
 def _render_series(
     series: Series,
     color: str,
@@ -1141,6 +1326,7 @@ def _render_series(
         f"{surface_svgs}"
         f'<p class="range">{html.escape(series.points[0].date)} - '
         f"{html.escape(series.points[-1].date)}</p>"
+        f"{_population_line(series)}"
         f'<ul class="bands">{bands}</ul>'
         f"{_table_view(series.points)}</section>"
     )
@@ -1312,20 +1498,32 @@ def _render_skill_economics(store: Path) -> str:
             "from JSONL era sessions (July+).</p></section>"
         )
     grand = sum(e["cost"] for e in totals.values()) or 1.0
+    sessions = sum(int(e["n"]) for e in totals.values())
     rows = "".join(
         f"<tr><td>{html.escape(skill)}</td>"
         f"<td>{stats['cost']:,.0f}</td>"
         f"<td>{stats['cost'] / grand * 100:.0f}%</td>"
-        f"<td>{int(stats['n'])}</td></tr>"
+        f"<td>{int(stats['n'])}</td>"
+        f"<td>{stats['cost'] / stats['n']:,.0f}</td></tr>"
         for skill, stats in totals.items()
+        if stats["n"]
     )
     return (
         '<section class="chart"><h3>Skill economics</h3>'
         '<p class="note">Per-skill cost and session count. Cost attributed from JSONL '
         "assistant output between a slash invocation and the next human turn. "
         "Work sessions only; July-forward.</p>"
+        # GUA-120: cost/session is the only yield proxy the stored data supports.
+        # skill_costs carries cost and invocation count, not an outcome, so a
+        # cheap skill and an effective one are indistinguishable here -- said
+        # plainly rather than letting the column imply a value judgement.
+        '<p class="note">Cost/session ranks spend per invocation, not value returned: '
+        "the store carries no outcome per skill, so a high number means expensive, "
+        "not wasteful.</p>"
+        f'<p class="population">n = {sessions:,} skill invocations</p>'
         '<div class="table-view"><table>'
-        "<thead><tr><th>Skill</th><th>cost units</th><th>share</th><th>sessions</th></tr></thead>"
+        "<thead><tr><th>Skill</th><th>cost units</th><th>share</th><th>sessions</th>"
+        "<th>cost/session</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div></section>"
     )
 
@@ -2606,6 +2804,10 @@ padding:16px;margin-bottom:16px;overflow-x:auto;}
 .chart h4{font-size:13px;margin:0 0 2px;}
 .note,.frame,.range,.rule{color:var(--text-secondary);font-size:12px;margin:0 0 8px;}
 .frame{color:var(--muted);font-style:italic;}
+/* GUA-120: the population a tile was computed from. Deliberately not .note --
+   a muted footnote is how a sparse-column metric passes for a corpus-wide one. */
+.population{color:var(--text-primary);font-size:12px;font-weight:600;margin:0 0 8px;
+font-variant-numeric:tabular-nums;}
 .rule{border-left:2px solid var(--baseline);padding-left:8px;}
 .panels{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;}
 /* flex-grow is set inline, proportional to each regime's span in days, so panel
@@ -2963,6 +3165,7 @@ def render_dashboard(
 
     tier1 = _tier(_TIER1)
     tier2 = _tier(_TIER2)
+    work = _tier(_TIER_WORK)
     shape = _tier(_TIER_SHAPE)
     # Step 9: friction tab regroup — three groups instead of flat _TIER3 list.
     # LIB-59: this is the one tier with a mapped ledger experiment
@@ -3065,7 +3268,11 @@ def render_dashboard(
     sec_cost = (
         f'<section id="cost"><h2>Cost &amp; Efficiency</h2>'
         f'<p class="sub">Am I spending well?</p>'
-        f"{tier1}{_render_tool_trends(store)}</section>"
+        f"{tier1}{_render_tool_trends(store)}"
+        f'<div class="boundary"><h2 style="font-size:14px;margin:0 0 4px">Work economics</h2>'
+        f'<p class="sub" style="margin:0 0 12px">What does a unit of work cost, and what '
+        f"kind of work was it? Each tile states the population it was computed from.</p></div>"
+        f"{work}</section>"
     )
 
     sec_context = (
