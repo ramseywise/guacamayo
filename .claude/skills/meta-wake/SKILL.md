@@ -197,6 +197,61 @@ Two judgements the report does not make, which stay yours:
 
 If `gh` fails or returns nothing, skip gracefully — issues are additive context, not a gate.
 
+### Proposed actions (GUA-119)
+
+After rendering the board tables and the consistency report, check `board.json` for the
+`proposed_actions` key.  This key is **always present** — an absent key means the
+evaluator never ran, not that the board is clean.
+
+**Staleness rule**: proposals carry the same 30-minute staleness threshold as the board
+itself.  If the board is stale, render the same `⚠ Board stale (...)` banner before the
+proposal list — stale proposals must not be acted on without refreshing.
+
+**If `proposed_actions` is an empty list**: render one line and continue:
+
+> Proposed actions: none — board is clean.
+
+**If `proposed_actions` is non-empty**: render as a numbered list:
+
+```
+Proposed actions (N):
+  1. [action] — [target] — [reason] — [evidence] — confidence: [high|medium|low]
+     auto_eligible: yes/no | id: [short-hash]
+  2. ...
+```
+
+Fields to include per proposal:
+- `action` — the verb (`triage`, `close_issue`, `fix_label`, `reconcile_plan_status`, `dispatch_review`)
+- `target` — `{repo}#{issue_num}` (include `pr_num` if present)
+- `reason` — the one-sentence human-facing reason
+- `evidence` — the board/consistency fields that triggered it
+- `confidence` — `high`, `medium`, or `low`
+- `auto_eligible` — `yes` or `no`
+- `id` — the short stable hash (12 chars); used to record decisions
+
+**Collect one accept/reject pass from Ramsey.** Ask:
+
+> Accept/reject/defer each proposal (e.g. "1: accept, 2: reject, 3: defer")?
+> Accepted actions will run now via `gh`. Deferred actions reappear next wake.
+
+**Apply accepted proposals via `gh` in-session** (attended — the gates hold):
+
+- `triage` → `gh issue edit {repo}#{issue_num} --add-label "backlog"` (or the label Ramsey names)
+- `close_issue` → `gh issue close {owner}/{repo}#{issue_num} --comment "Closed: branch merged to main."`
+- `fix_label` → `gh issue edit {repo}#{issue_num} --remove-label "{old}" --add-label "{correct}"`
+- `dispatch_review` → inform Ramsey; do not auto-run `/workflow-review` this cut (OQ5)
+- `reconcile_plan_status` → inform Ramsey; plan Status: edits are manual
+
+**Append one JSONL line per decision** to `.sounding/telemetry/actions.jsonl`
+(create the file if absent — it is the audit log the feedback loop requires):
+
+```json
+{"ts": "ISO-8601-UTC", "id": "abc123", "action": "triage", "target": {"repo": "guacamayo", "issue_num": 5}, "outcome": "accepted|rejected|deferred", "reason": "Ramsey's stated reason or empty string"}
+```
+
+One line per decision, regardless of outcome — a rejected or deferred proposal that is
+not recorded is indistinguishable from one that was never proposed.
+
 ### PRs updated since last wake
 
 Use the last-wake timestamp from Phase 1 as the `--updated` cutoff:
