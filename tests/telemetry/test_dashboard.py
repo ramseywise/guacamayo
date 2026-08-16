@@ -18,7 +18,9 @@ import pytest
 
 from telemetry.dashboard import (
     _DEFAULT_PERIOD,
+    COMPACT_METRICS,
     JULY_BOUNDARY,
+    JULY_ONLY_METRICS,
     LEDGER_METRIC_MAPPING,
     PERIODS,
     RATE_METRICS,
@@ -26,6 +28,7 @@ from telemetry.dashboard import (
     Experiment,
     Panel,
     Point,
+    Series,
     _annotations_for_metric,
     _direction_badge,
     _group,
@@ -33,9 +36,12 @@ from telemetry.dashboard import (
     _panel_body,
     _period_key,
     _period_sparkline,
+    _population_line,
     _render_annotations,
     _render_review_findings,
+    _render_skill_economics,
     _saturation_warning,
+    _scored_count,
     _span_days,
     _svg_line,
     _work_sessions,
@@ -1470,3 +1476,329 @@ def test_recurring_friction_escapes_pattern_and_repo() -> None:
     html = _render_review_findings(findings)
     assert "<script>x</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+# --- GUA-120: dashboard metrics (pressure, cost/tool, mutation, yield) --------
+#
+# The invariant these tests defend is F1's: a metric whose input column is
+# sparsely populated must declare its frame. A tile computed over "the rows that
+# happen to have the column" renders identically to one computed over the whole
+# corpus, and that indistinguishability is the defect -- so the fence and the
+# rendered n are tested as behaviour, not as presentation.
+
+
+def test_context_pressure_ratio_counts_the_100k_floor_not_the_150k_cliff() -> None:
+    """The metric must not duplicate pct_over_150k: 120k is pressure, not cost."""
+    bucket = [
+        {"max_context": 120_000},
+        {"max_context": 200_000},
+        {"max_context": 40_000},
+        {"max_context": 90_000},
+    ]
+    assert _metric_value("context_pressure_ratio", bucket) == 50.0
+    assert _metric_value("pct_over_150k", bucket) == 25.0
+
+
+def test_context_pressure_ratio_none_when_no_max_context() -> None:
+    """Empty bucket returns None rather than 0% -- a 0 would plot as 'no
+    pressure' on a period that measured nothing at all."""
+    assert _metric_value("context_pressure_ratio", [{"max_context": None}]) is None
+
+
+def test_context_pressure_ratio_excludes_unrecorded_rows_from_denominator() -> None:
+    bucket = [{"max_context": 120_000}, {"max_context": None}, {"max_context": 10_000}]
+    assert _metric_value("context_pressure_ratio", bucket) == 50.0
+
+
+def test_cost_per_tool_divides_cost_by_calls() -> None:
+    bucket = [
+        {"cost_units": 100.0, "tool_counts": '{"Read": 3, "Edit": 1}'},
+        {"cost_units": 50.0, "tool_counts": '{"Bash": 1}'},
+    ]
+    assert _metric_value("cost_per_tool", bucket) == 30.0
+
+
+def test_cost_per_tool_excludes_zero_tool_sessions_from_both_sides() -> None:
+    """A session with no tool calls is not zero-cost work -- including its cost
+    over someone else's calls would inflate the ratio without adding a call."""
+    with_tools = [{"cost_units": 100.0, "tool_counts": '{"Read": 4}'}]
+    plus_toolless = [*with_tools, {"cost_units": 900.0, "tool_counts": "{}"}]
+    assert _metric_value("cost_per_tool", with_tools) == 25.0
+    assert _metric_value("cost_per_tool", plus_toolless) == 25.0
+
+
+def test_cost_per_tool_none_when_no_tool_calls() -> None:
+    assert _metric_value("cost_per_tool", [{"cost_units": 10.0, "tool_counts": "{}"}]) is None
+
+
+def test_cost_per_tool_survives_malformed_tool_counts() -> None:
+    """Malformed JSON is treated as no tool calls, not as a crash: the column is
+    parser output and a bad row must not take the whole bucket down."""
+    assert (
+        _metric_value("cost_per_tool", [{"cost_units": 10.0, "tool_counts": "{not json"}]) is None
+    )
+
+
+def test_mutation_ratio_counts_writes_over_write_plus_read() -> None:
+    bucket = [{"tool_counts": '{"Edit": 2, "Write": 1, "Read": 6, "Grep": 1}'}]
+    assert _metric_value("mutation_ratio", bucket) == 30.0
+
+
+def test_mutation_ratio_excludes_bash_from_both_sides() -> None:
+    """Bash is unclassifiable from tool_counts alone. Adding 100 Bash calls must
+    not move the ratio -- if it does, Bash has silently become a 'read'."""
+    without = [{"tool_counts": '{"Edit": 1, "Read": 1}'}]
+    with_bash = [{"tool_counts": '{"Edit": 1, "Read": 1, "Bash": 100}'}]
+    assert _metric_value("mutation_ratio", without) == 50.0
+    assert _metric_value("mutation_ratio", with_bash) == 50.0
+
+
+def test_mutation_ratio_none_when_no_classifiable_tools() -> None:
+    assert _metric_value("mutation_ratio", [{"tool_counts": '{"Bash": 3}'}]) is None
+
+
+def test_compaction_yield_is_median_over_populated_rows_only() -> None:
+    """Mixed bucket: the None row is excluded from the median, not read as 0 --
+    a 0 would claim a compact bought no turns when it in fact bought unknown."""
+    bucket = [
+        {"turns_since_last_compact": 10},
+        {"turns_since_last_compact": 20},
+        {"turns_since_last_compact": 30},
+        {"turns_since_last_compact": None},
+    ]
+    # Nearest-rank p50 over [10, 20, 30] -- the repo-wide _percentile convention.
+    # The None row is excluded: were it read as 0, the median would fall to 10.
+    assert _metric_value("compaction_yield", bucket) == 20.0
+
+
+def test_compaction_yield_none_when_column_absent() -> None:
+    assert _metric_value("compaction_yield", [{"turns_since_last_compact": None}]) is None
+
+
+def test_compaction_yield_fence_excludes_non_compacted_sessions(tmp_path: Path) -> None:
+    """The F1 fence, as behaviour. A non-compacted July row carrying the column
+    must not reach the series -- and, critically, must not inflate Point.n, or
+    the rendered population describes rows the metric never measured."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                "c1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=10,
+            ),
+            _row(
+                "c2",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=20,
+            ),
+            _row(
+                "c3",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=30,
+            ),
+            # Unfenced, this row would drag the median to 30 and n to 4.
+            _row(
+                "u1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=False,
+                turns_since_last_compact=999,
+            ),
+        ],
+        store,
+    )
+    series = build_series("compaction_yield", store, "day")
+    assert [p.value for p in series.points] == [20.0]
+    assert [p.n for p in series.points] == [3]
+
+
+def test_compaction_yield_fence_excludes_pre_july_compacted_sessions(tmp_path: Path) -> None:
+    """235 pre-July compacted sessions have a null column by design. The fence
+    drops them rather than letting them dilute the July population."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("n1", "2026-05-01", "note-hook", compacted=True),
+            _row(
+                "c1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=10,
+            ),
+        ],
+        store,
+    )
+    series = build_series("compaction_yield", store, "day")
+    assert [p.date for p in series.points] == ["2026-07-18"]
+    assert sum(p.n for p in series.points) == 1
+
+
+def test_compaction_yield_is_july_fenced_in_the_series() -> None:
+    """COMPACT_METRICS implies the July fence: the column has no pre-July data,
+    so a series flagged otherwise would advertise a boundary it does not have."""
+    assert "compaction_yield" in COMPACT_METRICS
+    assert "compaction_yield" not in RATE_METRICS
+
+
+def test_new_metrics_are_july_fenced() -> None:
+    """max_context and tool_counts are null in the note era. A metric reading
+    them without a fence draws a line across a boundary its data cannot cross."""
+    for metric in ("context_pressure_ratio", "cost_per_tool", "mutation_ratio"):
+        assert metric in JULY_ONLY_METRICS
+        assert build_series(metric, _empty_store_path(), "day").july_only
+
+
+def _empty_store_path() -> Path:
+    """A store with no rows -- july_only is a property of the metric, not the data."""
+    import tempfile
+
+    store = Path(tempfile.mkdtemp()) / "facts.db"
+    upsert([_row("x", "2026-07-18", "session-hygiene-v1")], store)
+    return store
+
+
+def test_every_new_tile_renders_its_population(tmp_path: Path) -> None:
+    """DoD: the row count is rendered on the tile, not left to the table view."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                "j1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                max_context=120_000,
+                turns_since_last_compact=10,
+                tool_counts='{"Edit": 2, "Read": 3}',
+            ),
+            _row(
+                "j2",
+                "2026-07-19",
+                "session-hygiene-v1",
+                compacted=True,
+                max_context=80_000,
+                turns_since_last_compact=4,
+                tool_counts='{"Read": 5}',
+            ),
+        ],
+        store,
+    )
+    page = render_dashboard(store, funnel=None)
+    assert "Context pressure ratio" in page
+    assert "Cost per tool call" in page
+    assert "Mutation vs read ratio" in page
+    assert "Compaction yield" in page
+    assert 'class="population"' in page
+    assert "July+ compacted sessions" in page
+
+
+def test_population_line_sums_contributing_rows_only() -> None:
+    """n counts rows behind the plotted values. A bucket that returned None is
+    dropped from points, so it must not appear in the total."""
+    series = Series(
+        metric="compaction_yield",
+        faceted=False,
+        points=[
+            Point(date="2026-07-18", value=10.0, regime="session-hygiene-v1", n=2),
+            Point(date="2026-07-19", value=12.0, regime="session-hygiene-v1", n=3),
+        ],
+    )
+    assert "n = 5 July+ compacted sessions" in _population_line(series)
+
+
+def test_population_frame_defaults_to_sessions() -> None:
+    series = Series(
+        metric="cost_units_p50",
+        faceted=False,
+        points=[Point(date="2026-07-18", value=1.0, regime="session-hygiene-v1", n=7)],
+    )
+    assert "n = 7 sessions" in _population_line(series)
+
+
+def test_skill_economics_has_cost_per_session_column(tmp_path: Path) -> None:
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("s1", "2026-07-18", "session-hygiene-v1", skill_costs='{"execute": 300}'),
+            _row("s2", "2026-07-19", "session-hygiene-v1", skill_costs='{"execute": 100}'),
+        ],
+        store,
+    )
+    table = _render_skill_economics(store)
+    assert "cost/session" in table
+    assert "200" in table
+
+
+def test_skill_economics_states_cost_is_not_value(tmp_path: Path) -> None:
+    """The column ranks spend, not worth. Without the caveat rendered, a cheap
+    skill reads as a good one -- an attribution the store cannot support."""
+    store = tmp_path / "facts.db"
+    upsert([_row("s1", "2026-07-18", "session-hygiene-v1", skill_costs='{"execute": 300}')], store)
+    assert "not value returned" in _render_skill_economics(store)
+
+
+def test_point_n_counts_scored_rows_not_bucket_size(tmp_path: Path) -> None:
+    """The rendered n must count rows the metric used. Bucket size and scored
+    count coincide on a store where every row carries the column -- which is
+    exactly why the divergent case is the one worth pinning."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("a", "2026-07-18", "session-hygiene-v1", max_context=120_000),
+            _row("b", "2026-07-18", "session-hygiene-v1", max_context=None),
+        ],
+        store,
+    )
+    series = build_series("context_pressure_ratio", store, "day")
+    assert [p.n for p in series.points] == [1]
+    assert "n = 1 sessions with max_context recorded" in _population_line(series)
+
+
+def test_scored_count_defaults_to_bucket_size_for_unfiltered_metrics() -> None:
+    """A metric reading a column every row has keeps bucket size -- the
+    predicate table is an exception list, not a new requirement on every metric."""
+    bucket = [{"cost_units": 1.0}, {"cost_units": 2.0}]
+    assert _scored_count("cost_units_p50", bucket) == 2
+
+
+def test_compaction_yield_note_does_not_hardcode_a_row_count(tmp_path: Path) -> None:
+    """GUA-120's DoD asked for the literal label "n=182 July+ compacted sessions".
+    182 is the store's July+ compacted count *including* meta-sessions, which
+    `_work_sessions` excludes from every metric on this dashboard -- the live
+    figure is 141. A hardcoded count also goes stale on the next sync. The tile
+    renders its own n instead, which satisfies the requirement the number was
+    standing in for: the population must be visible on the tile.
+    """
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                "c1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=10,
+            ),
+            _row(
+                "m1",
+                "2026-07-18",
+                "session-hygiene-v1",
+                compacted=True,
+                turns_since_last_compact=99,
+                is_meta=True,
+            ),
+        ],
+        store,
+    )
+    page = render_dashboard(store, funnel=None)
+    assert "n=182" not in page
+    series = build_series("compaction_yield", store, "day")
+    assert [p.n for p in series.points] == [1]
