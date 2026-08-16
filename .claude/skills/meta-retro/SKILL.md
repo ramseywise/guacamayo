@@ -218,6 +218,7 @@ first. End with:
    `presence:`, `ratio:` — see ledger header), and a concrete verification test.
 2. **Ledger graduation**: move verified/failed rows to `tooling-ledger-log.md` (append).
    Active ledger stays lean (hypotheses only). Archive is the audit trail.
+3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `.sounding/context-dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
 
 Through Step 4 nothing is written outside the retro report. Then stop and hand the report
 to Ramsey for Step 5.

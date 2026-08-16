@@ -3698,3 +3698,107 @@ def _render_loop(docs: list[PlanDoc] | None, issues: list[dict[str, Any]] | None
 def render_loop_region(docs: list[PlanDoc] | None, issues: list[dict[str, Any]] | None) -> str:
     """Return the injectable HTML for the LOOP marker region."""
     return _render_loop(docs, issues)
+
+
+# ---------------------------------------------------------------------------
+# Automated actions tile (GUA-119, Step 8)
+# ---------------------------------------------------------------------------
+
+
+def parse_actions_log(path: Path) -> list[dict[str, Any]]:
+    """Read actions.jsonl, parse each line, return list of record dicts.
+
+    Schema per record: {ts, action, outcome, reason, evidence, ...}.
+    Outcomes emitted by actions.py: "acted" | "declined".
+    Outcomes emitted by meta-wake (human decisions): "accepted" | "rejected" | "deferred".
+    Malformed lines are skipped with a warning — a single bad write must not
+    break the dashboard render.
+    """
+    records: list[dict[str, Any]] = []
+    if not path.exists():
+        return records
+    for i, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            log.warning("dashboard.actions_log_parse_error", line=i, path=str(path))
+    return records
+
+
+def _render_automated_actions(records: list[dict[str, Any]] | None) -> str:
+    """Render the AUTOMATED-ACTIONS marker region from actions.jsonl rows.
+
+    Per action type: proposed, accepted, rejected, auto-acted, declined counts
+    and acceptance rate. Every tile states the row count it was computed from
+    (denominator convention — "Metric fences", GUA-119 Step 8).
+
+    Empty/missing log renders "no automated actions" — never a fabricated rate.
+    """
+    if not records:
+        return (
+            '<section class="chart"><h3>Automated actions</h3>'
+            '<p class="note">No automated actions yet. The actions log is written '
+            "by the board tick (auto-mutations + retro spawns) and by "
+            "<code>/meta-wake</code> (accept/reject decisions). "
+            "File: <code>.sounding/telemetry/actions.jsonl</code>.</p>"
+            "</section>"
+        )
+
+    total = len(records)
+
+    # Per action type: bucket outcomes
+    by_type: dict[str, dict[str, int]] = {}
+    for rec in records:
+        action = rec.get("action", "unknown")
+        outcome = rec.get("outcome", "unknown")
+        by_type.setdefault(action, {})
+        by_type[action][outcome] = by_type[action].get(outcome, 0) + 1
+
+    # Outcome vocabulary — map to display buckets
+    # "acted" = auto-mutation ran; "accepted"/"rejected"/"deferred" = human decision;
+    # "declined" = guard refused to act.
+    _POSITIVE = frozenset({"acted", "accepted"})
+    _NEGATIVE = frozenset({"declined", "rejected"})
+    _NEUTRAL = frozenset({"deferred"})
+
+    rows_html = ""
+    for action_type in sorted(by_type):
+        counts = by_type[action_type]
+        positive = sum(counts.get(o, 0) for o in _POSITIVE)
+        negative = sum(counts.get(o, 0) for o in _NEGATIVE)
+        neutral = sum(counts.get(o, 0) for o in _NEUTRAL)
+        row_total = sum(counts.values())
+        decidable = positive + negative  # excludes deferred
+        rate_str = f"{positive * 100 // decidable}%" if decidable else "—"
+        rows_html += (
+            f"<tr>"
+            f"<td>{html.escape(action_type)}</td>"
+            f"<td>{positive}</td>"
+            f"<td>{negative}</td>"
+            f"<td>{neutral}</td>"
+            f"<td>{rate_str}</td>"
+            f"<td>{row_total}</td>"
+            f"</tr>"
+        )
+
+    return (
+        '<section class="chart"><h3>Automated actions</h3>'
+        f'<p class="note">Computed from {total} total records '
+        f"in <code>.sounding/telemetry/actions.jsonl</code>. "
+        f"Acceptance rate = acted+accepted / (acted+accepted+declined+rejected); "
+        f"deferred records excluded from rate denominator.</p>"
+        f'<div class="table-view"><table>'
+        f"<tr><th>Action type</th><th>Acted / Accepted</th><th>Declined / Rejected</th>"
+        f"<th>Deferred</th><th>Acceptance rate</th><th>Total (n)</th></tr>"
+        f"{rows_html}"
+        f"</table></div>"
+        f"</section>"
+    )
+
+
+def render_automated_actions_region(records: list[dict[str, Any]] | None) -> str:
+    """Return the injectable HTML for the AUTOMATED-ACTIONS marker region."""
+    return _render_automated_actions(records)

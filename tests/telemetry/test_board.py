@@ -20,7 +20,7 @@ from typing import Any
 import pytest
 
 from telemetry.__main__ import EmptyInputError
-from telemetry.board import BoardRecord, derive_column, to_board_json
+from telemetry.board import BoardRecord, ProposedAction, derive_column, to_board_json
 from telemetry.consistency import BranchFact
 
 # ---------------------------------------------------------------------------
@@ -573,3 +573,139 @@ def test_heartbeat_exit_zero_on_success(tmp_path: Path, monkeypatch: pytest.Monk
     assert hb is not None
     assert hb.get("exit") == 0, f"heartbeat.exit should be 0 on success, got {hb.get('exit')!r}"
     assert hb.get("error") is None, "heartbeat.error should be null on a successful run"
+
+
+# ---------------------------------------------------------------------------
+# 11. proposed_actions — required key, stable ids (GUA-119 step 1)
+# ---------------------------------------------------------------------------
+
+
+def _record(issue_num: int = 1, column: str = "backlog") -> BoardRecord:
+    return BoardRecord(
+        repo="guacamayo",
+        issue_num=issue_num,
+        title="test",
+        raw_label="",
+        column=column,
+        backlog_stage="scope" if column == "backlog" else None,
+        evidence="no artifacts",
+        collected_at="2026-08-15T12:00:00+00:00",
+    )
+
+
+def _proposal(
+    action: str = "triage",
+    issue_num: int = 1,
+    repo: str = "guacamayo",
+    reason: str = "open issue carries no workflow label",
+    evidence: str = "labels=''",
+    confidence: str = "high",
+    auto_eligible: bool = False,
+) -> ProposedAction:
+    return ProposedAction(
+        action=action,
+        target={"repo": repo, "issue_num": issue_num},
+        reason=reason,
+        evidence=evidence,
+        confidence=confidence,
+        created_at="2026-08-16T09:00:00+00:00",
+        auto_eligible=auto_eligible,
+    )
+
+
+def test_to_board_json_proposed_actions_always_present() -> None:
+    """NEGATIVE-SHAPED: no proposals must still emit the key, as an empty list.
+
+    Same contract as `skipped_repos`: an absent key is indistinguishable from "the
+    harness saw nothing to do", so an evaluator that failed to run would present as a
+    clean board.
+    """
+    payload = to_board_json([_record()], skipped_repos=[], repos_checked=["guacamayo"])
+    assert "proposed_actions" in payload, (
+        "proposed_actions must be present even when the evaluator was not run — "
+        "an absent key reads as 'nothing to do'"
+    )
+    assert payload["proposed_actions"] == []
+
+
+def test_to_board_json_proposed_actions_populated() -> None:
+    """Populated proposals round-trip every field into the payload."""
+    payload = to_board_json(
+        [_record()],
+        skipped_repos=[],
+        repos_checked=["guacamayo"],
+        proposed_actions=[_proposal(), _proposal(action="close_issue", issue_num=7)],
+    )
+    actions = payload["proposed_actions"]
+    assert len(actions) == 2
+    first = actions[0]
+    assert set(first) == {
+        "id",
+        "action",
+        "target",
+        "reason",
+        "evidence",
+        "confidence",
+        "auto_eligible",
+        "created_at",
+    }
+    assert first["action"] == "triage"
+    assert first["target"] == {"repo": "guacamayo", "issue_num": 1}
+    assert first["confidence"] == "high"
+    assert first["auto_eligible"] is False
+    assert first["id"], "id must be auto-populated"
+    assert actions[1]["action"] == "close_issue"
+
+
+def test_proposed_action_id_is_stable_across_reticks() -> None:
+    """The same action+target produces the same id on every tick.
+
+    This is what stops a 10-minute board cadence from re-presenting an already-decided
+    proposal as new. `reason`, `evidence`, and `created_at` restate the same fact in
+    wording that may drift, so they must NOT feed the hash.
+    """
+    a = _proposal(reason="wording one", evidence="e1")
+    b = _proposal(reason="entirely different wording", evidence="e2")
+    b = ProposedAction(
+        action=b.action,
+        target=b.target,
+        reason=b.reason,
+        evidence=b.evidence,
+        confidence="low",  # differs from a
+        created_at="2026-08-16T23:59:00+00:00",  # differs from a
+    )
+    assert a.id == b.id, "id must depend only on action + target"
+
+
+def test_proposed_action_id_differs_by_action_and_target() -> None:
+    """Different action or different target → different id (no collision by construction)."""
+    base = _proposal()
+    assert base.id != _proposal(action="close_issue").id
+    assert base.id != _proposal(issue_num=2).id
+    assert base.id != _proposal(repo="librarian").id
+
+
+def test_proposed_action_rejects_unknown_action() -> None:
+    """NEGATIVE TEST: an action outside the vocabulary must raise, not serialize.
+
+    Planting the defect: a verb the evaluator has no rule for. Without the check it
+    would render at wake as an action Ramsey is asked to accept, with nothing behind it.
+    """
+    with pytest.raises(ValueError, match="action must be one of"):
+        _proposal(action="delete_repo")
+
+
+def test_proposed_action_rejects_empty_evidence() -> None:
+    """NEGATIVE TEST: evidence is mandatory — mirrors Inconsistency.__post_init__.
+
+    A proposal without evidence is an assertion, and Ramsey is being asked to accept
+    or reject it.
+    """
+    with pytest.raises(ValueError, match="requires non-empty evidence"):
+        _proposal(evidence="   ")
+
+
+def test_proposed_action_rejects_unknown_confidence() -> None:
+    """NEGATIVE TEST: confidence outside high|medium|low must raise."""
+    with pytest.raises(ValueError, match="confidence must be one of"):
+        _proposal(confidence="certain")
