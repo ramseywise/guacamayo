@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-18T10:39:55.858755+00:00",
+  "collected_at": "2026-08-18T11:00:51.958786+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,25 +15,38 @@
   "skipped_repos": [],
   "total_issues": 11,
   "heartbeat": {
-    "started_at": "2026-08-18T10:39:30.194065+00:00",
-    "finished_at": "2026-08-18T10:39:55.882363+00:00",
+    "started_at": "2026-08-18T11:00:22.916517+00:00",
+    "finished_at": "2026-08-18T11:00:51.990583+00:00",
     "exit": 0,
-    "duration_s": 25.69,
+    "duration_s": 29.07,
     "error": null
   },
   "proposed_actions": [
     {
-      "id": "6ad5e2d9e844",
+      "id": "3d113638cead",
+      "action": "dispatch_review",
+      "target": {
+        "repo": "galactus",
+        "issue_num": 33
+      },
+      "reason": "open PR found for issue \u2014 /workflow-review should run",
+      "evidence": "column=in_review; joined PR #38 is OPEN",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-18T11:00:51.990111+00:00"
+    },
+    {
+      "id": "c2b07f32a298",
       "action": "close_issue",
       "target": {
         "repo": "galactus",
-        "issue_num": 29
+        "issue_num": 27
       },
-      "reason": "branch merged to main but issue #29 is still open",
-      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-29-hook-parity` is an ancestor of origin/main'; evidence='galactus#29 is still OPEN after branch merged'",
+      "reason": "branch merged to main but issue #27 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-27-band-contract-hitl-gates` is an ancestor of origin/main'; evidence='galactus#27 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-18T10:39:55.881458+00:00"
+      "created_at": "2026-08-18T11:00:51.990363+00:00"
     },
     {
       "id": "379752492c21",
@@ -46,20 +59,7 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-18T10:39:55.881458+00:00"
-    },
-    {
-      "id": "e3cc13d04483",
-      "action": "close_issue",
-      "target": {
-        "repo": "galactus",
-        "issue_num": 33
-      },
-      "reason": "branch merged to main but issue #33 is still open",
-      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-33-repo-hygiene` is an ancestor of origin/main'; evidence='galactus#33 is still OPEN after branch merged'",
-      "confidence": "medium",
-      "auto_eligible": false,
-      "created_at": "2026-08-18T10:39:55.881458+00:00"
+      "created_at": "2026-08-18T11:00:51.990363+00:00"
     }
   ],
   "records": [
@@ -71,7 +71,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #35 has mergedAt='2026-08-14T10:02:04Z'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "playground",
@@ -81,7 +81,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -91,7 +91,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -101,7 +101,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -111,37 +111,37 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 33,
       "title": "Repo hygiene \u2014 untrack content the repo's own rules exclude",
-      "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "raw_label": "in-progress",
+      "column": "in_review",
+      "backlog_stage": null,
+      "evidence": "joined PR #38 is OPEN",
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 31,
       "title": "Deploy-harden marketing-comms: dedup race, ingest page cap, rate limiting, retention, Cloud Run packaging",
-      "raw_label": "in-progress",
+      "raw_label": "in-review",
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 29,
       "title": "Hook parity between .claude/hooks/ and ~/.claude/hooks/ is asserted but unenforced",
-      "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "raw_label": "in-progress",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GAL-29-hook-parity' exists, is_ancestor=False",
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -151,7 +151,7 @@
       "column": "backlog",
       "backlog_stage": "refine",
       "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -161,7 +161,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-23-proto-pipeline-dry-run' exists, is_ancestor=False",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     },
     {
       "repo": "galactus",
@@ -171,7 +171,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+      "collected_at": "2026-08-18T11:00:51.958786+00:00"
     }
   ]
 }

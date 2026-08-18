@@ -64,6 +64,14 @@ For each step in the plan:
 - The change would touch files not listed in the step
 - The "done when" condition is not met
 
+**Shipped scheduler DoD** (launchd/cron/systemd/GitHub Actions schedule): after loading,
+verify the job is verified-RUNNING — `launchctl list | grep <label>` must show the entry
+(or the platform equivalent). A plist copied to `scripts/` or `~/Library/LaunchAgents/`
+without `launchctl bootstrap`/`load` produces no error and zero runs — GUA-118 shipped
+"the clock" and it sat silently unloaded for two days. A CI green badge is not a
+substitute: CI tests the *code*, not whether the *process* is scheduled in the target
+environment. DoD = verified-RUNNING, not copied. (R11 F3)
+
 Flag any of these and wait for guidance.
 
 ## Deviations
