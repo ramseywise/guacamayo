@@ -23,7 +23,14 @@ status `hypothesis` is your top queue item. For each:
 2. Find evidence the motivating friction stopped or recurred since the change (session
    transcripts, hook logs, repeated manual corrections). Verification is concrete —
    "did the friction stop", with a session reference — not vibes.
-3. Propose the row update: `hypothesis → verified (evidence)` or `hypothesis → failed (evidence)`.
+3. **Re-derive, never re-read.** For each row with a `presence:` or `absence:` metric,
+   run the command the metric names and paste the command + output into the retro section.
+   A row whose Status says "metric met" is a claim, not evidence. A row verified from its
+   own Status column is unverified — and a row's *prose* decays the same way (R11 re-derived
+   "plist still unloaded" from row text while `launchctl list` showed it running; R10 F2
+   read "both presence metrics met" while one target had zero matches, undetected across
+   two windows). The live command is the only witness.
+4. Propose the row update: `hypothesis → verified (evidence)` or `hypothesis → failed (evidence)`.
    A failed row is itself a finding (the fix didn't take; diagnose why).
 
 ## Step 0.5 — Config health (mechanical checks)
@@ -218,6 +225,7 @@ first. End with:
    `presence:`, `ratio:` — see ledger header), and a concrete verification test.
 2. **Ledger graduation**: move verified/failed rows to `tooling-ledger-log.md` (append).
    Active ledger stays lean (hypotheses only). Archive is the audit trail.
+3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `.sounding/context-dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
 
 Through Step 4 nothing is written outside the retro report. Then stop and hand the report
 to Ramsey for Step 5.

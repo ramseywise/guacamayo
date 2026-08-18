@@ -373,6 +373,7 @@ def _run_board() -> None:
 
     from telemetry import board as board_module
     from telemetry.consistency import BranchFact
+    from telemetry.evaluator import evaluate
     from telemetry.loop import collect_plan_docs
 
     log = structlog.get_logger(__name__)
@@ -389,6 +390,28 @@ def _run_board() -> None:
         "--repos",
         default=",".join(ACTIVE_REPOS),
         help="Comma-separated repos to check (default: wake's Phase 5 list)",
+    )
+    p.add_argument(
+        "--act",
+        action="store_true",
+        default=False,
+        help=(
+            "Execute the two idempotent auto-mutations (auto_close_merged, auto_fix_label) "
+            "for auto_eligible proposals. DEFAULT OFF — without --act, auto-eligible records "
+            "degrade to proposals and ZERO subprocess calls to gh-for-mutation happen. "
+            "Enable in scripts/telemetry-cron.sh only after the actions log shows proposal "
+            "accuracy (uncomment the --act flag documented there)."
+        ),
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        default=False,
+        help=(
+            "With --act: print mutation calls instead of executing them. "
+            "Writes to actions.jsonl are replaced with stdout. "
+            "Without --act, this flag has no effect."
+        ),
     )
     args = p.parse_args()
 
@@ -413,6 +436,7 @@ def _run_board() -> None:
                 "duration_s": round((finished - run_started).total_seconds(), 2),
                 "error": str(exc),
             },
+            "proposed_actions": [],  # required key; empty on failure (GUA-119)
             "records": [],
         }
         tmp = out_path.with_suffix(".tmp")
@@ -527,6 +551,29 @@ def _run_board() -> None:
             )
             records.append(record)
 
+        # Flatten branch facts across all repos for the evaluator.
+        all_branch_facts = [bf for bfs in branch_facts_by_repo.values() for bf in bfs]
+
+        # Load cascade state for the reconcile_plan_status rule (absent file = None).
+        cascade_state: dict[str, Any] | None = None
+        cascade_path = repo_root / ".sounding" / "telemetry" / "cascade-state.json"
+        if cascade_path.exists():
+            try:
+                import json as _json
+
+                cascade_state = _json.loads(cascade_path.read_text(encoding="utf-8"))
+            except Exception:
+                log.warning("board.cascade_state_load_failed", path=str(cascade_path))
+
+        # Consistency checks for the evaluator — only the merged-branch rule; label checks
+        # require open PRs which _run_board fetches for derivation, not for consistency.
+        # The evaluator's close_issue rule is the primary consumer here.
+        from telemetry.consistency import check_merged_branch_open_issue
+
+        merged_inconsistencies = check_merged_branch_open_issue(all_branch_facts, all_issues)
+
+        proposals = evaluate(records, all_branch_facts, merged_inconsistencies, cascade_state)
+
         run_finished = datetime.now(UTC)
         heartbeat = {
             "started_at": started_at,
@@ -536,11 +583,41 @@ def _run_board() -> None:
             "error": None,
         }
 
-        payload = board_module.to_board_json(records, skipped_repos, repos_checked, heartbeat)
+        payload = board_module.to_board_json(
+            records, skipped_repos, repos_checked, heartbeat, proposals
+        )
 
         tmp_path = out_path.with_suffix(".tmp")
         tmp_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
         os.replace(tmp_path, out_path)  # atomic
+
+        # Auto-mutations (GUA-119 step 6): only when --act is passed explicitly.
+        # Without --act, auto-eligible proposals stay as proposals — ZERO gh mutation
+        # calls happen. This is a structural guarantee: the import only occurs here,
+        # inside the --act branch.
+        if args.act:
+            from telemetry.actions import run_eligible_actions
+
+            # Flatten all PRs for the close-issue handler (needs body + repo)
+            all_prs_for_actions: list[dict] = []
+            for repo_name, repo_prs in prs_by_repo.items():
+                for pr in repo_prs:
+                    pr_with_repo = dict(pr)
+                    pr_with_repo.setdefault("repo", repo_name)
+                    all_prs_for_actions.append(pr_with_repo)
+
+            action_results = run_eligible_actions(
+                proposals,
+                branch_facts=all_branch_facts,
+                prs=all_prs_for_actions,
+                records=records,
+                dry_run=args.dry_run,
+            )
+            acted = sum(1 for r in action_results if r.get("outcome") == "acted")
+            declined = sum(1 for r in action_results if r.get("outcome") == "declined")
+            print(
+                f"Actions: {len(action_results)} eligible dispatched; {acted} acted, {declined} declined"
+            )
 
     except SystemExit:
         raise  # already handled above — failure envelope written before SystemExit
@@ -798,6 +875,11 @@ def _run_facts() -> None:
         default=str(repo_root / ".sounding" / "telemetry" / ".hook-pass-log.jsonl"),
         help="Guard-hook pass log (silent OKs) for the hook-activity card",
     )
+    p.add_argument(
+        "--actions-log",
+        default=str(repo_root / ".sounding" / "telemetry" / "actions.jsonl"),
+        help="Automated-actions event log (GUA-119) for the automated-actions tile",
+    )
     args = p.parse_args()
 
     store = Path(args.store).expanduser()
@@ -937,9 +1019,11 @@ def _run_facts() -> None:
     if not args.no_inject:
         from telemetry.dashboard import (
             inject_regions,
+            parse_actions_log,
             parse_eval_results,
             parse_findings,
             parse_ledger,
+            render_automated_actions_region,
             render_eval_results_region,
             render_experiments_region,
             render_friction_regroup_card,
@@ -965,6 +1049,10 @@ def _run_facts() -> None:
             eval_results = (
                 parse_eval_results(eval_results_path) if eval_results_path.exists() else None
             )
+            actions_log_path = Path(args.actions_log).expanduser()
+            action_records = (
+                parse_actions_log(actions_log_path) if actions_log_path.exists() else None
+            )
 
             regions: dict[str, str] = {
                 "REVIEW-FINDINGS": render_review_findings_region(review_findings),
@@ -978,6 +1066,7 @@ def _run_facts() -> None:
                     collect_plan_docs(Path(args.plans_root).expanduser()),
                     read_issues(store),
                 ),
+                "AUTOMATED-ACTIONS": render_automated_actions_region(action_records),
             }
             injected = inject_regions(ctx_path, regions)
             print(f"Region injection: {injected}")

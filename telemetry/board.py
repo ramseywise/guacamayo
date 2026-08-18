@@ -28,7 +28,8 @@ A branch whose ancestry is unknown is not evidence of active work.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import hashlib
+from dataclasses import dataclass, field
 from typing import Any
 
 import structlog
@@ -36,6 +37,18 @@ import structlog
 from telemetry.consistency import _BRANCH_CONVENTION_RE, BranchFact, _referenced_issues
 
 log = structlog.get_logger(__name__)
+
+# The action vocabulary (GUA-119). Adding a verb here without a rule in
+# `telemetry/evaluator.py` produces a schema that can never be populated.
+ACTIONS = (
+    "triage",
+    "close_issue",
+    "fix_label",
+    "reconcile_plan_status",
+    "dispatch_review",
+)
+
+CONFIDENCE_LEVELS = ("high", "medium", "low")
 
 
 @dataclass(frozen=True)
@@ -54,6 +67,62 @@ class BoardRecord:
     backlog_stage: str | None  # "scope"|"research"|"plan"|"refine"|"ready" | None (non-backlog)
     evidence: str  # one-line justification for the derived column
     collected_at: str  # ISO 8601 UTC, per-record
+
+
+@dataclass(frozen=True)
+class ProposedAction:
+    """One action the harness proposes but does not take (GUA-119).
+
+    A proposal is a *derivation*, not an event: the evaluator is pure and re-runs on
+    every board tick, so the same board state must produce the same proposal with the
+    same `id`. That is what `_stable_id` buys — wake can render a proposal once and
+    `actions.jsonl` can record a decision against it, without a re-tick presenting the
+    same thing as new. The id therefore hashes only the *identity* of the proposal
+    (action + target), never `reason`/`evidence`/`created_at`, which restate the same
+    fact in wording that may drift.
+
+    `auto_eligible` marks a record the mutation path (sub-issue B, GUA-119 step 5) may
+    act on unattended. It lives on the proposal rather than in a separate structure so
+    the proposal path and the mutation path share one derivation — an auto-eligible
+    record that the tick declines to act on (no `--act`) degrades to a proposal instead
+    of vanishing.
+
+    `evidence` is mandatory and non-empty, matching `Inconsistency`: a proposal without
+    evidence is an assertion, and Ramsey is being asked to accept or reject it.
+    """
+
+    action: str  # one of ACTIONS
+    target: dict[str, Any]  # {repo, issue_num, pr_num?}
+    reason: str  # one sentence, human-facing
+    evidence: str  # the board/consistency fields that triggered it
+    confidence: str  # "high" | "medium" | "low"
+    created_at: str  # ISO 8601 UTC
+    auto_eligible: bool = False
+    id: str = field(default="")
+
+    def __post_init__(self) -> None:
+        if self.action not in ACTIONS:
+            raise ValueError(f"ProposedAction.action must be one of {ACTIONS}, got {self.action!r}")
+        if self.confidence not in CONFIDENCE_LEVELS:
+            raise ValueError(
+                f"ProposedAction.confidence must be one of {CONFIDENCE_LEVELS}, "
+                f"got {self.confidence!r}"
+            )
+        if not self.evidence.strip():
+            raise ValueError(f"ProposedAction({self.action}) requires non-empty evidence")
+        if not self.id:
+            object.__setattr__(self, "id", _stable_id(self.action, self.target))
+
+
+def _stable_id(action: str, target: dict[str, Any]) -> str:
+    """Deterministic short id from action + target.
+
+    Sorted keys so dict ordering cannot change the id; `repr` of the values so
+    ``issue_num=9`` and ``issue_num="9"`` are not silently the same proposal.
+    """
+    parts = ",".join(f"{k}={target[k]!r}" for k in sorted(target))
+    digest = hashlib.sha256(f"{action}|{parts}".encode()).hexdigest()
+    return digest[:12]
 
 
 def _join_prs(
@@ -225,6 +294,7 @@ def to_board_json(
     skipped_repos: list[dict[str, str]],
     repos_checked: list[str],
     heartbeat: dict[str, Any] | None = None,
+    proposed_actions: list[ProposedAction] | None = None,
 ) -> dict[str, Any]:
     """The JSON payload `_run_board` writes and `/wake` reads.
 
@@ -242,6 +312,11 @@ def to_board_json(
     stopped job without waiting for the staleness threshold. On failure, `_run_board`
     writes a minimal failure envelope (not via this function) so `exit` is non-zero.
     A missing heartbeat key means the board was written before GUA-118.
+
+    `proposed_actions` follows the same required-key contract as `skipped_repos`:
+    always present, `[]` when the evaluator proposed nothing. An absent key is
+    indistinguishable from "the harness saw nothing to do", which would present an
+    evaluator that failed to run as a clean board.
     """
     from telemetry.__main__ import EmptyInputError
 
@@ -260,6 +335,19 @@ def to_board_json(
         "skipped_repos": skipped_repos,  # required; empty list is still present
         "total_issues": len(records),
         "heartbeat": heartbeat,  # None pre-GUA-118; dict with started_at/finished_at/exit/duration_s after
+        "proposed_actions": [  # required; empty list is still present (GUA-119)
+            {
+                "id": a.id,
+                "action": a.action,
+                "target": a.target,
+                "reason": a.reason,
+                "evidence": a.evidence,
+                "confidence": a.confidence,
+                "auto_eligible": a.auto_eligible,
+                "created_at": a.created_at,
+            }
+            for a in (proposed_actions or [])
+        ],
         "records": [
             {
                 "repo": r.repo,

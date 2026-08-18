@@ -1769,6 +1769,126 @@ def test_scored_count_defaults_to_bucket_size_for_unfiltered_metrics() -> None:
     assert _scored_count("cost_units_p50", bucket) == 2
 
 
+from telemetry.dashboard import (
+    parse_actions_log,
+    render_automated_actions_region,
+)
+
+# ---------------------------------------------------------------------------
+# Automated actions tile — Step 8 (GUA-119 sub-issue C)
+# ---------------------------------------------------------------------------
+
+
+class TestParseActionsLog:
+    """parse_actions_log reads actions.jsonl, skips malformed lines."""
+
+    def test_missing_file_returns_empty(self, tmp_path: Path) -> None:
+        result = parse_actions_log(tmp_path / "actions.jsonl")
+        assert result == []
+
+    def test_empty_file_returns_empty(self, tmp_path: Path) -> None:
+        p = tmp_path / "actions.jsonl"
+        p.write_text("", encoding="utf-8")
+        assert parse_actions_log(p) == []
+
+    def test_parses_valid_records(self, tmp_path: Path) -> None:
+        p = tmp_path / "actions.jsonl"
+        p.write_text(
+            '{"ts":"2026-08-16T10:00:00Z","action":"auto_close_merged","outcome":"acted","reason":"ok","evidence":"x"}\n'
+            '{"ts":"2026-08-16T10:01:00Z","action":"auto_fix_label","outcome":"declined","reason":"undetermined","evidence":"y"}\n',
+            encoding="utf-8",
+        )
+        records = parse_actions_log(p)
+        assert len(records) == 2
+        assert records[0]["action"] == "auto_close_merged"
+        assert records[1]["outcome"] == "declined"
+
+    def test_malformed_line_skipped(self, tmp_path: Path) -> None:
+        p = tmp_path / "actions.jsonl"
+        p.write_text(
+            '{"ts":"2026-08-16T10:00:00Z","action":"spawn_retro","outcome":"acted"}\n'
+            "NOT_JSON\n"
+            '{"ts":"2026-08-16T10:02:00Z","action":"auto_fix_label","outcome":"declined"}\n',
+            encoding="utf-8",
+        )
+        records = parse_actions_log(p)
+        assert len(records) == 2
+
+    def test_blank_lines_skipped(self, tmp_path: Path) -> None:
+        p = tmp_path / "actions.jsonl"
+        p.write_text(
+            '\n{"ts":"2026-08-16T10:00:00Z","action":"spawn_retro","outcome":"acted"}\n\n',
+            encoding="utf-8",
+        )
+        records = parse_actions_log(p)
+        assert len(records) == 1
+
+
+class TestRenderAutomatedActions:
+    """render_automated_actions_region renders correctly from records."""
+
+    def test_empty_records_renders_no_automated_actions(self) -> None:
+        html = render_automated_actions_region([])
+        assert "no automated actions" in html.lower() or "No automated actions" in html
+        # Must not render a fabricated rate
+        assert "%" not in html
+
+    def test_none_renders_no_automated_actions(self) -> None:
+        html = render_automated_actions_region(None)
+        assert "No automated actions" in html
+        assert "%" not in html
+
+    def test_populated_log_renders_counts_and_denominator(self) -> None:
+        records = [
+            {"action": "auto_close_merged", "outcome": "acted"},
+            {"action": "auto_close_merged", "outcome": "acted"},
+            {"action": "auto_close_merged", "outcome": "declined"},
+            {"action": "spawn_retro", "outcome": "acted"},
+        ]
+        html = render_automated_actions_region(records)
+        # Total row count must be rendered (denominator convention)
+        assert "4" in html  # total records
+        # Action type rows present
+        assert "auto_close_merged" in html
+        assert "spawn_retro" in html
+        # Acceptance rate for auto_close_merged: 2 acted / 3 decidable = 66%
+        assert "66%" in html
+
+    def test_acceptance_rate_excludes_deferred(self) -> None:
+        records = [
+            {"action": "fix_label", "outcome": "accepted"},  # positive
+            {"action": "fix_label", "outcome": "deferred"},  # excluded from denominator
+            {"action": "fix_label", "outcome": "rejected"},  # negative
+        ]
+        html = render_automated_actions_region(records)
+        # Rate = 1 accepted / (1 accepted + 1 rejected) = 50%, NOT 1/3 = 33%
+        assert "50%" in html
+        # Deferred count rendered
+        assert "1" in html
+
+    def test_all_deferred_renders_no_rate(self) -> None:
+        records = [
+            {"action": "triage", "outcome": "deferred"},
+            {"action": "triage", "outcome": "deferred"},
+        ]
+        html = render_automated_actions_region(records)
+        # No decidable records → rate must be em-dash, not a percentage
+        assert "—" in html
+        assert "%" not in html
+
+    def test_denominator_always_rendered(self) -> None:
+        """Every tile states the row count — the denominator convention."""
+        records = [
+            {"action": "close_issue", "outcome": "acted"},
+            {"action": "close_issue", "outcome": "declined"},
+        ]
+        html = render_automated_actions_region(records)
+        # The total row count (2) must appear
+        assert "2" in html
+        # The per-type count (2 in total column) must appear
+        assert "Total" in html or "total" in html.lower() or "n)" in html.lower()
+
+
 def test_compaction_yield_note_does_not_hardcode_a_row_count(tmp_path: Path) -> None:
     """GUA-120's DoD asked for the literal label "n=182 July+ compacted sessions".
     182 is the store's July+ compacted count *including* meta-sessions, which
