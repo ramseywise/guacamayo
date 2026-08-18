@@ -149,9 +149,11 @@ For each approved `ready` item:
 
 3. Report the issue URL.
 
-For `needs-split` items, offer to create real sub-issues (labeled `backlog`) linked
-to the parent via `addSubIssue` (template in github-projects SKILL.md:93). Sub-issues
-ride the parent's branch and PR — do NOT create a separate branch per sub-issue.
+For `needs-split` items, add a `- [ ]` task checklist to the PARENT issue body — one
+line per session-sized slice, each pointing at its plan-doc steps. Do NOT create
+sub-issues or extra branches for internal phases (Ramsey, 2026-08-16: GUA-119's three
+sub-issues added nothing over a checklist). New issues are for genuinely separate work
+items only. Everything lands on the parent's branch in one PR.
 
 For `close` items, offer to close the issue with a comment explaining why.
 

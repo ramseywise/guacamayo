@@ -149,6 +149,19 @@ def test_triage_open_issue_with_workflow_label_no_proposal() -> None:
     )
 
 
+def test_triage_refinement_label_no_proposal() -> None:
+    """NEGATIVE TEST: `refinement` is a workflow stage (backlog → refinement → ready).
+
+    Regression: the first live run kept proposing triage for galactus#27 after it
+    was labelled `refinement` — the label set was missing the refine stage, so an
+    issue mid-refinement read as untriaged forever (2026-08-18)."""
+    rec = _record(issue_num=13, column="backlog", raw_label="enhancement,refinement")
+    proposals = evaluate([rec], branch_facts=[], inconsistencies=[], cascade_state=None)
+    assert not _action_for(proposals, "triage"), (
+        "An issue labelled 'refinement' is in a workflow stage — triage would refire every tick"
+    )
+
+
 def test_triage_closed_issue_no_proposal() -> None:
     """NEGATIVE TEST: closed issue → no triage proposal even with no labels."""
     rec = _record(issue_num=12, column="closed", raw_label="")

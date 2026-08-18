@@ -47,6 +47,7 @@ log = structlog.get_logger(__name__)
 _WORKFLOW_LABELS: frozenset[str] = frozenset(
     {
         "backlog",
+        "refinement",
         "ready",
         "in-progress",
         "in-review",
