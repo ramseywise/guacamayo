@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guacamayo Context Control Board</title>
+<style>
+:root {
+  --bg:#0f172a; --card:#1e293b; --card2:#111827; --border:#334155;
+  --text:#f8fafc; --muted:#94a3b8; --accent:#38bdf8;
+  --purple:#a855f7; --good:#4ade80; --warn:#fbbf24; --bad:#f87171;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg); color:var(--text); padding:24px; line-height:1.5;
+}
+header { margin-bottom:20px; border-bottom:1px solid var(--border); padding-bottom:16px; }
+h1 { font-size:24px; font-weight:700; }
+.subtitle { color:var(--muted); font-size:14px; margin-top:4px; }
+.nav-tabs {
+  display:flex; gap:6px; margin-bottom:24px; border-bottom:1px solid var(--border);
+  padding-bottom:8px; flex-wrap:wrap; position:sticky; top:0; background:var(--bg); z-index:10;
+}
+.tab-btn {
+  background:none; border:none; color:var(--muted); font-size:13px; font-weight:600;
+  padding:8px 14px; cursor:pointer; border-radius:6px; transition:.2s;
+}
+.tab-btn:hover { background:rgba(255,255,255,.05); color:var(--text); }
+.tab-btn.active { background:var(--accent); color:#0f172a; }
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+.card {
+  background:var(--card); border:1px solid var(--border); border-radius:12px;
+  padding:20px; margin-bottom:20px;
+}
+.card-title { font-size:16px; font-weight:600; margin-bottom:4px; }
+.card-subtitle { font-size:13px; color:var(--muted); margin-bottom:16px; }
+.stat-row { display:flex; gap:16px; margin-bottom:20px; flex-wrap:wrap; }
+.stat {
+  flex:1; min-width:170px; background:rgba(0,0,0,.2); border:1px solid var(--border);
+  padding:14px; border-radius:8px;
+}
+.stat .value { font-size:22px; font-weight:700; display:block; }
+.stat .label { font-size:12px; color:var(--muted); margin-top:2px; display:block; }
+.stat .change { font-size:12px; margin-top:6px; display:block; font-weight:500; }
+.improving { color:var(--good); } .worsening { color:var(--bad); }
+.overflow-x { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; text-align:left; font-size:14px; }
+th { color:var(--muted); font-weight:600; padding:10px 12px; border-bottom:1px solid var(--border); }
+td { padding:12px; border-bottom:1px solid rgba(255,255,255,.05); }
+.badge { display:inline-block; padding:2px 8px; border-radius:4px; font-size:12px; font-weight:600; }
+.badge.confirmed { background:rgba(74,222,128,.15); color:var(--good); }
+.badge.failed { background:rgba(248,113,113,.15); color:var(--bad); }
+.badge.pending { background:rgba(251,191,36,.15); color:var(--warn); }
+.sparkline { overflow:visible; vertical-align:middle; }
+.pipeline-flow {
+  display:flex; align-items:center; gap:8px; margin-top:16px; overflow-x:auto; padding-bottom:8px;
+}
+.pipeline-step {
+  display:flex; flex-direction:column; align-items:center; padding:12px 16px;
+  background:rgba(0,0,0,.2); border:1px solid var(--border); border-radius:8px; min-width:110px;
+}
+.step-good { border-color:var(--good); } .step-warn { border-color:var(--warn); }
+.step-bad { border-color:var(--bad); }
+.step-label { font-size:11px; color:var(--muted); text-transform:uppercase; font-weight:700; }
+.step-val { font-size:15px; font-weight:600; margin-top:2px; }
+.pipeline-connector { flex:1; height:2px; background:var(--border); min-width:16px; }
+.persistence-grid {
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:12px;
+}
+.phase-card {
+  background:rgba(0,0,0,.25); border:1px solid var(--border); border-radius:8px; padding:16px;
+}
+.phase-card.wake { border-top:3px solid var(--accent); }
+.phase-card.grow { border-top:3px solid var(--good); }
+.phase-card.dream { border-top:3px solid var(--purple); }
+.phase-title { font-size:14px; font-weight:700; margin-bottom:8px; text-transform:uppercase; }
+.phase-list { list-style:none; font-size:13px; color:var(--muted); }
+.phase-list li { margin-bottom:6px; padding-left:12px; position:relative; }
+.phase-list li::before { content:"•"; position:absolute; left:0; color:var(--accent); }
+@media(max-width:700px) {
+  body { padding:14px; } .stat { min-width:140px; }
+  .pipeline-step { min-width:90px; padding:10px; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Guacamayo Context Control Board</h1>
+  <p class="subtitle">Longitudinal Telemetry, Context Health, Evaluation, Experimentation, Code Review & Persistent Workflow State</p>
+</header>
+
+<div class="nav-tabs">
+  <button class="tab-btn active" data-tab="context-health">Context Health</button>
+  <button class="tab-btn" data-tab="tokens-cost">Tokens & Spend</button>
+  <button class="tab-btn" data-tab="evals">Skill Evals</button>
+  <button class="tab-btn" data-tab="experiments">Experiments</button>
+  <button class="tab-btn" data-tab="code-review">Code Review</button>
+  <button class="tab-btn" data-tab="workflow-loop">Workflow & Persistence</button>
+</div>
+
+<div id="tab-context-health" class="tab-content active">
+<div class="card">
+      <div class="card-title">Context Boundaries & Token Retention</div>
+      <div class="card-subtitle">Telemetry monitoring session context boundaries, rot, and prompt/completion volume.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--accent)">142,500</span>
+          <span class="label">Input Tokens (Current Session)</span>
+          <span class="change improving">&check; Safe working window</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--good)">3,820</span>
+          <span class="label">Output / Completion Tokens</span>
+          <span class="change improving">&uarr; Optimal generation length</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--warn)">12.4%</span>
+          <span class="label">Context Rot Index</span>
+          <span class="change worsening">&uarr; +1.8% drift</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--good)">99.2%</span>
+          <span class="label">Retrieval Precision</span>
+          <span class="change improving">&uarr; Stable vector match</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Layer / Component</th>
+              <th>Status</th>
+              <th>7-Day Drift Trend</th>
+              <th>Efficiency</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>System Prompt Injection</td>
+              <td><span class="badge confirmed">Optimal</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,10 20,10 40,9 60,11 80,10 100,10" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>99.8%</td>
+            </tr>
+            <tr>
+              <td>Dynamic Memory Retrieval</td>
+              <td><span class="badge pending">Degrading</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,4 20,6 40,10 60,12 80,15 100,18" fill="none" stroke="var(--warn)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>84.1%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div id="tab-tokens-cost" class="tab-content">
+<div class="card">
+      <div class="card-title">Token Consumption & Economic Efficiency</div>
+      <div class="card-subtitle">Granular tracking of Input/Output token ratios, API costs, and caching savings.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--accent)">4.25M / 850k</span>
+          <span class="label">Input vs Output Tokens (7D)</span>
+          <span class="change improving">5.0:1 Prompt Ratio</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--good)">78.2%</span>
+          <span class="label">Prompt Cache Hit Rate</span>
+          <span class="change improving">&uarr; +6.1% caching efficiency</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--good)">$12.40</span>
+          <span class="label">Daily Average Spend</span>
+          <span class="change improving">&darr; -14% optimization</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Model Endpoint</th>
+              <th>Input / Output Share</th>
+              <th>14-Day Spend Curve</th>
+              <th>Cost / 1k Ops</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Claude 3.5 Sonnet (Primary)</td>
+              <td>3.1M In / 620k Out</td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,18 20,14 40,15 60,10 80,8 100,5" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>$0.42</td>
+            </tr>
+            <tr>
+              <td>Haiku / Flash (Utility)</td>
+              <td>1.15M In / 230k Out</td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,8 20,8 40,7 60,9 80,8 100,8" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>$0.04</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div id="tab-evals" class="tab-content">
+<div class="card">
+      <div class="card-title">Skill Evaluation Pass Rates</div>
+      <div class="card-subtitle">Longitudinal performance across automated benchmark suites.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--good)">92.4%</span>
+          <span class="label">Overall Pass Rate (p50)</span>
+          <span class="change improving">&uarr; +4.2% vs last week</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--warn)">14.0%</span>
+          <span class="label">Flakiness Index</span>
+          <span class="change worsening">&uarr; +2.1% degradation</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--accent)">1,420 ms</span>
+          <span class="label">Avg Execution Latency</span>
+          <span class="change improving">&darr; -180 ms improvement</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Skill Suite</th>
+              <th>Status</th>
+              <th>14-Run Trend Line</th>
+              <th>Pass Rate</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>/code-review</td>
+              <td><span class="badge confirmed">Healthy</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,15 15,12 30,18 45,8 60,6 75,4 90,2" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>94.2%</td>
+            </tr>
+            <tr>
+              <td>/workflow-execute</td>
+              <td><span class="badge failed">Degraded</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,4 15,6 30,12 45,10 60,16 75,15 90,18" fill="none" stroke="var(--bad)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>68.1%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div id="tab-experiments" class="tab-content">
+<div class="card">
+      <div class="card-title">Active Experiments & Prompt Variants</div>
+      <div class="card-subtitle">A/B test tracking and performance metrics for context variations.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--good)">3 Active</span>
+          <span class="label">Running Variations</span>
+          <span class="change improving">&check; Sinks active</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--good)">+8.5%</span>
+          <span class="label">Max Gain Variant</span>
+          <span class="change improving">&uarr; Statistically significant</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Experiment ID</th>
+              <th>Target Metric</th>
+              <th>Trend Line</th>
+              <th>Current Outcome</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>EXP-2026-08A (Prompt Shrink)</td>
+              <td>Token Usage</td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,2 15,5 30,9 45,12 60,15 75,17 90,18" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>-22.4% Cost Reduction</td>
+            </tr>
+            <tr>
+              <td>EXP-2026-08B (Context Compression)</td>
+              <td>Recall Accuracy</td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,18 15,14 30,15 45,10 60,8 75,4 90,3" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>+8.5% Accuracy</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div id="tab-code-review" class="tab-content">
+<div class="card">
+      <div class="card-title">Code Review Telemetry</div>
+      <div class="card-subtitle">Automated review accuracy, precision, and false positive tracking.</div>
+
+      <div class="stat-row">
+        <div class="stat">
+          <span class="value" style="color:var(--good)">98.1%</span>
+          <span class="label">Syntax Precision</span>
+          <span class="change improving">&uarr; Stable</span>
+        </div>
+        <div class="stat">
+          <span class="value" style="color:var(--warn)">3.2%</span>
+          <span class="label">False Positive Rate</span>
+          <span class="change worsening">&uarr; +0.4% higher</span>
+        </div>
+      </div>
+
+      <div class="overflow-x">
+        <table>
+          <thead>
+            <tr>
+              <th>Check Type</th>
+              <th>Status</th>
+              <th>7-Day Trend</th>
+              <th>Accuracy</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Security Scanning</td>
+              <td><span class="badge confirmed">Healthy</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,10 20,8 40,9 60,4 80,5 100,2" fill="none" stroke="var(--good)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>99.4%</td>
+            </tr>
+            <tr>
+              <td>Architectural Alignment</td>
+              <td><span class="badge pending">Monitoring</span></td>
+              <td>
+                <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                  <polyline points="0,5 20,8 40,7 60,12 80,10 100,11" fill="none" stroke="var(--warn)" stroke-width="2"/>
+                </svg>
+              </td>
+              <td>88.2%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+</div>
+
+<div id="tab-workflow-loop" class="tab-content">
+<div class="card">
+      <div class="card-title">Full Workflow Axis</div>
+      <div class="card-subtitle">Conversion and completion telemetry across the complete 5-stage lifecycle.</div>
+
+      <div class="pipeline-flow">
+        <div class="pipeline-step step-good">
+          <span class="step-label">1. Research</span>
+          <span class="step-val">100%</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-step step-good">
+          <span class="step-label">2. Plan</span>
+          <span class="step-val">96%</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-step step-good">
+          <span class="step-label">3. Refine</span>
+          <span class="step-val">89%</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-step step-warn">
+          <span class="step-label">4. Execute</span>
+          <span class="step-val">74%</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-step step-bad">
+          <span class="step-label">5. Review</span>
+          <span class="step-val">61%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Guacamayo Persistence Axis</div>
+      <div class="card-subtitle">Continuous lifecycle state tracking: Synthesizing sessions, processing insights for Retro, and formulating Next Sprint recommendations.</div>
+
+      <div class="persistence-grid">
+        <div class="phase-card wake">
+          <div class="phase-title" style="color:var(--accent)">Wake Phase</div>
+          <ul class="phase-list">
+            <li>Session context hydration & vector loading</li>
+            <li>Ingest unread telemetry logs & token deltas</li>
+            <li>Align current sprint goals & active hypotheses</li>
+          </ul>
+        </div>
+
+        <div class="phase-card grow">
+          <div class="phase-title" style="color:var(--good)">Grow Phase</div>
+          <ul class="phase-list">
+            <li>Execute workflow (Research &rarr; Plan &rarr; Execute)</li>
+            <li>Capture real-time user feedback & code review telemetry</li>
+            <li>Track token spend & accuracy tradeoffs during run</li>
+          </ul>
+        </div>
+
+        <div class="phase-card dream">
+          <div class="phase-title" style="color:var(--purple)">Dream Phase</div>
+          <ul class="phase-list">
+            <li><strong>Session Synthesis:</strong> Consolidate raw logs into insights</li>
+            <li><strong>Retro Assessment:</strong> Evaluate active experiment performance</li>
+            <li><strong>Next Sprint Recs:</strong> Generate recommendations & prompt patches</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

@@ -229,3 +229,13 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-15 | confirmed | holding a rule is not the same as the rule firing; attach it to the tool | merged | sounding.md → Working Notes (after config-beats-instruction) |
 | 2026-08-15 | friction | the verification command has blind spots; `ls -1` omits dotfiles | merged | sounding.md → negative-evidence paragraph |
 | 2026-08-15 | outcome:success | PR #124 resolved and merged ee2502e; telemetry untracked; board at 5 open | retained | accumulator (outcome pilot, persists) |
+| 2026-08-16 | corrected | splitting an issue = task checklist in parent body, not sub-issues (GUA-119 #131-133) | merged | sounding.md → sprawl paragraph (recurrence, now in config) |
+| 2026-08-16 | friction | Closes #N keeps missing from PR bodies at merge (#118, #134) — done issues sit open | routed | /meta-retro (2nd occurrence; first routed 2026-08-15) |
+| 2026-08-16 | confirmed | backlogs rot fast both directions: 5 of 10 triaged issues already fixed/landed | merged | sounding.md → drift paragraph (triage-scale rot) |
+| 2026-08-16 | confirmed | review-driver blockers are claims: all 3 on GUA-119 dissolved under verification | merged | sounding.md → cache paragraph (scanner-blockers-are-claims) |
+| 2026-08-16 | friction | correctness reporter parse_error on 11-file set; focused rerun on 3 files clean | routed | /meta-retro (driver rerun should narrow file set) |
+| 2026-08-16 | discovered | a lint config claiming to mirror another must mirror ALL of it (ruff isort pin) | routed | /meta-retro (tooling — AIT ruff.toml fix already landed) |
+| 2026-08-18 | corrected | "PR merged" is not "this work landed" — check the PR's HEAD BRANCH + ls-tree main | merged | sounding.md → cache paragraph (wrong-head-branch) |
+| 2026-08-18 | confirmed | investigate-before-deleting: refused deletion = worktree guarding uncommitted work | merged | sounding.md → worktree lore (refusal-is-information) |
+| 2026-08-18 | confirmed | propose-don't-mutate held on first live cycle; close-proposal wrong twice, gates held | merged | portfolio.md → guacamayo entry |
+| 2026-08-18 | friction | silently-dead infra (unloaded plists) vs loudly-dead (red CI): neither verified RUNNING | routed | /meta-retro (scheduler liveness in DoD) |

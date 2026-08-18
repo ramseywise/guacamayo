@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guacamayo — Control Surface</title>
+<style>
+@font-face {
+  font-family: 'DM Sans';
+  font-weight: 400;
+  src: local('DM Sans Regular'), local('system-ui');
+}
+@font-face {
+  font-family: 'DM Mono';
+  font-weight: 400;
+  src: local('DM Mono Regular'), local('SF Mono'), local('Menlo');
+}
+
+:root {
+  --surface: #f6f5f1;
+  --card: #ffffff;
+  --card-border: rgba(11,11,11,0.06);
+  --text: #1a1917;
+  --text-2: #6b6a65;
+  --text-3: #9c9b95;
+  --accent: #2a78d6;
+  --accent-bg: rgba(42,120,214,0.08);
+  --s1: #2a78d6;
+  --s2: #eb6834;
+  --s3: #1baf7a;
+  --s4: #eda100;
+  --s5: #e87ba4;
+  --good: #1a8a5a;
+  --good-bg: rgba(26,138,90,0.08);
+  --warn: #b5760a;
+  --warn-bg: rgba(181,118,10,0.06);
+  --bad: #c93d3d;
+  --bad-bg: rgba(201,61,61,0.06);
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --chart-1: var(--s1);
+  --chart-2: var(--s2);
+  --chart-3: var(--s3);
+  --chart-4: var(--s4);
+  --muted: var(--text-3);
+  --text-secondary: var(--text-2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    --surface: #111110;
+    --card: #1a1a18;
+    --card-border: rgba(255,255,255,0.06);
+    --text: #eeedea;
+    --text-2: #a3a29c;
+    --text-3: #6b6a65;
+    --accent: #5a9ee6;
+    --accent-bg: rgba(90,158,230,0.08);
+    --s1: #5a9ee6;
+    --s2: #e07c50;
+    --s3: #2cb882;
+    --s4: #d4960a;
+    --s5: #d55181;
+    --good: #2cb882;
+    --good-bg: rgba(44,184,130,0.1);
+    --warn: #d4960a;
+    --warn-bg: rgba(212,150,10,0.08);
+    --bad: #e06060;
+    --bad-bg: rgba(224,96,96,0.08);
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background: var(--surface);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 28px 20px;
+}
+
+.header {
+  margin-bottom: 24px;
+}
+
+.header h1 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.header .subtitle {
+  font-size: 13px;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.header .meta {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.meta-pill {
+  display: inline-block;
+  background: var(--accent-bg);
+  color: var(--accent);
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.nav {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 10;
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+
+.nav a {
+  padding: 12px 16px;
+  border: none;
+  background: none;
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.nav a:hover {
+  color: var(--text);
+  background: var(--accent-bg);
+}
+
+.nav a.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.tab-panel {
+  display: none;
+}
+
+.tab-panel.active {
+  display: block;
+}
+
+.facet-tabs {
+  display: flex;
+  gap: 2px;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 20px;
+  border-radius: 0;
+}
+
+.facet-tabs a {
+  padding: 10px 14px;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.facet-tabs a:hover {
+  color: var(--text);
+  background: var(--accent-bg);
+}
+
+.facet-tabs a.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+.facet-panel {
+  display: none;
+}
+
+.facet-panel.active {
+  display: block;
+}
+
+.section-header {
+  margin-bottom: 16px;
+}
+
+.section-header h2 {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.section-header .section-desc {
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.card-subtitle {
+  font-size: 12px;
+  color: var(--text-3);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  gap: 16px;
+}
+
+.grid-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.grid-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 900px) {
+  .grid-4, .grid-3, .grid-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat .value {
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.stat .label {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.stat .change {
+  font-size: 11px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.stat .change.improving { color: var(--good); }
+.stat .change.worsening { color: var(--bad); }
+.stat .change.neutral { color: var(--text-3); }
+
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  height: 200px;
+  background: var(--accent-bg);
+  border: 1px dashed var(--card-border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.chart-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.sparkline {
+  overflow: visible;
+  vertical-align: middle;
+}
+
+.badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.badge.good { background: var(--good-bg); color: var(--good); }
+.badge.warn { background: var(--warn-bg); color: var(--warn); }
+.badge.bad { background: var(--bad-bg); color: var(--bad); }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+th {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--card-border);
+  text-align: left;
+  font-weight: 600;
+  color: var(--text-2);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--card-border);
+  color: var(--text);
+}
+
+tr:hover td {
+  background: var(--accent-bg);
+}
+
+.explainer {
+  background: var(--accent-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.6;
+}
+
+.explainer strong {
+  color: var(--text);
+}
+
+.data-sources {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid var(--card-border);
+}
+
+.data-sources h3 {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+.sources-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.source-item {
+  padding: 12px;
+  background: var(--accent-bg);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.source-item strong {
+  display: block;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+@media (max-width: 700px) {
+  .page { padding: 16px 12px; }
+  .header h1 { font-size: 22px; }
+  .nav, .facet-tabs { flex-direction: column; }
+  .nav a, .facet-tabs a { padding: 8px 12px; }
+  .sources-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="page">
+  <header class="header">
+    <h1>Guacamayo — Control Surface</h1>
+    <p class="subtitle">Operational telemetry for Claude code agents: context health, token economics, skill evaluation, and code review.</p>
+    <div class="meta">
+      <span class="meta-pill">Live dashboard</span>
+      <span class="meta-pill">7-day rolling window</span>
+    </div>
+  </header>
+
+  <nav class="nav" aria-label="Dashboard sections">
+    <a href="#overview" class="active">Overview</a>
+    <a href="#daily">Daily Insights</a>
+    <a href="#facets">Facets</a>
+    <a href="#workflow">Workflow &amp; State</a>
+  </nav>
+
+  <main>
+    <!-- OVERVIEW -->
+    <section id="overview" class="tab-panel active">
+      <div class="section-header">
+        <h2>What We Measure &amp; Why</h2>
+        <p class="section-desc">Guacamayo is a reinforcement learning system for Claude code agents. We track system behavior across three orthogonal dimensions.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Context Engineering</div>
+        <div class="card-subtitle">Session context boundaries, token retention, memory drift, and retrieval precision. We measure how well the agent maintains operational context across sessions.</div>
+        <div class="grid grid-4">
+          <div class="stat">
+            <span class="value" style="color:var(--s1)">142.5k</span>
+            <span class="label">Input Tokens (Session)</span>
+            <span class="change neutral">Safe working window</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s2)">3,820</span>
+            <span class="label">Output Tokens</span>
+            <span class="change improving">Optimal generation length</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s3)">12.4%</span>
+            <span class="label">Context Rot Index</span>
+            <span class="change worsening">↑ +1.8% drift (7d)</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--good)">99.2%</span>
+            <span class="label">Retrieval Precision</span>
+            <span class="change improving">Stable vector match</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Token Economics</div>
+        <div class="card-subtitle">Input/output ratios, prompt caching efficiency, API costs, and optimization opportunities. We measure cost-per-operation and identify budget drift.</div>
+        <div class="grid grid-4">
+          <div class="stat">
+            <span class="value" style="color:var(--s1)">4.25M</span>
+            <span class="label">Input Tokens (7D)</span>
+            <span class="change neutral">5.0:1 prompt ratio</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s2)">850k</span>
+            <span class="label">Output Tokens (7D)</span>
+            <span class="change neutral">Completion volume</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--good)">78.2%</span>
+            <span class="label">Cache Hit Rate</span>
+            <span class="change improving">↑ +6.1% efficiency</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--bad)">$12.40</span>
+            <span class="label">Daily Spend Avg</span>
+            <span class="change improving">↓ -14% optimization</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Skill Performance &amp; Code Review</div>
+        <div class="card-subtitle">Automated evaluation pass rates, flakiness, execution latency, and code quality signals. We measure skill fidelity and review effectiveness.</div>
+        <div class="grid grid-4">
+          <div class="stat">
+            <span class="value" style="color:var(--good)">92.4%</span>
+            <span class="label">Skill Pass Rate (p50)</span>
+            <span class="change improving">↑ +4.2% vs last week</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--warn)">14.0%</span>
+            <span class="label">Flakiness Index</span>
+            <span class="change worsening">↑ +2.1% degradation</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s3)">1,420 ms</span>
+            <span class="label">Avg Execution Latency</span>
+            <span class="change improving">↓ -180 ms improvement</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--bad)">18</span>
+            <span class="label">Open Review Items</span>
+            <span class="change neutral">Blocking: 3</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="explainer">
+        <strong>Why these three?</strong> Context engineering determines how much session state we can preserve between agent invocations — critical for reproducibility and debugging. Token economics track cost-to-value tradeoffs across model choices and caching strategies. Skill performance and code review are the feedback loop: we measure what works, why it works, and iterate.
+      </div>
+    </section>
+
+    <!-- DAILY INSIGHTS -->
+    <section id="daily" class="tab-panel">
+      <div class="section-header">
+        <h2>Daily Insights</h2>
+        <p class="section-desc">Session patterns, usage trends, and operational intelligence from the past 24 hours and recent sprint.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">17-Day Sprint Metrics</div>
+        <div class="grid grid-5">
+          <div class="stat">
+            <span class="value" style="color:var(--s1)">303</span>
+            <span class="label">Sessions</span>
+            <span class="change neutral">17 active days</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s2)">3,422</span>
+            <span class="label">Messages</span>
+            <span class="change neutral">201 per day avg</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--good)">96%</span>
+            <span class="label">Cache Hit Rate</span>
+            <span class="change improving">84% cost saved</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s3)">2m 42s</span>
+            <span class="label">Median Response</span>
+            <span class="change improving">↓ Fast latency</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s4)">1.07B</span>
+            <span class="label">Cost Units</span>
+            <span class="change neutral">Total sprint</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Context Utilization Distribution</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Context Range</th>
+              <th>Sessions</th>
+              <th>Distribution</th>
+              <th>Risk Level</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>&lt;50k tokens</strong></td>
+              <td>67</td>
+              <td>
+                <div style="width: 120px; height: 20px; background: var(--accent-bg); border-radius: 4px; position: relative; overflow: hidden;">
+                  <div style="height: 100%; width: 22%; background: var(--good); border-radius: 4px;"></div>
+                </div>
+              </td>
+              <td><span class="badge good">Low</span></td>
+            </tr>
+            <tr>
+              <td><strong>50–100k tokens</strong></td>
+              <td>112</td>
+              <td>
+                <div style="width: 120px; height: 20px; background: var(--accent-bg); border-radius: 4px; position: relative; overflow: hidden;">
+                  <div style="height: 100%; width: 37%; background: var(--s1); border-radius: 4px;"></div>
+                </div>
+              </td>
+              <td><span class="badge good">Low</span></td>
+            </tr>
+            <tr>
+              <td><strong>100–150k tokens</strong></td>
+              <td>58</td>
+              <td>
+                <div style="width: 120px; height: 20px; background: var(--accent-bg); border-radius: 4px; position: relative; overflow: hidden;">
+                  <div style="height: 100%; width: 19%; background: var(--warn); border-radius: 4px;"></div>
+                </div>
+              </td>
+              <td><span class="badge warn">Medium</span></td>
+            </tr>
+            <tr>
+              <td><strong>&gt;150k tokens (heavy)</strong></td>
+              <td>66</td>
+              <td>
+                <div style="width: 120px; height: 20px; background: var(--accent-bg); border-radius: 4px; position: relative; overflow: hidden;">
+                  <div style="height: 100%; width: 22%; background: var(--bad); border-radius: 4px;"></div>
+                </div>
+              </td>
+              <td><span class="badge bad">High</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Cache Performance &amp; Subagent Activity</div>
+        <div class="grid grid-2">
+          <div>
+            <div class="card-title" style="margin-bottom: 12px; font-size: 12px;">Cache Efficiency</div>
+            <div class="grid">
+              <div class="stat">
+                <span class="value" style="color:var(--good); font-size:28px">96%</span>
+                <span class="label">Hit Rate</span>
+              </div>
+              <div class="stat">
+                <span class="value" style="color:var(--s3); font-size:28px">84%</span>
+                <span class="label">Cost Saved</span>
+              </div>
+              <div class="stat">
+                <span class="value" style="color:var(--s1); font-size:20px">3.94B</span>
+                <span class="label">Cache Reads</span>
+              </div>
+              <div class="stat">
+                <span class="value" style="color:var(--s2); font-size:20px">125M</span>
+                <span class="label">Cache Writes</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card-title" style="margin-bottom: 12px; font-size: 12px;">Subagent Activity</div>
+            <div class="grid">
+              <div class="stat">
+                <span class="value" style="color:var(--s4); font-size:28px">594</span>
+                <span class="label">Subagent Sessions</span>
+                <span class="change neutral">38% of usage</span>
+              </div>
+              <div class="stat">
+                <span class="value" style="color:var(--warn); font-size:28px">54%</span>
+                <span class="label">Heavy Session Share</span>
+                <span class="change neutral">42 sessions</span>
+              </div>
+              <div class="stat">
+                <span class="value" style="color:var(--s1); font-size:20px">99%</span>
+                <span class="label">Parallelism Overlap</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">System Health Signals</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Signal</th>
+              <th>Value</th>
+              <th>Status</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Context Compactions</strong></td>
+              <td>192</td>
+              <td><span class="badge good">Active</span></td>
+              <td>78 sessions with manual compaction — good context management</td>
+            </tr>
+            <tr>
+              <td><strong>Bash Antipatterns</strong></td>
+              <td>8,419 total</td>
+              <td><span class="badge bad">High</span></td>
+              <td>27.8 per session avg — needs shell guard improvements</td>
+            </tr>
+            <tr>
+              <td><strong>Session Interruptions</strong></td>
+              <td>49 total</td>
+              <td><span class="badge warn">Medium</span></td>
+              <td>39 hook blocks; 83 long sessions without todo tracking</td>
+            </tr>
+            <tr>
+              <td><strong>Memory Retrieval</strong></td>
+              <td>31.6× reads/writes</td>
+              <td><span class="badge good">Optimal</span></td>
+              <td>Prefix caching working efficiently — excellent read pattern</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Daily Usage Trend</div>
+        <div class="chart-wrap">
+          [Chart: 24-hour usage trend across models with cache performance overlay]
+        </div>
+      </div>
+    </section>
+
+    <!-- FACETS -->
+    <section id="facets" class="tab-panel">
+      <div class="facet-tabs">
+        <a href="#facet-context" class="active">Context Health</a>
+        <a href="#facet-tokens">Tokens &amp; Spend</a>
+        <a href="#facet-evals">Skill Evals</a>
+        <a href="#facet-review">Code Review</a>
+      </div>
+
+      <!-- FACET: Context Health -->
+      <div id="facet-context" class="facet-panel active">
+        <div class="section-header">
+          <h2>Context Boundaries &amp; Token Retention</h2>
+          <p class="section-desc">Session context boundaries, rot, and retrieval precision.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Metrics (7-Day Window)</div>
+          <div class="grid grid-4">
+            <div class="stat">
+              <span class="value" style="color:var(--s1)">142.5k</span>
+              <span class="label">Input Tokens (Current)</span>
+              <span class="change neutral">Safe working window</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--s2)">3,820</span>
+              <span class="label">Output Tokens</span>
+              <span class="change improving">↑ Optimal generation</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--s3)">12.4%</span>
+              <span class="label">Context Rot Index</span>
+              <span class="change worsening">↑ +1.8% drift</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--good)">99.2%</span>
+              <span class="label">Retrieval Precision</span>
+              <span class="change improving">Stable vector match</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Component Drift</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Component</th>
+                <th>Status</th>
+                <th>7-Day Drift Trend</th>
+                <th>Efficiency</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>System Prompt Injection</strong></td>
+                <td><span class="badge good">Optimal</span></td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,10 14,10 28,9 42,11 56,10 70,10 84,11 100,10" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>99.8%</td>
+              </tr>
+              <tr>
+                <td><strong>Dynamic Memory Retrieval</strong></td>
+                <td><span class="badge warn">Degrading</span></td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,4 14,6 28,10 42,12 56,15 70,16 84,18 100,18" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>84.1%</td>
+              </tr>
+              <tr>
+                <td><strong>Compaction &amp; Memory Rot</strong></td>
+                <td><span class="badge good">Stable</span></td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,18 14,14 28,15 42,10 56,8 70,8 84,5 100,5" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>94.2%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Context Utilization Curve (7D)</div>
+          <div class="chart-wrap">
+            [Chart: Context token usage curve with compaction markers]
+          </div>
+        </div>
+      </div>
+
+      <!-- FACET: Tokens & Spend -->
+      <div id="facet-tokens" class="facet-panel">
+        <div class="section-header">
+          <h2>Token Consumption &amp; Economic Efficiency</h2>
+          <p class="section-desc">Input/output ratios, cache efficiency, and cost tracking.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Metrics (7-Day Window)</div>
+          <div class="grid grid-4">
+            <div class="stat">
+              <span class="value" style="color:var(--s1)">4.25M</span>
+              <span class="label">Input Tokens</span>
+              <span class="change neutral">5.0:1 prompt ratio</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--s2)">850k</span>
+              <span class="label">Output Tokens</span>
+              <span class="change neutral">Completion volume</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--good)">78.2%</span>
+              <span class="label">Cache Hit Rate</span>
+              <span class="change improving">↑ +6.1% efficiency</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--bad)">$86.80</span>
+              <span class="label">7-Day Spend</span>
+              <span class="change improving">↓ -14% vs previous week</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Model Endpoint Breakdown</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Model</th>
+                <th>Input / Output Share</th>
+                <th>14-Day Spend Trend</th>
+                <th>Cost / 1k Ops</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Claude 3.5 Sonnet</strong></td>
+                <td>3.1M In / 620k Out</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,18 14,14 28,15 42,10 56,8 70,8 84,5 100,5" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>$0.42</td>
+              </tr>
+              <tr>
+                <td><strong>Haiku / Flash</strong></td>
+                <td>1.15M In / 230k Out</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,8 14,8 28,7 42,9 56,8 70,8 84,8 100,8" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>$0.04</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Daily Cost Curve (7D)</div>
+          <div class="chart-wrap">
+            [Chart: Daily spend across model endpoints with cache savings overlay]
+          </div>
+        </div>
+      </div>
+
+      <!-- FACET: Skill Evals -->
+      <div id="facet-evals" class="facet-panel">
+        <div class="section-header">
+          <h2>Skill Evaluation Pass Rates</h2>
+          <p class="section-desc">Longitudinal performance across automated benchmark suites.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Metrics (7-Day Window)</div>
+          <div class="grid grid-4">
+            <div class="stat">
+              <span class="value" style="color:var(--good)">92.4%</span>
+              <span class="label">Overall Pass Rate (p50)</span>
+              <span class="change improving">↑ +4.2% vs last week</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--warn)">14.0%</span>
+              <span class="label">Flakiness Index</span>
+              <span class="change worsening">↑ +2.1% degradation</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--s1)">1,420 ms</span>
+              <span class="label">Avg Execution Latency</span>
+              <span class="change improving">↓ -180 ms improvement</span>
+            </div>
+            <div class="stat">
+              <span class="value">2.1</span>
+              <span class="label">Avg Retries Per Test</span>
+              <span class="change neutral">Baseline normal</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Skill Cohort Pass Rate (7D Trend)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Skill Category</th>
+                <th>Pass Rate</th>
+                <th>7-Day Trend</th>
+                <th>Flakiness</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>workflow-* (planning)</strong></td>
+                <td>88%</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,10 14,9 28,8 42,7 56,6 70,5 84,4 100,3" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>8%</td>
+              </tr>
+              <tr>
+                <td><strong>code-* (review/debug)</strong></td>
+                <td>96%</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,18 14,17 28,16 42,15 56,14 70,10 84,8 100,5" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>4%</td>
+              </tr>
+              <tr>
+                <td><strong>design-* (ideation)</strong></td>
+                <td>84%</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,6 14,7 28,9 42,11 56,13 70,14 84,15 100,16" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>18%</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Pass Rate Curve (7D)</div>
+          <div class="chart-wrap">
+            [Chart: Pass rate trajectory across skill cohorts]
+          </div>
+        </div>
+      </div>
+
+      <!-- FACET: Code Review -->
+      <div id="facet-review" class="facet-panel">
+        <div class="section-header">
+          <h2>Code Review &amp; Quality Signals</h2>
+          <p class="section-desc">Review effectiveness, finding severity, and resolution time.</p>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Metrics (7-Day Window)</div>
+          <div class="grid grid-4">
+            <div class="stat">
+              <span class="value">186</span>
+              <span class="label">PRs Reviewed</span>
+              <span class="change improving">↑ +28% volume</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--bad)">34</span>
+              <span class="label">Critical Findings</span>
+              <span class="change neutral">Resolved: 28</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--warn)">2.4</span>
+              <span class="label">Hours to Fix (Median)</span>
+              <span class="change improving">↓ -18 min vs week prior</span>
+            </div>
+            <div class="stat">
+              <span class="value" style="color:var(--good)">94%</span>
+              <span class="label">Review Precision</span>
+              <span class="change improving">↑ Valid findings rate</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Finding Distribution (7D)</div>
+          <table>
+            <thead>
+              <tr>
+                <th>Finding Type</th>
+                <th>Count</th>
+                <th>7-Day Trend</th>
+                <th>Median Fix Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Correctness</strong></td>
+                <td>12</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,15 14,13 28,12 42,11 56,9 70,8 84,6 100,4" fill="none" stroke="var(--good)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>1.1 hrs</td>
+              </tr>
+              <tr>
+                <td><strong>Architecture</strong></td>
+                <td>8</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,8 14,9 28,10 42,11 56,11 70,12 84,12 100,13" fill="none" stroke="var(--warn)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>3.2 hrs</td>
+              </tr>
+              <tr>
+                <td><strong>Safety</strong></td>
+                <td>14</td>
+                <td>
+                  <svg class="sparkline" viewBox="0 0 100 20" width="120" height="20">
+                    <polyline points="0,4 14,5 28,7 42,9 56,11 70,13 84,15 100,17" fill="none" stroke="var(--bad)" stroke-width="2" stroke-linejoin="round"/>
+                  </svg>
+                </td>
+                <td>2.8 hrs</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Review Throughput (7D)</div>
+          <div class="chart-wrap">
+            [Chart: PR volume and findings-per-review trend]
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WORKFLOW & STATE -->
+    <section id="workflow" class="tab-panel">
+      <div class="section-header">
+        <h2>Workflow &amp; State Persistence</h2>
+        <p class="section-desc">Guacamayo's operational state: growth synthesis, retrospectives, GitHub board, and landed changes.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Session Signals — Last Snapshot</div>
+        <div class="card-subtitle">Hand-maintained operational state from /meta-dream. Tracks growth, insights, retro cycles, and board status.</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Component</th>
+              <th>Status</th>
+              <th>Metric</th>
+              <th>Detail</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Growth Synthesis</strong></td>
+              <td><span class="badge good">Ran</span></td>
+              <td>17 entries processed</td>
+              <td>12 merged into sounding.md, 4 → /meta-retro, 1 already captured; accumulator cleared to 0 pending</td>
+            </tr>
+            <tr>
+              <td><strong>Insights Refresh</strong></td>
+              <td><span class="badge warn">Pending</span></td>
+              <td>Last run: 2026-08-14</td>
+              <td>2026-08-15 spawn died on quota; non-destructive append blocked</td>
+            </tr>
+            <tr>
+              <td><strong>Retrospective Cycle</strong></td>
+              <td><span class="badge good">Acked</span></td>
+              <td>R10 landed 2026-08-15</td>
+              <td>Retro due: 3 / acked: 3 — ready for next cycle</td>
+            </tr>
+            <tr>
+              <td><strong>Hypothesis Bank</strong></td>
+              <td><span class="badge good">Active</span></td>
+              <td>45 rows</td>
+              <td>Open questions driving experimental design</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Compaction &amp; Persistence</div>
+        <div class="grid grid-2">
+          <div class="stat">
+            <span class="value" style="color:var(--s1)">119</span>
+            <span class="label">Total Compactions</span>
+            <span class="change neutral">Active memory management</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s2)">2026-08-15T14:54Z</span>
+            <span class="label">Last Compact</span>
+            <span class="change neutral">Auto-trigger at 80k context</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s3)">39</span>
+            <span class="label">Grows Due</span>
+            <span class="change improving">Ready to process</span>
+          </div>
+          <div class="stat">
+            <span class="value" style="color:var(--s4)">3</span>
+            <span class="label">Grows Acked</span>
+            <span class="change neutral">Persisted to board</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">GitHub Board Status</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Repo</th>
+              <th>Open Issues</th>
+              <th>Status Breakdown</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>guacamayo</strong></td>
+              <td>5</td>
+              <td>#120 (ready), #119 (backlog), #118 (backlog), #117 (bug), #113 (ready)</td>
+              <td>#113 and #117 are duplicates (board cache issue); #117 has live guard false positives</td>
+            </tr>
+            <tr>
+              <td><strong>galactus</strong></td>
+              <td>0</td>
+              <td>✓ Clean</td>
+              <td>#20 and #23 closed; both merged without Closes directive → branch links lost</td>
+            </tr>
+            <tr>
+              <td><strong>sisyphus</strong></td>
+              <td>1</td>
+              <td>1 issue open</td>
+              <td></td>
+            </tr>
+            <tr>
+              <td><strong>playground</strong></td>
+              <td>1</td>
+              <td>1 issue open</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Recent Landed Changes</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Repository</th>
+              <th>PR / Commit</th>
+              <th>Changes</th>
+              <th>Issues Closed</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>guacamayo</strong></td>
+              <td><strong>PR #124 (ee2502e)</strong></td>
+              <td>Merged main changes; 2 real conflicts in .claude/skills/meta-retro/SKILL.md; resolved rename double-count</td>
+              <td>Closes #109, #111, #114, #115, #116</td>
+            </tr>
+            <tr>
+              <td><strong>galactus</strong></td>
+              <td><strong>main (f7d407f)</strong></td>
+              <td>Repaired duplicate ml key + truncated uv.lock; 8 branches deleted</td>
+              <td>Fixes duplicate config and lock file issues</td>
+            </tr>
+            <tr>
+              <td><strong>workspace</strong></td>
+              <td><strong>bug/untrack-telemetry</strong></td>
+              <td>Telemetry sinks untracked via git rm --cached (retroactive .gitignore rule added)</td>
+              <td>Awaiting Ramsey commit</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="explainer">
+        <strong>Decisions Pending:</strong> Add parse check on pyproject.toml/uv.lock as pre-merge step (current gap: no pytest coverage for upstream failures). Audit dssg repo for client-name exposure (open since 2026-08-14). Enable telemetry sink tracking via committed git hooks.
+      </div>
+    </section>
+
+        <!-- DATA SOURCES -->
+    <div class="data-sources">
+      <h3>Data Sources &amp; Integration</h3>
+      <p style="font-size: 12px; color: var(--text-2); margin-bottom: 16px;">How Guacamayo ingests and displays operational signals.</p>
+      <div class="sources-grid">
+        <div class="source-item">
+          <strong>Context Health Telemetry</strong>
+          Emitted by cartographer from session transcripts + memory indices. Captures token boundaries, rot, and retrieval diagnostics. Updated after each session compaction.
+        </div>
+        <div class="source-item">
+          <strong>Cost Tracking</strong>
+          Aggregated from Claude API usage logs, prompt cache metrics, and model selection patterns. Daily rollup at 00:00 UTC. Cost / 1k Ops includes cache amortization.
+        </div>
+        <div class="source-item">
+          <strong>Skill Evaluation Results</strong>
+          Automated test suite runs 5× daily across all skills. Pass rate is p50 from last 50 runs per skill. Flakiness = SD of pass rate. Latency from harness instrumentation.
+        </div>
+        <div class="source-item">
+          <strong>Code Review Findings</strong>
+          Extracted from GitHub PR review comments tagged with finding type (correctness/architecture/safety). Resolution time measured from comment timestamp to merge. Precision calculated against human audit sample.
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const navLinks = document.querySelectorAll('.nav a');
+const panels = document.querySelectorAll('.tab-panel');
+const facetLinks = document.querySelectorAll('.facet-tabs a');
+const facetPanels = document.querySelectorAll('.facet-panel');
+
+navLinks.forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = link.getAttribute('href').slice(1);
+    navLinks.forEach((l) => l.classList.remove('active'));
+    panels.forEach((p) => p.classList.remove('active'));
+    link.classList.add('active');
+    document.getElementById(target)?.classList.add('active');
+  });
+});
+
+facetLinks.forEach((link) => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    const target = link.getAttribute('href').slice(1);
+    facetLinks.forEach((l) => l.classList.remove('active'));
+    facetPanels.forEach((p) => p.classList.remove('active'));
+    link.classList.add('active');
+    document.getElementById(target)?.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>

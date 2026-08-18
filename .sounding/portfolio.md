@@ -1,6 +1,6 @@
 # Portfolio — Living Seed
 
-**Last Transformed**: 2026-08-02 (/meta-dream synthesis: librarian cartographer's two-cadence settlement + its public-repo data boundary)
+**Last Transformed**: 2026-08-18 (/meta-dream synthesis: guacamayo gained the live autonomous-dispatch harness; galactus gained the ML parity/run-registry arc. Previous: 2026-08-02 — librarian cartographer's two-cadence settlement + its public-repo data boundary)
 
 ---
 
@@ -11,10 +11,10 @@
 - **atlas** — agentic financial intelligence for B2B: LangGraph forecast/segment/knowledge agents, Neo4j, real eval harness. Bridges the classical-ML and agentic eras natively.
 
 **Prototyping**
-- **galactus** — contract-bounded LLM generation. `ml6/` is the reference case study: FastAPI service generating length-constrained marketing copy grounded in uploaded PDFs. Thesis: counting characters is code's job; the model's job is content. Also hosts review-leakage ML dimension scanner. Stack: Python 3.12, FastAPI, Pydantic v2, Anthropic SDK, structlog.
+- **galactus** — contract-bounded LLM generation. `ml6/` is the reference case study: FastAPI service generating length-constrained marketing copy grounded in uploaded PDFs. Thesis: counting characters is code's job; the model's job is content. Now also the ML parity arc: `runs/ml/*` case studies held to a five-point reproducibility bar, with `runs/_index/` + lending's `run_record.py` (landed 2026-08-16) as the local run registry — records over claims, refusals recordable as first-class outcomes (fraud's open question). Also hosts review-leakage ML dimension scanner. Stack: Python 3.12, FastAPI, Pydantic v2, Anthropic SDK, structlog.
 
 **Meta / tooling / knowledge (supports everything else)**
-- **guacamayo** (this repo) — the Sounding instance + persistence KB. The meta-layer session lives here; v2 = 3 seeds, single-writer lifecycle, feedback loop wired to `~/.claude` (retro + ledger) and librarian. KB half still unscoped — Ramsey's call.
+- **guacamayo** (this repo) — the Sounding instance + persistence KB + now the **autonomous dispatch harness** (GUA-119, live 2026-08-16): a 10-minute launchd tick derives the board, a pure evaluator writes `proposed_actions[]`, wake renders an accept/reject batch, exactly two idempotent mutations may run unattended (off by default), and every decision logs to `actions.jsonl` so acceptance rates can move the propose/mutate boundary on evidence. The design premise held on its first live cycle: the one close-proposal was wrong twice over (stale branch pointer, then a worktree hiding uncommitted work) and both human gates caught it. Meta-layer session lives here; v2 = 3 seeds, single-writer lifecycle, feedback loop wired to `~/.claude` (retro + ledger) and librarian. KB half still unscoped — Ramsey's call.
 - **librarian** — sourced knowledge compiler (raw → wiki, conflict-flagged, cited) + MCP + code index. The system of record for factual session history; being extended into a DSSG team-facing KB template (indexer decisions made — don't relitigate). Its cartographer half settled into two cadences (2026-08-02): `--facts` daily, deriving session notes from JSONL and failing loud on empty input, and `--cron` weekly, deterministic and key-free — the LLM analysis stage was retired rather than repaired, because the report nobody read was also what made an empty pipeline look healthy. **librarian is a public repo**, and its derived session material (`raw/`, the wiki session log) carries verbatim prompts; both are gitignored, and that boundary is load-bearing, not hygiene.
 - **playground** — the R&D lab: three parallel agent implementations over a shared KB; patterns prove out here before migrating to flagships.
 - **ai-project-template** — Copier template extracting the tooling layer; owns its own discovery stack (scope-poc, project-discovery, project-genesis) by design — kept its own thing, not globalized.
