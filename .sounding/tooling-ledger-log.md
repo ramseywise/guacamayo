@@ -116,6 +116,116 @@ plan Step 5b. Both target patterns are rising+promotable and both metrics are no
 
 ---
 
+## R11 — 2026-08-18
+
+Data: insights-log 2026-08-16 (673 sessions, 31 days), growth-log.md (4 routed entries 2026-08-16/18),
+recurrence report (live corpus), ledger Step 0 re-derives.
+
+### Step 0 re-derives
+
+| Row | Metric | Command + output | Verdict |
+|---|---|---|---|
+| R10 F1: `review-architecture` frontmatter | `absence:skill-name-frontmatter-mismatch` | `head -3 .claude/skills/review-architecture/SKILL.md` → `name: review-architecture` ✓ | **VERIFIED** |
+| R10 F2: `addSubIssue` in workflow-refine | `presence:addSubIssue-in-workflow-refine` | `grep -c addSubIssue .claude/skills/workflow-refine/SKILL.md` → `0`. BUT: growth-log 2026-08-16 entry shows Ramsey decided task checklists > sub-issues for GUA-119 (#131-133); SKILL.md:154-155 now reads "checklist in the parent body". Policy reversed — the target (addSubIssue call) is intentionally absent. | **SUPERSEDED by policy change 2026-08-16** |
+| R10 F3: re-derive clause in retro Step 0 | `presence:re-derive-clause-in-retro-Step-0` | `grep -n "re-derive" .claude/skills/meta-retro/SKILL.md` → no output | **Still unmet** (carry forward — this retro's P3 re-proposes the fix) |
+| R10 F8: file-not-found < 120 by 2026-09-01 | `count-drop:file-not-found-errors below 120 by 2026-09-01` | insights 2026-08-16: 191 (+35% in 2 days from 141). Due 2026-09-01 — window still open but deteriorating | **Still open, rising** |
+| R10 F9: update-ref in risky_git_guard | `presence:update-ref-coverage-in-risky_git_guard` | `grep -n "update-ref" ~/.claude/hooks/risky_git_guard.sh` → no output | **Still unmet, PROPOSED per D1** |
+
+### Graduated rows (2 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-08-15 | R10 F1: `review-architecture` frontmatter — `name: structure` → `name: architecture`; description agent path corrected | workflow | verified | Re-derived 2026-08-18: `head -3 .claude/skills/review-architecture/SKILL.md` → `name: review-architecture`. Metric `absence:skill-name-frontmatter-mismatch` met. |
+| 2026-08-15 | R10 F2: sub-issue linking in workflow-refine | workflow | superseded | Policy reversed 2026-08-16 (Ramsey, GUA-119 #131-133): splitting = task checklist in parent body, not sub-issues. SKILL.md:154-155 reflects this. Row's target (addSubIssue call) intentionally absent; retire rather than carry. |
+
+### R11 findings
+
+- **F1**: `Closes #N` missing from PR bodies at merge — second occurrence (#118, #134). `quick-pr` derives the closing link from the branch name but no gate verifies the link is present in the final merged PR body. CLA-69 reconciled on *create*; no enforcement on *merge*.
+- **F2**: Review-driver `correctness` reporter `parse_error` on 11-file set; focused 3-file rerun clean. No retry-with-narrower-fileset logic exists in `driver.py`.
+- **F3**: Silently-dead vs loudly-dead infra — GUA-118 launchd plists never loaded (no error, board stale 2 days); red CI fails loudly. Neither had a verified-RUNNING check in the DoD.
+- **F4**: Lint config claiming to mirror another must mirror ALL of it — AIT `ruff.toml` missing `isort.known-first-party` that the mirror target carries. Fix landed in AIT; capture as rule so the pattern doesn't recur.
+- **F5** (carry R10 F3): `meta-retro` Step 0 still lacks a "re-derive, never re-read" clause. Same class as R10 F2 (self-reported status accepted without re-derivation). P3 below re-proposes the fix.
+
+### R11 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F1): `~/.claude/hooks/` — `closes_link_guard.sh`** (PROPOSED per D1):
+
+```bash
+#!/usr/bin/env bash
+# closes_link_guard.sh — PostToolUse (tool: Bash), advisory
+# Fires when `gh pr merge` or `gh pr create` appears in the tool call.
+# Verifies the PR body contains a `Closes #N` link. Advisory (exit 0).
+source "$(dirname "$0")/lib.sh"
+
+INPUT=$(cat)
+TOOL=$(echo "$INPUT" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('tool_input',{}).get('command',''))" 2>/dev/null)
+
+if ! echo "$TOOL" | grep -qE 'gh pr (merge|create)'; then
+  exit 0
+fi
+
+# Extract PR number from the command or from current branch
+PR_URL=$(echo "$TOOL" | grep -oE '[0-9]+' | head -1)
+BRANCH=$(git -C "${CLAUDE_REPO_PATH:-.}" rev-parse --abbrev-ref HEAD 2>/dev/null)
+ISSUE=$(echo "$BRANCH" | grep -oE '[0-9]+' | head -1)
+
+if [ -z "$ISSUE" ]; then
+  exit 0  # spike/ or bug/ branch — no expected link
+fi
+
+PR_BODY=$(gh pr view --json body -q .body 2>/dev/null || echo "")
+if ! echo "$PR_BODY" | grep -qiE "closes? #${ISSUE}|fixes? #${ISSUE}"; then
+  log_event "closes_link_guard" "WARN" "PR body missing 'Closes #${ISSUE}' — add via: gh pr edit --body-file"
+  echo "WARN: PR body does not contain 'Closes #${ISSUE}'. Run: gh pr edit <N> -b \"\$(gh pr view <N> -q .body)$(printf '\n\nCloses #%s' "$ISSUE")\""
+fi
+exit 0
+```
+
+Ledger row: `absence:merged-PRs-without-closing-links for 2 retro windows` — hypothesis — PROPOSED, not deployed. Ramsey applies.
+
+**P2 (F2): `review/driver.py`** — retry `parse_error` with narrowed fileset:
+
+When a dimension scanner returns `parse_error`, the driver already has the offending fileset. Add a retry pass with the set split in half (or capped at 5 files), log the split, and merge findings. If the retry also fails, emit `parse_error` for that half and continue. This is a code change in `guacamayo/review/driver.py` near lines 310–333; needs an issue + branch.
+
+Ledger row: `count-drop:parse-error-dimension-runs below 2 per review-cli run by 2026-09-15` — hypothesis. Needs a GUA issue.
+
+**P3 (F3/F5): `guacamayo/.claude/skills/workflow-execute/SKILL.md`** — add a "shipped scheduler" DoD clause:
+
+```markdown
+**Shipped scheduler DoD** (launchd/cron/systemd): after loading, verify the job is
+RUNNING — `launchctl list | grep <label>` must show the entry. A plist copied to
+`~/Library/LaunchAgents/` without `launchctl load` produces no error and zero job runs.
+A CI green badge is not a substitute: CI tests the *code*, not whether the *process* is
+scheduled in the target environment. DoD = verified-RUNNING, not copied.
+```
+
+Separately: the re-derive clause for Step 0 of `meta-retro/SKILL.md` (carry from R10 P3):
+
+```markdown
+3. **Re-derive, never re-read.** For each row with a `presence:` or `absence:` metric,
+   run the command the metric names and paste the command + output into this retro section.
+   A row whose Status says "metric met" is a claim, not evidence. A row verified from its
+   own Status column is unverified. (R10 F2: read "both presence metrics met" while one
+   target file had zero matches, undetected across two windows.)
+```
+
+Ledger rows:
+- `presence:shipped-scheduler-dod-in-workflow-execute` — hypothesis — target: `guacamayo/.claude/skills/workflow-execute/SKILL.md`
+- `presence:re-derive-clause-in-retro-Step-0` — hypothesis (carry R10 F3, now R11 F5) — target: `guacamayo/.claude/skills/meta-retro/SKILL.md`
+
+**P4 (F4): `~/.claude/rules/shell.md`** — append lint-mirror pattern:
+
+```markdown
+- **Lint config claiming to mirror another must mirror ALL of it.** When a repo's config
+  says it inherits or mirrors another (e.g. `# mirrors guacamayo ruff.toml`), diff every
+  non-override key — omissions are silent breaks. `isort.known-first-party` and similar
+  per-project sections are the most commonly missed. Run: `diff <(grep -v '^#' src.toml | sort) <(grep -v '^#' dst.toml | sort)` as a sanity check before closing.
+```
+
+Ledger row: `absence:lint-mirror-config-omission-incidents for 2 retro windows` — hypothesis — PROPOSED for `~/.claude/rules/shell.md`. Ramsey applies.
+
+---
+
 ## R9 — 2026-08-11
 
 ### Graduated rows (3 retired this retro)

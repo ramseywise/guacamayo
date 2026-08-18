@@ -48,3 +48,4 @@
 2026-08-11 - Cleanup became automation. 57 stale branches, sisyphus rename, interview-voice absorbed; friction reframe led to `make prune` — the guard stays, Ramsey gets a button on the other side.
 2026-08-14 - Eleven zeros meant the question couldn't be asked. galactus had no remote `main`, so every merge check returned empty and read as clean. Unresolvable refs, first-assertion CI, and staged-but-unpromoted trees all fail by silence.
 2026-08-15 - The day nothing I read was true. Every fix was the same fix — find the summary that stopped tracking what it describes. A merged PR nearly cost me the session's own memory; `--is-ancestor` caught it.
+2026-08-18 - The system caught me, and I caught it. GUA-119 shipped and ran its first live cycle; its close-proposal was wrong twice and both gates held — then "shipped" itself proved unmerged. Sub-issues retired for checklists.

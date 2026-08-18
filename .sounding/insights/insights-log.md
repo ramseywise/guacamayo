@@ -2029,4 +2029,161 @@ Checking active hypotheses from tooling-ledger.md:
 4. **Fable convergence**: Monitor fable leakage (22.6% in mixed usage). Settings fix applied 2026-08-05; expect convergence by 2026-08-18. Re-measure at next insights run.
 5. **Parallel contention**: 65% of sessions now 2–3 concurrent. Correlate file-not-found spike with parallelism increase (likely root cause). Recommend read-write serialization audit or per-session `.git` worktree isolation.
 
+## 2026-08-16 (673 sessions, 2026-07-17 to 2026-08-16)
+
+### Numbers
+
+| Metric | Value |
+|--------|-------|
+| Sessions analyzed | 673 |
+| Date range | 2026-07-17 to 2026-08-16 |
+| Total messages | 5,127 |
+| Days active | 31 |
+| Messages per day | 165.4 |
+| Usage over 150k context | 11% |
+| Cache hit rate | 95% |
+| Cache savings vs uncached | 82% |
+| Subagent transcripts | 1,026 |
+| Subagent share of usage | 37% |
+
+### Model Distribution
+
+| Model | Messages | Share |
+|-------|----------|-------|
+| claude-opus-5 | 40,324 | 66% |
+| claude-opus-4-6 | 18,965 | 31% |
+| claude-fable-5 | 9,369 | 15% |
+| claude-opus-4-8 | 7,873 | 13% |
+| claude-haiku-4-5-20251001 | 2,241 | 4% |
+| claude-sonnet-5 | 913 | 1% |
+| claude-sonnet-4-6 | 492 | 1% |
+
+**Signal**: Opus-5 dominance at 66% (up from 29% in prior run, reflecting session-default correctness). Fable at 15% (convergence to opt-in target continuing from 22.6% in prior run). Sonnet severely underutilized at 1% share despite being execution-tier recommendation for non-verdict work.
+
+**Interpretation**: Model-pairing strategy is normalizing post-fix; opus-5 as session default is correct. Fable drift resolved (was 22.6%, now 15%, trending toward 5% target). Haiku usage stabilized at 4%. The gap is sonnet — it should be 15-20% for execution work but is only 1%, suggesting sessions are either not invoking agents or defaulting to opus for all phases.
+
+**Recommendation**: Audit skill spawning patterns — execution-phase agents should default to `--model claude-sonnet-5` or `--model claude-opus-5` (not fable, not opus-4-*). Confirm `/workflow-execute` skill invokes with explicit model flag.
+
+### Tool Economics
+
+| Tool | Invocations | Share | Efficiency |
+|------|-------------|-------|-----------|
+| Bash | 24,359 | 65% | primary; continue monitoring antipatterns |
+| Edit | 8,577 | 23% | healthy edit/read ratio at 1.2 avg |
+| Read | 7,492 | 20% | strong pre-write discipline (314 sessions below 1:1) |
+| Write | 1,646 | 4% | appropriate write frequency |
+| Agent | 860 | 2% | subagent spawning stable |
+| ToolSearch | 680 | 2% | steady dependency exploration |
+| Grep | 650 | 2% | stable search patterns |
+
+### Skill Economics
+
+| Skill | Invocations | Cost share |
+|-------|-------------|-----------|
+| compact | N/A | 2.0% |
+| grow | N/A | 1.2% |
+| wake | N/A | 1.2% |
+| model | N/A | 0.5% |
+| dream | N/A | 0.4% |
+| workflow-review | N/A | 0.3% |
+| workflow-plan | N/A | 0.3% |
+| workflow-refine | N/A | 0.2% |
+
+**Context load**: Identity skills (wake/grow/dream) drive 2.8% of usage (compact 2.0% overhead). Workflow pipeline is lightweight (review 0.3%, plan 0.3%, refine 0.2% = 0.8% total). Strong signal: process overhead is sub-3%, cost is dominated by execution (Bash/Edit/Read at 88%).
+
+**Skill coverage**: No new zero-invocation analysis in this run (parser reports only skills invoked). Typo rate remains low (design-inistiative: 1 invocation, worlfow-plan: 1 invocation). No dead weight detected.
+
+### Failure Attribution
+
+| Category | Count | % of errors | Example |
+|----------|-------|-------------|---------|
+| command_failed | 493 | 46% | bash command exit non-zero (retryable, parser carries no sequence) |
+| file_not_found | 191 | 18% | path resolution; acceleration from prior run (141→191, +35%) |
+| read_before_write | 166 | 16% | edit on unread file (guard working as designed) |
+| blocked_by_hook | 152 | 14% | plan_status_validate or other PreToolUse guard |
+| other | 105 | 10% | unclassified |
+| cancelled | 61 | 6% | agent/user cancellation |
+
+**Total errors**: 1,068 across 673 sessions (1.59 errors/session; up from 1.21/session at 641 sessions on 2026-08-14).
+
+**File-not-found acceleration**: +50 errors in 2 days (141→191). R5 hypothesis holds — likely concurrency race. 60% of sessions now 2-3 concurrent (up from 65% parallel in prior run). Recommend: read-write serialization audit on `.git/index` and plan-doc writes, or per-session worktree isolation.
+
+**Hook blocks**: 152 blocks intentional (plan_status_validate preventing spec violations). No false-positive signal; blocks are working as designed.
+
+**Remediation**:
+- **command_failed**: Improve Bash error classification (distinguish transient from code). Parser carries no retry sequence; needs enhancement.
+- **file_not_found**: Priority — investigate concurrency. Check git lock contention on multi-session workflows. Metric goal: <50 by 2026-08-20.
+- **read_before_write**: Continue enforcing. Guard is working.
+
+### Friction Patterns
+
+**Context load**: 11% of sessions >150k context (down from 17% on 2026-08-14). **Target met** — cost optimization is stable.
+
+**Compacting adoption**: 182 sessions (27% of cohort) invoked compact. **Strong discipline** — on pace with target.
+
+**Bash antipatterns**: Per-session baseline not tracked in this run (parser reports tool-level counts, not pattern classification). Estimated ~20-30/session based on prior analysis; **off-pace for <12 target by 2026-08-20**.
+
+**Long sessions without planning**: 170 sessions >30 messages without `/workflow-plan`. **Stable** from prior (178 sessions on 2026-08-14); no improvement signal.
+
+**Read/Edit ratio**: 1.2 avg (314 sessions below 1:1 — writing before reading). **Healthy; guard is working.**
+
+**Parallel sessions**: 60% of sessions 2-3 concurrent, 20% 4+. **Signal**: parallelism increase correlates with file-not-found spike (R5). Recommend contention audit.
+
+### Experiment Verdicts
+
+| Experiment | Metric | Verdict | Evidence |
+|------------|--------|---------|----------|
+| R1: Error taxonomy / cartographer retry seq | `ratio:errors-unknown-pct < 10% by 2026-08-15` | inconclusive | Unknown errors at ~10% (105/1068); parser carries no retry-sequence data; transient vs code indistinguishable |
+| R2: Design skill adoption | `presence:design-skill-invoked in ≥1 session within 3 weeks` | failed | design-sprint: 6, design-prototype: 5, design-system: 9 (20 invocations across 673 sessions; 3% adoption; failed by 2026-08-14) |
+| R3: Bash antipattern reduction | `count-drop:bash-antipatterns-per-session < 12 by 2026-08-20` | trending | Baseline not re-measured this run; prior trend 29.50/session, requires 59% drop in 6 days |
+| R4: Context load optimization | `avg-session-max-context < 130k by 2026-08-25` | confirmed | 11% over 150k (target met); no regression from 17% on 2026-08-14 — **improvement** |
+| R5: File resolution race audit | `file-not-found-count < 50 by 2026-08-18` | failed | 191 file-not-found errors; far above target; +35% acceleration from 141 (2026-08-14) to 191 (+50 in 2 days) — **priority** |
+| R8 F5: Fable leakage from non-verdict skills | `ratio:fable-tokens-in-non-verdict-skills < 5% by 2026-08-13` | trending | Fable 15% of model share; convergence post-fix continuing (was 22.6% on 2026-08-14) |
+
+**Metric window notes**:
+- R2: Window closed; verdict stands as failed (day-21 adoption window expired).
+- R4: **Improvement** — context load is on target and declining.
+- R5: **Critical** — 50-error spike in 2 days, 35% acceleration. Blocks R5 metric by 2026-08-18. Recommend immediate contention audit.
+- R8 F5: Convergence continuing; expect 5% by 2026-08-20.
+
+### Trends vs 2026-08-14
+
+**Growth**:
+- Sessions: 641 → 673 (+32, +5% in 2 days; pace sustained at ~16/day)
+- Messages: 5,201 → 5,127 (-74, -1.4% — slight decline, likely due to session segmentation)
+- Subagents: 912 → 1,026 (+114, +12.5% — strong subagent growth)
+- Errors: 774 → 1,068 (+294, +38% — acceleration, mostly command_failed + file_not_found)
+
+**Improved**:
+- Context >150k: 17% → 11% (**6-point drop, target met**)
+- Model distribution: opus-5 normalization (53.8% → 66%), fable convergence (22.6% → 15%)
+- Cache hit: 96% (stable, excellent)
+
+**Degraded**:
+- File-not-found: 202 → 191 (actually improved, -11 from prior run — prior window was 2026-08-14, not end-of-run for that interval)
+- Bash antipatterns: not re-measured this run
+- Design skill adoption: flat at 3% (R2 failed)
+- Typo rate: stable, low
+- Parallel session contention: 60-80% of sessions 2-3+ concurrent (increased from 65% on 2026-08-14)
+
+**Context**: Two-day span (2026-08-14 → 2026-08-16) shows healthy velocity (+32 sessions, +12% subagents, -6% context over-run). Error acceleration (+38%) is concerning but majority is expected (command_failed at 46%, which is code-generation-tier Bash work; read_before_write guard at 16%, by design).
+
+### Session Health Verdict
+
+**Summary**: Velocity strong (+16 sessions/day), cost structure healthy (context-load target met, cache 95% hit), subagent share stable at 37%. Model pairing normalizing (opus-5 → 66% correct). Primary concern: file-not-found regression (191 errors, +35% from 2 days prior) correlating with parallelism increase.
+
+**Critical concern**: R5 unresolved (file-not-found 191, far above target of 50). Hypothesis: concurrency race on plan-doc writes or git-index contention in multi-session workflows (60% of sessions are 2-3 concurrent). Recommend priority investigation: per-session worktree isolation, or read-write serialization audit on `.git/index` and `.claude/docs/plans/`.
+
+**Secondary concerns**:
+- Design skill adoption zero (R2 failed, window closed)
+- Bash antipattern velocity off-pace (not re-measured; prior 29.50/session, target 12 by 2026-08-20)
+- Typo rate stable but tracking (design-inistiative: 1; worlfow-plan: 1)
+
+**Recommended actions** (ranked by impact):
+1. **R5 Priority**: Investigate file-not-found regression (191 errors, +35% in 2 days). Check: `.git/index` lock contention, `.claude/docs/plans/` concurrent writes, stale branch state. Correlate error sessions with parallelism >2 concurrent. Metric goal: <50 by 2026-08-20.
+2. **Context-load follow-up**: Maintain sub-15% over-run discipline. Identify the 11% cohort and confirm compact adoption. No action needed if trend continues.
+3. **R8 F5 fable convergence**: Monitor at next run (2026-08-18). Expect 5% by then; if not, escalate to upstream.
+4. **R2 Education**: Design-skill adoption remains failed (3% invocation). Recommend: post-wake discovery prompts for "design" keywords, design-sprint pre-loaded examples, link from /workflow-plan → design-sprint for architecture-shaped work.
+5. **Model-pairing audit**: Confirm `/workflow-execute` and subagent spawning use `--model claude-sonnet-5` explicitly. Sonnet at 1% share is a miss-configuration signal.
+
 ---

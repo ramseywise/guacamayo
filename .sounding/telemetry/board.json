@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-15T17:09:32.753791+00:00",
+  "collected_at": "2026-08-18T10:39:55.858755+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -13,58 +13,56 @@
     "sisyphus"
   ],
   "skipped_repos": [],
-  "total_issues": 10,
+  "total_issues": 11,
+  "heartbeat": {
+    "started_at": "2026-08-18T10:39:30.194065+00:00",
+    "finished_at": "2026-08-18T10:39:55.882363+00:00",
+    "exit": 0,
+    "duration_s": 25.69,
+    "error": null
+  },
+  "proposed_actions": [
+    {
+      "id": "6ad5e2d9e844",
+      "action": "close_issue",
+      "target": {
+        "repo": "galactus",
+        "issue_num": 29
+      },
+      "reason": "branch merged to main but issue #29 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-29-hook-parity` is an ancestor of origin/main'; evidence='galactus#29 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-18T10:39:55.881458+00:00"
+    },
+    {
+      "id": "379752492c21",
+      "action": "close_issue",
+      "target": {
+        "repo": "galactus",
+        "issue_num": 31
+      },
+      "reason": "branch merged to main but issue #31 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-18T10:39:55.881458+00:00"
+    },
+    {
+      "id": "e3cc13d04483",
+      "action": "close_issue",
+      "target": {
+        "repo": "galactus",
+        "issue_num": 33
+      },
+      "reason": "branch merged to main but issue #33 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-33-repo-hygiene` is an ancestor of origin/main'; evidence='galactus#33 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-18T10:39:55.881458+00:00"
+    }
+  ],
   "records": [
-    {
-      "repo": "guacamayo",
-      "issue_num": 120,
-      "title": "context-dashboard: compaction yield, context pressure, cost-per-tool metrics (audit external critique first)",
-      "raw_label": "ready",
-      "column": "backlog",
-      "backlog_stage": "ready",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
-    },
-    {
-      "repo": "guacamayo",
-      "issue_num": 119,
-      "title": "Autonomous triage + review dispatch: board state drives workflow, operator approves",
-      "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
-    },
-    {
-      "repo": "guacamayo",
-      "issue_num": 118,
-      "title": "Install the clock: scheduled refresh + GitHub Actions so state updates without an operator",
-      "raw_label": "ready",
-      "column": "backlog",
-      "backlog_stage": "ready",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
-    },
-    {
-      "repo": "guacamayo",
-      "issue_num": 117,
-      "title": "CLA review-verdict-gate.sh cannot gate a merge (PostToolUse) and false-positives on prose",
-      "raw_label": "bug",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
-    },
-    {
-      "repo": "guacamayo",
-      "issue_num": 113,
-      "title": "Board state should be maintained continuously in a file, not re-derived by a 20-shell sweep at wake",
-      "raw_label": "ready",
-      "column": "merged",
-      "backlog_stage": null,
-      "evidence": "joined PR #129 has mergedAt='2026-08-15T17:08:42Z'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
-    },
     {
       "repo": "sisyphus",
       "issue_num": 33,
@@ -73,7 +71,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #35 has mergedAt='2026-08-14T10:02:04Z'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
     },
     {
       "repo": "playground",
@@ -83,37 +81,97 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 36,
+      "title": "Credit reunification \u2014 rejoin a prototype split across two trees",
+      "raw_label": "backlog,blocked",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 35,
+      "title": "Segmentation parity \u2014 dry-run harness + a record shape that fits clustering",
+      "raw_label": "backlog",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 34,
+      "title": "Fraud parity \u2014 dry-run harness + a record for a refusal",
+      "raw_label": "backlog",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 33,
+      "title": "Repo hygiene \u2014 untrack content the repo's own rules exclude",
+      "raw_label": "backlog",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 31,
+      "title": "Deploy-harden marketing-comms: dedup race, ingest page cap, rate limiting, retention, Cloud Run packaging",
+      "raw_label": "in-progress",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
+    },
+    {
+      "repo": "galactus",
+      "issue_num": 29,
+      "title": "Hook parity between .claude/hooks/ and ~/.claude/hooks/ is asserted but unenforced",
+      "raw_label": "backlog",
+      "column": "backlog",
+      "backlog_stage": "scope",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 27,
       "title": "Band contract + HITL gates + automated skill triggering for the fast loop",
-      "raw_label": "enhancement",
+      "raw_label": "enhancement,refinement",
       "column": "backlog",
       "backlog_stage": "refine",
       "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 23,
       "title": "The HITL gradient: measuring where human involvement stops paying",
-      "raw_label": "enhancement,refinement",
-      "column": "backlog",
-      "backlog_stage": "refine",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
+      "raw_label": "enhancement,in-review,refinement",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GAL-23-proto-pipeline-dry-run' exists, is_ancestor=False",
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
     },
     {
       "repo": "galactus",
       "issue_num": 5,
       "title": "GAL W&B experiment tracking \u2014 reads the local run registry",
-      "raw_label": "enhancement",
+      "raw_label": "backlog,enhancement",
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-15T17:09:32.753791+00:00"
+      "collected_at": "2026-08-18T10:39:55.858755+00:00"
     }
   ]
 }
