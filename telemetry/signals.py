@@ -24,9 +24,10 @@ The four states
                       rewrite the hypothesis into a countable form.
     (absent)          unregistered -- an authoring gap.
 
-Measured against the live ledger on 2026-08-19: 59 rows, 7 fully-registered, 49
-carrying >=1 unregistered signal, 3 with no typed metric. That 49 is what this
-module exists to break apart into causes.
+Snapshot of this registry as of 2026-08-19: 64 signals declared, 21 REGISTERED
+with a working resolver. The remainder split across NEEDS_COLLECTION,
+UNOBSERVABLE, and unregistered -- breaking those apart into causes is what this
+module exists to do.
 
 Source bundle
 -------------

@@ -6971,27 +6971,37 @@ def render_pipeline_health_region(store: Path) -> str:
                 pass
     ins_glyph, ins_label = _age_label(ins_dt, now=now)
 
-    # ── Retro: last ## R<N> header in tooling-ledger-log.md ─────────────────
+    # ── Retro: latest ## R<N> header in tooling-ledger-log.md ───────────────
+    # Headers are NOT chronological in the file (R0, R1, R10, R11, R9, R8…R2),
+    # so we must scan every header, parse its date, and pick the max — not
+    # the last match in file order.
     retro_dt: _datetime | None = None
     retro_label_text = "never"
     ledger_log = sounding_root / "tooling-ledger-log.md"
     if ledger_log.exists():
         text = ledger_log.read_text(encoding="utf-8", errors="replace")
-        headers = _RETRO_HEADER.findall(text)
-        if headers:
-            last_header = headers[-1]  # e.g. "## R11"
-            # Find the line after the header for a date
-            idx = text.rfind(last_header)
-            snippet = text[idx : idx + 120]
+        entries: list[tuple[int, str, str | None]] = []  # (round, header, date)
+        for match in _RETRO_HEADER.finditer(text):
+            header = match.group()  # e.g. "## R11"
+            round_num = int(re.search(r"\d+", header).group())
+            snippet = text[match.start() : match.start() + 120]
             date_match = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
-            if date_match:
-                try:
-                    retro_dt = _datetime.fromisoformat(date_match.group()).replace(tzinfo=UTC)
-                    retro_label_text = f"{last_header.strip()} · {date_match.group()}"
-                except ValueError:
-                    retro_label_text = last_header.strip()
+            entries.append((round_num, header, date_match.group() if date_match else None))
+        if entries:
+            dated = [e for e in entries if e[2] is not None]
+            if dated:
+                best = max(dated, key=lambda e: e[2])
             else:
-                retro_label_text = last_header.strip()
+                best = max(entries, key=lambda e: e[0])
+            _, best_header, best_date = best
+            if best_date:
+                try:
+                    retro_dt = _datetime.fromisoformat(best_date).replace(tzinfo=UTC)
+                    retro_label_text = f"{best_header.strip()} · {best_date}"
+                except ValueError:
+                    retro_label_text = best_header.strip()
+            else:
+                retro_label_text = best_header.strip()
     retro_glyph, retro_age = _age_label(retro_dt, now=now)
 
     # ── Config: open hypothesis count in tooling-ledger.md ──────────────────
