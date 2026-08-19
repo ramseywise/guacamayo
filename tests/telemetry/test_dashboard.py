@@ -3476,3 +3476,44 @@ def test_scope_decisions_tolerates_missing_job_type(tmp_path: Path) -> None:
     out = render_scope_decisions_region(log)
     # must not raise; should contain the card title
     assert "Triage pipeline" in out
+
+
+# --- retro-header parse (GUA-149) ------------------------------------------
+
+
+def test_pipeline_health_retro_picks_latest_not_last_in_file(tmp_path: Path) -> None:
+    """render_pipeline_health_region must pick the most-recent retro by date.
+
+    tooling-ledger-log.md sections are NOT in chronological order — they are
+    appended at write time, so R10 appears before R9 when R9 was written later.
+    The old ``headers[-1]`` approach returned the last section in file order
+    (e.g. "## R2"), not the most-recent one (e.g. "## R11 · 2026-08-18").
+    """
+    from telemetry.dashboard import render_pipeline_health_region
+
+    # Build a minimal sounding directory with an out-of-order ledger log.
+    sounding = tmp_path / ".sounding"
+    sounding.mkdir()
+    ledger_log = sounding / "tooling-ledger-log.md"
+    ledger_log.write_text(
+        "## R0\n2026-07-01 first retro\n\n"
+        "## R1\n2026-07-15 second retro\n\n"
+        "## R10\n2026-08-10 tenth retro\n\n"
+        "## R11\n2026-08-18 latest retro\n\n"
+        "## R9\n2026-08-05 ninth retro\n\n"
+        "## R2\n2026-07-20 second addendum\n",
+        encoding="utf-8",
+    )
+
+    # store path: render_pipeline_health_region derives guacamayo_root as store.parent.parent
+    # (the comment in dashboard.py says "store is …/librarian/data/sessions.db", so
+    # store.parent.parent == librarian/, not the guacamayo root).  The actual derivation is
+    # guacamayo_root = store.parent.parent — so to get tmp_path as the guacamayo root, place
+    # the store at tmp_path/data/sessions.db (store.parent.parent == tmp_path).
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+
+    out = render_pipeline_health_region(store)
+
+    assert "R11" in out, f"Expected most-recent retro 'R11' in output but got:\n{out[:500]}"
+    assert "2026-08-18" in out, f"Expected date '2026-08-18' from R11 section but got:\n{out[:500]}"

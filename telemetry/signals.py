@@ -24,9 +24,12 @@ The four states
                       rewrite the hypothesis into a countable form.
     (absent)          unregistered -- an authoring gap.
 
-Measured against the live ledger on 2026-08-19: 59 rows, 7 fully-registered, 49
-carrying >=1 unregistered signal, 3 with no typed metric. That 49 is what this
-module exists to break apart into causes.
+The registry has two parts: ``_ENTRIES`` (Signal objects with REGISTERED /
+NEEDS_COLLECTION / UNOBSERVABLE states) and ``_UNOBSERVABLE`` (names that have
+no conceivable event stream). Together they cover every slug an author might
+write. Run ``python -m telemetry.signals`` for the live count; as of 2026-08-19:
+28 ``_ENTRIES`` (21 REGISTERED) + 36 ``_UNOBSERVABLE`` names = 64 declared; 21
+scorable.
 
 Source bundle
 -------------
