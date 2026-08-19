@@ -615,6 +615,60 @@ def run_review(
     return asyncio.run(_run_review_async(config, scan_fn))
 
 
+async def _scan_with_parse_retry(
+    scan_fn: ScanFn,
+    dimension: str,
+    files: list[str],
+    config: DriverConfig,
+) -> list[dict] | ScanError:
+    """Call scan_fn; on parse_error retry each half of the fileset independently.
+
+    When a dimension scan returns parse_error (malformed JSON from the agent) and the
+    fileset has more than one file, split the fileset in half and re-scan each half.
+    Merge findings from any successful half; emit parse_error only if both halves also
+    fail with parse_error.  Any other error subtype is returned immediately without retry.
+
+    Args:
+        scan_fn: The scan callable (dimension, files, config) → list[dict] | ScanError.
+        dimension: Dimension name being scanned.
+        files: Full list of file paths for this scan.
+        config: DriverConfig for the run.
+
+    Returns:
+        list[dict] on full or partial success, ScanError if all attempts fail.
+    """
+    result = await scan_fn(dimension, files, config)
+    if not isinstance(result, ScanError) or result.subtype != "parse_error" or len(files) <= 1:
+        return result
+
+    # parse_error on >1 file — split and retry each half
+    mid = max(1, len(files) // 2)
+    halves = [files[:mid], files[mid:]]
+    print(
+        f"[driver] {dimension}: parse_error on {len(files)} files, retrying in halves "
+        f"({len(halves[0])}, {len(halves[1])})",
+        file=sys.stderr,
+    )
+
+    merged: list[dict] = []
+    last_error: ScanError = result
+    for half in halves:
+        if not half:
+            continue
+        half_result = await scan_fn(dimension, half, config)
+        if isinstance(half_result, ScanError):
+            last_error = half_result
+            last_error.dimension = dimension
+        else:
+            merged.extend(half_result)
+
+    if merged:
+        return merged
+    # Both halves also failed — surface the last error
+    last_error.dimension = dimension
+    return last_error
+
+
 async def _run_review_async(
     config: DriverConfig,
     scan_fn: ScanFn,
@@ -669,7 +723,7 @@ async def _run_review_async(
         f"[driver] scanning {len(dimensions)} dimensions over {len(files)} files",
         file=sys.stderr,
     )
-    scan_tasks = [scan_fn(dim, files, config) for dim in dimensions]
+    scan_tasks = [_scan_with_parse_retry(scan_fn, dim, files, config) for dim in dimensions]
     scan_results: list[list[dict] | ScanError] = list(await asyncio.gather(*scan_tasks))
 
     # --- Stage 3: validate + repair ---

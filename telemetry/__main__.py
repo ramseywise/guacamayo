@@ -596,6 +596,23 @@ def _run_board() -> None:
 
         proposals = evaluate(records, all_branch_facts, merged_inconsistencies, cascade_state)
 
+        # Track proposal sightings — count distinct days per proposal_id (GUA-143).
+        # proposals is list[ProposedAction]; convert to dicts for the tracker.
+        from telemetry.sightings import track_sightings
+
+        sightings_path = repo_root / ".sounding" / "telemetry" / "proposal-sightings.jsonl"
+        _new_sightings = track_sightings(
+            [
+                {
+                    "id": p.id,
+                    "action": p.action,
+                    "target": p.target,
+                }
+                for p in proposals
+            ],
+            sightings_path=sightings_path,
+        )
+
         run_finished = datetime.now(UTC)
         heartbeat = {
             "started_at": started_at,

@@ -26,6 +26,7 @@ from review.driver import (
     DriverConfig,
     DriverResult,
     ScanError,
+    _scan_with_parse_retry,
     emit_findings_jsonl,
     load_agent_prompt,
     merge_cluster,
@@ -553,6 +554,179 @@ class TestRunReview:
 
         result = run_review(config, scan_fn=make_fake_scan(findings_by_dim))
         assert "Open Questions" in result.report_md or len(result.findings) > 0
+
+
+class TestScanWithParseRetry:
+    """Unit tests for _scan_with_parse_retry (run via asyncio.run)."""
+
+    def test_pass_through_on_success(self) -> None:
+        """Successful scan is returned without retry."""
+        import asyncio
+
+        findings = [make_finding_dict("CR-001")]
+
+        async def ok_scan(dimension, files, config):
+            return findings
+
+        result = asyncio.run(
+            _scan_with_parse_retry(ok_scan, "correctness", ["a.py", "b.py"], DriverConfig())
+        )
+        assert result == findings
+
+    def test_pass_through_on_non_parse_error(self) -> None:
+        """Non-parse_error ScanError is returned immediately without split retry."""
+        import asyncio
+
+        sdk_err = ScanError(dimension="correctness", subtype="sdk_unavailable", detail="no auth")
+        call_count = 0
+
+        async def error_scan(dimension, files, config):
+            nonlocal call_count
+            call_count += 1
+            return sdk_err
+
+        result = asyncio.run(
+            _scan_with_parse_retry(error_scan, "correctness", ["a.py", "b.py"], DriverConfig())
+        )
+        assert isinstance(result, ScanError)
+        assert result.subtype == "sdk_unavailable"
+        assert call_count == 1  # no retry
+
+    def test_no_retry_on_single_file(self) -> None:
+        """parse_error on a single file is returned without split (can't split further)."""
+        import asyncio
+
+        parse_err = ScanError(dimension="correctness", subtype="parse_error", detail="bad json")
+        call_count = 0
+
+        async def error_scan(dimension, files, config):
+            nonlocal call_count
+            call_count += 1
+            return parse_err
+
+        result = asyncio.run(
+            _scan_with_parse_retry(error_scan, "correctness", ["only.py"], DriverConfig())
+        )
+        assert isinstance(result, ScanError)
+        assert result.subtype == "parse_error"
+        assert call_count == 1
+
+    def test_retries_halves_on_parse_error(self) -> None:
+        """parse_error on >1 file triggers two half-set retries; merged findings returned."""
+        import asyncio
+
+        files = [f"f{i}.py" for i in range(6)]
+        good_finding = make_finding_dict("CR-001")
+
+        async def flaky_scan(dimension, file_list, config):
+            if len(file_list) > 5:
+                return ScanError(dimension=dimension, subtype="parse_error", detail="too big")
+            return [good_finding]
+
+        result = asyncio.run(
+            _scan_with_parse_retry(flaky_scan, "correctness", files, DriverConfig())
+        )
+        assert isinstance(result, list)
+        assert len(result) == 2  # one finding per half
+
+    def test_returns_scan_error_when_both_halves_fail(self) -> None:
+        """parse_error on full set and both halves → ScanError returned."""
+        import asyncio
+
+        async def always_bad(dimension, files, config):
+            return ScanError(dimension=dimension, subtype="parse_error", detail="always bad")
+
+        result = asyncio.run(
+            _scan_with_parse_retry(always_bad, "correctness", ["a.py", "b.py"], DriverConfig())
+        )
+        assert isinstance(result, ScanError)
+        assert result.subtype == "parse_error"
+        assert result.dimension == "correctness"
+
+    def test_partial_success_returns_findings(self) -> None:
+        """First half parse_error, second half succeeds → merged findings returned."""
+        import asyncio
+
+        files = ["a.py", "b.py", "c.py", "d.py"]
+        good_finding = make_finding_dict("CR-002")
+
+        async def mixed_scan(dimension, file_list, config):
+            if len(file_list) == len(files):
+                return ScanError(dimension=dimension, subtype="parse_error", detail="full fail")
+            mid = len(files) // 2
+            if file_list == files[:mid]:
+                return ScanError(dimension=dimension, subtype="parse_error", detail="half fail")
+            return [good_finding]
+
+        result = asyncio.run(
+            _scan_with_parse_retry(mixed_scan, "correctness", files, DriverConfig())
+        )
+        assert isinstance(result, list)
+        assert result == [good_finding]
+
+
+class TestParseErrorRetryIntegration:
+    """Integration: parse_error retry path flows through run_review pipeline."""
+
+    def test_parse_error_retry_yields_findings_no_error(self, tmp_path: Path) -> None:
+        """Mock dimension returning malformed JSON on >5 files, valid on <=5 files.
+
+        Before: parse_error, no findings.
+        After: findings from narrowed set, no parse_error in result.errors.
+        """
+        files = [f"file{i}.py" for i in range(6)]  # 6 files → triggers mock's parse_error
+        good_finding = make_finding_dict("CR-001")
+
+        async def flaky_scan(dimension: str, file_list: list[str], config: DriverConfig):
+            if dimension == "correctness":
+                if len(file_list) > 5:
+                    return ScanError(
+                        dimension=dimension, subtype="parse_error", detail="too many files"
+                    )
+                return [good_finding]
+            return []
+
+        config = DriverConfig(
+            repo=tmp_path,
+            files=files,
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+
+        result = run_review(config, scan_fn=flaky_scan)
+
+        # No parse_error in errors — retry succeeded
+        parse_errors = [e for e in result.errors if e.subtype == "parse_error"]
+        assert parse_errors == [], f"unexpected parse_error: {parse_errors}"
+        # Findings arrived from the narrowed halves
+        assert len(result.findings) > 0
+
+    def test_parse_error_on_all_halves_still_fails(self, tmp_path: Path) -> None:
+        """When both halves also fail with parse_error, error surfaces in result.errors."""
+
+        async def always_parse_error(dimension: str, files: list[str], config: DriverConfig):
+            if dimension == "correctness":
+                return ScanError(dimension=dimension, subtype="parse_error", detail="always fails")
+            return []
+
+        files = ["a.py", "b.py"]
+        config = DriverConfig(
+            repo=tmp_path,
+            files=files,
+            reviews_dir=tmp_path / "reviews",
+            save_sweep=False,
+        )
+        config.agents_dir = tmp_path / "agents"
+        config.agents_dir.mkdir()
+
+        result = run_review(config, scan_fn=always_parse_error)
+
+        parse_errors = [e for e in result.errors if e.subtype == "parse_error"]
+        assert len(parse_errors) == 1
+        assert parse_errors[0].dimension == "correctness"
+        assert result.exit_code == 1
 
 
 class TestTypedReport:

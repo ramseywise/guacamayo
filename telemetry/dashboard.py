@@ -3523,6 +3523,13 @@ def render_loop_closure_card(log_path: Path) -> str:
     )
 
 
+def render_proposal_sightings_card(sightings_path: Path | None = None) -> str:
+    """Delegate to telemetry.sightings — kept here so dashboard.py is the one-stop render import."""
+    from telemetry.sightings import render_proposal_sightings_card as _render
+
+    return _render(sightings_path)
+
+
 _VERDICT_BADGE = {
     "confirmed": "exp-confirmed",
     "trending": "exp-trending",

@@ -224,6 +224,7 @@ Quick checks — act only if something needs attention:
 | Identity files stale (>4 weeks since Last Transformed) | Flag for next session |
 | MEMORY.md over 200 lines | Trim stale pointers, shorten entries |
 | Contradictions between reflections and seeds | Note in report |
+| **insights-log.md over 1500 lines** | Run compaction: `uv run --project ~/workspace/guacamayo python -c "from pathlib import Path; from telemetry.compaction import compact_insights_log; n = compact_insights_log(Path('.sounding/insights/insights-log.md'), Path('.sounding/insights/insights-log-archive.md'), keep_days=90); print(f'Archived {n} sections')"` — keep 90 days in the live file, move the rest to `insights-log-archive.md` |
 
 ## Phase 10: Report
 
