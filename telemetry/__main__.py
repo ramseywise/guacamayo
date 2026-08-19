@@ -1180,6 +1180,7 @@ def _run_facts() -> None:
             render_context_health_kpi_region,
             render_context_orchestration_card,
             render_cost_efficiency_region,
+            render_data_block_region,
             render_decision_log_region,
             render_eval_results_region,
             render_experiments_region,
@@ -1300,6 +1301,7 @@ def _run_facts() -> None:
                     reflections_dir=repo_root / ".sounding" / "reflections",
                     pass_log=Path(args.hook_pass_log).expanduser(),
                 ),
+                "DATA-BLOCK": render_data_block_region(store),
             }
             # The v2 board retired these three from Context Health (which now ends at
             # tool failures), but v1 still renders them, so the renderers stay wired.

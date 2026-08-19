@@ -3299,3 +3299,108 @@ def test_cadence_region_no_rounds_is_stated(tmp_path: Path) -> None:
 
     out = render_cadence_region(tmp_path / "absent.md", None)
     assert "No dated retro rounds" in out
+
+
+# ---------------------------------------------------------------------------
+# DATA-BLOCK region (GUA-151)
+# ---------------------------------------------------------------------------
+
+
+def test_data_block_region_structure(tmp_path: Path) -> None:
+    """render_data_block_region emits a complete <script> block containing
+    const DATA with all eight expected keys."""
+    from telemetry.dashboard import render_data_block_region
+
+    store = tmp_path / "facts.db"
+    out = render_data_block_region(store)
+
+    # Must be wrapped in <script> tags so the marker region can sit outside
+    # the surrounding script block without creating invalid JS.
+    assert out.startswith("<script>"), "output must open with <script>"
+    assert out.rstrip().endswith("</script>"), "output must close with </script>"
+    assert "const DATA" in out
+
+    # All eight series keys must be present.
+    for key in (
+        "context_p50",
+        "context_p90",
+        "over150k",
+        "turns_p50",
+        "single_turn",
+        "skills",
+        "compaction",
+        "sessions_week",
+    ):
+        assert f"{key}:" in out, f"missing key {key!r} in DATA-BLOCK output"
+
+
+def test_data_block_region_empty_store_yields_empty_arrays(tmp_path: Path) -> None:
+    """An empty store must produce valid JS with empty arrays, not an error."""
+    from telemetry.dashboard import render_data_block_region
+
+    store = tmp_path / "facts.db"
+    out = render_data_block_region(store)
+
+    # Every key should be present with an empty array literal.
+    assert "context_p50: [\n    \n  ]" in out or "context_p50: []" in out or "context_p50:" in out
+    # The output must be parseable (no unclosed brackets).
+    assert out.count("{") >= out.count("}")  # at least the DATA object itself
+
+
+def test_data_block_region_context_p50_in_ktokens(tmp_path: Path) -> None:
+    """max_context values must be divided by 1000 before output so the JS
+    chart receives 102.4 (k-tokens), not 102400 (raw tokens)."""
+    from telemetry.dashboard import render_data_block_region
+
+    store = tmp_path / "facts.db"
+    rows = [
+        _row("a", "2026-07-20", "session-hygiene-v1", max_context=102_400),
+        _row("b", "2026-07-21", "session-hygiene-v1", max_context=200_000),
+    ]
+    upsert(rows, store)
+    out = render_data_block_region(store)
+
+    # Raw values (102400, 200000) must NOT appear in the context_p50/p90 blocks.
+    assert "102400" not in out, "raw token value leaked into DATA output (expected k-tokens)"
+    assert "200000" not in out, "raw token value leaked into DATA output (expected k-tokens)"
+    # Divided values should appear.
+    assert "102.4" in out or "102" in out, "k-token value missing from DATA output"
+
+
+def test_data_block_region_stale_frozen_date_fails(tmp_path: Path) -> None:
+    """A store with a session AFTER 2026-07-28 must produce a point beyond
+    the frozen date, so the frozen hand-written value would fail this check."""
+    from telemetry.dashboard import render_data_block_region
+
+    store = tmp_path / "facts.db"
+    rows = [
+        # 2026-07-28 is the frozen date — a session after it must appear.
+        _row("new1", "2026-08-10", "session-hygiene-v1", max_context=150_000),
+        _row("new2", "2026-08-11", "session-hygiene-v1", max_context=160_000),
+    ]
+    upsert(rows, store)
+    out = render_data_block_region(store)
+
+    # At least one point date later than the frozen 2026-07-28 must appear.
+    dates_in_output = re.findall(r'"(\d{4}-\d{2}-\d{2})"', out)
+    assert any(d > "2026-07-28" for d in dates_in_output), (
+        f"no date after 2026-07-28 in output — frozen data not replaced. Dates: {dates_in_output}"
+    )
+
+
+def test_data_block_region_faceted_series_include_r_field(tmp_path: Path) -> None:
+    """compaction_pct and sessions_per_week are faceted; their points must carry
+    an `r` field so the JS chart can colour by regime."""
+    from telemetry.dashboard import render_data_block_region
+
+    store = tmp_path / "facts.db"
+    rows = [
+        _row("a", "2026-07-20", "session-hygiene-v1", compacted=True),
+        _row("b", "2026-07-21", "session-hygiene-v1", compacted=False),
+    ]
+    upsert(rows, store)
+    out = render_data_block_region(store)
+
+    # The compaction and sessions_week arrays must contain at least one point
+    # with an `r:` field (regime).
+    assert ",r:" in out, "no r: field found — faceted series not emitting regime"

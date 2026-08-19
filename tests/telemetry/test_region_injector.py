@@ -440,13 +440,19 @@ def test_dashboard_declares_utf8_before_any_non_ascii(dashboard: str) -> None:
 
 @pytest.mark.parametrize("dashboard", ["context-dashboard.html", "context-dashboard-v2.html"])
 def test_dashboard_script_tags_are_balanced(dashboard: str) -> None:
-    """Exactly one <script> pair — an extra closer dumps JS onto the page as text.
+    """<script> open/close counts must be balanced — an unbalanced closer dumps
+    JS onto the page as text.
 
-    The live dashboard carried a second </script> with ~13KB of duplicated,
-    mid-array script between the two. The first block closed normally, so the
+    The live dashboard once carried a stray </script> with ~13KB of duplicated,
+    mid-array script between two blocks. The first block closed normally, so the
     charts worked and nothing errored; the duplicate simply rendered as a wall
     of visible JavaScript at the bottom of the page. Balance is the check that
     catches it, because validity does not.
+
+    The DATA-BLOCK region (GUA-151) wraps its own <script> block so the marker
+    pair can sit outside the surrounding script without creating invalid JS.
+    That legitimately gives the page two <script> blocks — the balance check
+    still fires on any accidental closer that falls outside a block.
     """
     path = _REPO_ROOT / ".sounding" / dashboard
     if not path.exists():
@@ -457,7 +463,7 @@ def test_dashboard_script_tags_are_balanced(dashboard: str) -> None:
     closes = page.count("</script>")
 
     assert opens == closes, f"{dashboard}: {opens} <script> vs {closes} </script>"
-    assert closes <= 1, f"{dashboard}: expected a single script block, found {closes}"
+    assert opens >= 1, f"{dashboard}: no <script> block found"
 
 
 def test_v2_board_declares_every_injected_region() -> None:
