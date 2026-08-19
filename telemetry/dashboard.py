@@ -4896,6 +4896,14 @@ INSIGHTS_TAB_SECTIONS: dict[str, tuple[str, ...]] = {
     "context": ("section-ce", "section-pe"),
 }
 
+# Report sections the board drops outright. Unlike INSIGHTS_TAB_SECTIONS these
+# are not re-homed — they are read on the report itself, not the board.
+#   section-work  — the projects roster; portfolio.md and the Overview own that.
+#   section-usage — the how-you-use-Claude-Code profile; Context Health owns the
+#                   same signals as metrics rather than prose.
+# The Retro tab keeps only the narrative four: wins, features, patterns, horizon.
+INSIGHTS_DROPPED_SECTIONS: tuple[str, ...] = ("section-work", "section-usage")
+
 
 def _split_report_sections(inner: str) -> tuple[str, dict[str, str]]:
     """Split report HTML into (overview_remainder, {tab: sections_html}).
@@ -4912,7 +4920,53 @@ def _split_report_sections(inner: str) -> tuple[str, dict[str, str]]:
                 continue
             taken.setdefault(tab, []).append(m.group(0))
             inner = inner.replace(m.group(0), "", 1)
+    for sid in INSIGHTS_DROPPED_SECTIONS:
+        m = re.search(rf'<section id="{re.escape(sid)}">.*?</section>', inner, re.DOTALL)
+        if not m:
+            log.warning("insights.section_missing", section=sid, tab="(dropped)")
+            continue
+        inner = inner.replace(m.group(0), "", 1)
     return inner, {tab: "".join(parts) for tab, parts in taken.items()}
+
+
+def _drop_div_block(inner: str, class_name: str) -> str:
+    """Remove `<div class="{class_name}">…</div>` including nested divs.
+
+    A non-greedy regex stops at the first `</div>`, which for these blocks is an
+    inner one — so match the opening tag, then walk to its true partner.
+    """
+    open_re = re.compile(rf'<div class="{re.escape(class_name)}"[^>]*>')
+    while True:
+        m = open_re.search(inner)
+        if not m:
+            return inner
+        depth, pos = 1, m.end()
+        tag = re.compile(r"<div\b[^>]*>|</div>")
+        while depth:
+            t = tag.search(inner, pos)
+            if not t:  # unbalanced source — leave it rather than truncate
+                log.warning("insights.unbalanced_block", block=class_name)
+                return inner
+            depth += 1 if t.group(0) != "</div>" else -1
+            pos = t.end()
+        inner = inner[: m.start()] + inner[pos:]
+
+
+def _strip_report_chrome(inner: str) -> str:
+    """Drop the report's standalone framing: header, KPI cards, glance box,
+    pull-quote and footer.
+
+    The board supplies its own header and nav, and the KPI numbers live on Cost
+    & Efficiency and Context Health. What remains is the narrative sections.
+    """
+    for pattern in (r"<header[^>]*>.*?</header>", r"<footer[^>]*>.*?</footer>"):
+        inner = re.sub(pattern, "", inner, flags=re.DOTALL)
+    for block in ("stat-cards", "glance-box", "quote-box"):
+        inner = _drop_div_block(inner, block)
+    # stat-cards + glance-box share one .container, quote-box has its own; drop
+    # any wrapper left holding nothing but whitespace.
+    inner = re.sub(r'<div class="container">\s*</div>', "", inner)
+    return inner
 
 
 def render_insights_region(report_path: Path | None, *, today: str | None = None) -> str:
@@ -4958,6 +5012,7 @@ def render_insights_region(report_path: Path | None, *, today: str | None = None
     inner = re.sub(r"<script[^>]*>.*?</script>", "", inner, flags=re.DOTALL)
 
     overview_inner, _by_tab = _split_report_sections(inner)
+    overview_inner = _strip_report_chrome(overview_inner)
 
     return (
         f"<style>{styles}</style>"

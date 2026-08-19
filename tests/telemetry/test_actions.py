@@ -777,3 +777,126 @@ def test_proposal_id_is_stable_across_ticks() -> None:
         created_at="2026-09-01T00:00:00+00:00",
     )
     assert second.id == first.id
+
+
+# ---------------------------------------------------------------------------
+# Schema extension (2026-08-19): plane + reverted + effect_measured
+# ---------------------------------------------------------------------------
+
+
+def test_existing_records_still_parse_unchanged() -> None:
+    """The five pre-2026-08-19 records must survive the schema change.
+
+    Read against the REAL log, not a fixture — a fixture would only prove the
+    fixture parses. Absent fields must read as their defaults, never KeyError.
+    """
+    from telemetry.actions import _DEFAULT_ACTIONS_LOG, read_actions
+
+    if not _DEFAULT_ACTIONS_LOG.exists():
+        return  # nothing to assert against in a fresh checkout
+    records = read_actions(_DEFAULT_ACTIONS_LOG)
+    assert records, "real actions.jsonl parsed to nothing"
+    for rec in records:
+        assert rec["ts"] and rec["action"]
+        assert rec["plane"] in {"work", "metacognition", "control"}
+        assert "effect_measured" in rec  # present, may be None
+
+
+def test_legacy_record_without_new_fields_normalises(tmp_path: Path) -> None:
+    from telemetry.actions import read_actions
+
+    log_path = tmp_path / "actions.jsonl"
+    legacy = {
+        "action": "triage",
+        "target": {"repo": "galactus", "issue_num": 5},
+        "outcome": "accepted",
+        "reason": "labeled backlog",
+        "ts": "2026-08-16T21:42:39Z",
+    }
+    log_path.write_text(json.dumps(legacy) + "\n")
+    (rec,) = read_actions(log_path)
+    assert rec["plane"] == "work"
+    assert rec["effect_measured"] is None
+    assert rec["proposal_id"] == ""
+
+
+def test_malformed_line_is_skipped_not_fatal(tmp_path: Path) -> None:
+    from telemetry.actions import read_actions
+
+    log_path = tmp_path / "actions.jsonl"
+    log_path.write_text('{"action":"triage","ts":"t","outcome":"accepted"}\n{ broken\n')
+    assert len(read_actions(log_path)) == 1
+
+
+def test_plane_derived_per_action_kind() -> None:
+    from telemetry.actions import plane_for_action
+
+    assert plane_for_action("close_issue") == "work"
+    assert plane_for_action("retire_skill") == "metacognition"
+    assert plane_for_action("schedule_job") == "control"
+    # Unknown actions must still write a row rather than raise.
+    assert plane_for_action("something_new") == "work"
+
+
+def test_reverted_is_in_the_outcome_vocabulary() -> None:
+    """'decided then undone' must be distinguishable from 'never decided'."""
+    from telemetry.actions import OUTCOME_REVERTED, OUTCOMES
+
+    assert OUTCOME_REVERTED in OUTCOMES
+
+
+def test_new_records_carry_plane_and_effect_slot(tmp_path: Path) -> None:
+    from telemetry.actions import _log_record
+
+    rec = _log_record(
+        action="retire_skill",
+        target={"skill": "design-milestones"},
+        outcome="accepted",
+        reason="0 invocations across 3 retro windows",
+        evidence="261 sessions",
+    )
+    assert rec["plane"] == "metacognition"
+    assert rec["effect_measured"] is None
+
+
+def test_record_effect_attaches_measurement_end_to_end(tmp_path: Path) -> None:
+    """DoD: one decision carries a populated effect_measured."""
+    from telemetry.actions import _append_action_log, _log_record, read_actions, record_effect
+
+    log_path = tmp_path / "actions.jsonl"
+    decision = _log_record(
+        action="revert_experiment",
+        target={"experiment": "fable-as-default"},
+        outcome="reverted",
+        reason="weekly + session budgets exhausted within ~1hr",
+        evidence="fable 68% weekly, 97% session",
+        proposal_id="abc123",
+    )
+    _append_action_log(decision, log_path, dry_run=False)
+
+    effect = record_effect(
+        "abc123",
+        metric="ratio:fable-tokens-in-non-verdict-skills below 5%",
+        verdict="failed",
+        checked_at="2026-08-19T12:00:00Z",
+        actions_log=log_path,
+    )
+    assert effect is not None
+    assert effect["effect_measured"]["verdict"] == "failed"
+    assert effect["plane"] == "metacognition"
+    assert effect["proposal_id"] == "abc123"
+
+    records = read_actions(log_path)
+    assert len(records) == 2, "write-back must append, never rewrite history"
+    measured = [r for r in records if r["effect_measured"]]
+    assert len(measured) == 1
+
+
+def test_record_effect_returns_none_for_unknown_decision(tmp_path: Path) -> None:
+    """Measuring an unlogged decision is a caller error, not an orphan record."""
+    from telemetry.actions import read_actions, record_effect
+
+    log_path = tmp_path / "actions.jsonl"
+    log_path.write_text("")
+    assert record_effect("nope", metric="m", verdict="confirmed", actions_log=log_path) is None
+    assert read_actions(log_path) == []
