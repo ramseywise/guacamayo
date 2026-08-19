@@ -200,6 +200,17 @@ _ERROR_KIND_CATEGORY: dict[str, str] = {
     "file_too_large": ERROR_CATEGORY_ENV,
     "edit_failed": ERROR_CATEGORY_CODE,
     "other": ERROR_CATEGORY_UNKNOWN,
+    # Table expansion: these eight kinds are emitted by the parser's
+    # _ERROR_PATTERNS but had no category, so 39% of failures (571 of 1464 as of
+    # 2026-08-18) fell to `unknown` -- including the two most actionable kinds.
+    # A high unknown rate is the documented signal to widen this table.
+    "read_before_write": ERROR_CATEGORY_CODE,
+    "stale_read": ERROR_CATEGORY_CODE,
+    "invalid_tool_input": ERROR_CATEGORY_CODE,
+    "blocked_by_hook": ERROR_CATEGORY_TOOL,
+    "cancelled": ERROR_CATEGORY_TOOL,
+    "skill_not_invocable": ERROR_CATEGORY_TOOL,
+    "is_a_directory": ERROR_CATEGORY_ENV,
 }
 
 

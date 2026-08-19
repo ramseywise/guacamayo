@@ -92,7 +92,7 @@ def test_render_skill_economics_card_with_data(tmp_path: Path) -> None:
     )
     result = render_skill_economics_card(store)
     assert result
-    assert "Skill economics" in result
+    assert "agent economics" in result
     assert "wake" in result
     assert "grow" in result
 
@@ -102,7 +102,7 @@ def test_render_skill_economics_card_no_data(tmp_path: Path) -> None:
     upsert([], store)
     result = render_skill_economics_card(store)
     assert result
-    assert "No skill cost data" in result
+    assert "No cost data" in result
 
 
 # ---------------------------------------------------------------------------
@@ -118,7 +118,7 @@ def test_render_tool_trends_card_with_data(tmp_path: Path) -> None:
     )
     result = render_tool_trends_card(store)
     assert result
-    assert "Tool call trends" in result
+    assert "Tool calls by volume" in result
     assert "Bash" in result
 
 
