@@ -28,7 +28,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/meta-dream` | Session end | Write reflection + growth entries + final dashboard update + conditionally: synthesize seeds (if 5+ entries), **background-spawn `/meta-retro`** (if retro-worthy or overdue), tidy indexes. **Sole transformer** of identity files |
 | `/meta-insights` | Auto-spawned by grow/retro | Reads `sessions.db` + hook logs; writes `insights-log.md`. Detects friction patterns, token economics, context health signals |
 | `/meta-retro` | Auto after feedback, or overdue | Reads insights-log + tooling ledger; proposes config diffs (hooks, skills, rules). Propose-only — silence is not approval |
-| `/meta-feedback` | **Manual — human gate** | Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `feedback-log.md` |
+| `/meta-feedback` | **Manual — human gate** | Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `.sounding/telemetry/feedback-log.md` |
 | `/hypothesis` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
 
 The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Five tabs: **Overview** (system architecture diagram), **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/retro + pending hypothesis count), **Retro** (graduation rate). Auto-updates via `uv run telemetry`.

@@ -15,6 +15,37 @@ uv run telemetry --board        # every 10 min (launchd) — GitHub state → bo
 uv run telemetry --consistency  # cross-check derived values against the store
 ```
 
+## Scheduled jobs (launchd)
+
+Three agents, loaded manually. launchd rather than crontab because cron silently skips
+windows while the Mac sleeps; launchd re-fires on wake.
+
+| Job | Schedule | Runs | Writes |
+|-----|----------|------|--------|
+| `com.wiseer.guacamayo.telemetry` | daily 09:00 | `uv run telemetry --facts` | `sessions.db`, `logs/telemetry-facts.log` |
+| `com.wiseer.guacamayo.board` | every 10 min | `uv run telemetry --board` | `.sounding/telemetry/board.json`, `logs/board-launchd.log` |
+| `com.wiseer.eval-runner` | Mon 10:00 | `scripts/eval-runner.sh` | `.sounding/eval-results.jsonl`, `logs/eval-runner.log` |
+
+The **facts job** matters for data durability: session JSONL in `~/.claude/projects/`
+rotates on a platform-managed schedule (window unknown — the oldest surviving transcript as
+of 2026-08-19 was ~30 days old). Miss the window and the raw material is gone.
+
+The **board job** drives `/meta-wake`'s project board: derives issue columns from `gh` state
+and writes `board.json` atomically. Each tick also runs the autonomous-dispatch evaluator
+(GUA-119) — a pure function over board state that writes `proposed_actions[]` with reason
+and evidence. `/meta-wake` renders them as one accept/reject batch; decisions append to
+`actions.jsonl`. Exactly two idempotent mutations may run unattended, behind an `--act` flag
+that defaults **off**.
+
+```bash
+mkdir -p ~/workspace/guacamayo/logs
+cp scripts/com.wiseer.guacamayo.telemetry.plist ~/Library/LaunchAgents/
+cp scripts/com.wiseer.guacamayo.board.plist ~/Library/LaunchAgents/
+launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.board.plist
+launchctl start com.wiseer.guacamayo.board   # run immediately
+```
+
 ## Store ownership (D1, 2026-08-15, GUA-120)
 
 **librarian owns the sessions store; guacamayo owns everything derived from it.**
