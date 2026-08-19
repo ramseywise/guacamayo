@@ -21,18 +21,25 @@ from __future__ import annotations
 import html
 import json
 import re
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import date as _date
+from datetime import timedelta
 from pathlib import Path
 from typing import Any
 
 import structlog
 
 from telemetry.factstore import (
+    ERROR_CATEGORY_CODE,
+    ERROR_CATEGORY_ENV,
+    ERROR_CATEGORY_TOOL,
+    ERROR_CATEGORY_UNKNOWN,
     SUBAGENT_ATTRIBUTION_CLI,
     SUBAGENT_ATTRIBUTION_SINCE,
     UNATTRIBUTED_AGENT,
+    classify_error_kind,
     read_all,
     read_verdicts,
 )
@@ -555,6 +562,82 @@ def build_series(metric: str, store: Path, period: str = "day") -> Series:
 
 def _frame(regime: str) -> str:
     return SAMPLING_FRAME.get(regime, SAMPLING_FRAME["unclassified"])
+
+
+# ---------------------------------------------------------------------------
+# trend_7d — the reusable sparkline component (GUA-137)
+# ---------------------------------------------------------------------------
+
+# Distinct from the _SPARK_* constants at :1835 — those size the friction bar
+# sparkline, which is a different component with a different geometry.
+_TREND_W = 100
+_TREND_H = 20
+# Inset so a 2px stroke at the extremes is not clipped by the viewBox edge.
+_TREND_PAD = 2
+
+
+def _sparkline_svg(points: list[Point], *, unit: str = "") -> str:
+    """Render `points` as a 100x20 inline-SVG polyline.
+
+    Pure: takes points, returns markup, touches no store. Fewer than two points
+    renders a placeholder rather than a line — one observation is not a trend,
+    and a flat line drawn through it would read as "stable" on evidence that
+    cannot show stability (metric-fence convention).
+    """
+    if len(points) < 2:
+        return (
+            f'<span class="trend-none" title="not enough daily observations to plot a trend">'
+            f"no trend (n={len(points)})</span>"
+        )
+
+    values = [p.value for p in points]
+    lo, hi = min(values), max(values)
+    span = hi - lo
+    usable = _TREND_H - 2 * _TREND_PAD
+    step = _TREND_W / (len(points) - 1)
+
+    coords = []
+    for i, value in enumerate(values):
+        x = i * step
+        # Flat series (span == 0) plots down the middle rather than dividing by
+        # zero — a real, if uneventful, trend.
+        frac = 0.5 if span == 0 else (value - lo) / span
+        # SVG y grows downward; invert so larger values sit higher.
+        y = _TREND_PAD + (1 - frac) * usable
+        coords.append(f"{x:g},{y:g}")
+
+    tooltip = " · ".join(f"{p.date}={_fmt_value(p.value, unit)}" for p in points)
+    return (
+        f'<svg class="sparkline" viewBox="0 0 {_TREND_W} {_TREND_H}" '
+        f'width="120" height="20" role="img" aria-label="7-day trend">'
+        f"<title>{html.escape(tooltip)}</title>"
+        f'<polyline points="{" ".join(coords)}" fill="none" stroke="currentColor" '
+        f'stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'
+        f"</svg>"
+    )
+
+
+def trend_7d(metric: str, store: Path, *, days: int = 7, unit: str = "") -> str:
+    """Inline-SVG sparkline of `metric`'s last `days` daily observations.
+
+    One component, many call sites: skills, experiments and friction tiles all
+    render the same markup. Faceted (per-regime) metrics are flattened to a
+    single chronological line — a sparkline has no room for a legend, and the
+    full faceted view already exists in the main trend charts.
+
+    Days with no observation are *skipped*, never zero-filled: a day with no
+    sessions is missing data, and imputing zero would draw a crash that did not
+    happen.
+    """
+    series = build_series(metric, store, period="day")
+    if series.faceted:
+        points = sorted(
+            (p for panel in series.panels for p in panel.points),
+            key=lambda p: p.date,
+        )
+    else:
+        points = list(series.points)
+    return _sparkline_svg(points[-days:], unit=unit)
 
 
 def _distinct_surfaces(store: Path) -> list[str]:
@@ -1411,6 +1494,91 @@ def _spawn_table(spawn_counts: dict[str, int]) -> str:
     )
 
 
+# GUA-137: rolling windows for the subagent attribution card. Each window is
+# computed server-side and all four are emitted; the toggle only changes which
+# is visible, so switching never re-reads the store.
+SUBAGENT_WINDOWS: list[tuple[str, str, int | None]] = [
+    ("7d", "7 days", 7),
+    ("30d", "30 days", 30),
+    ("6mo", "6 months", 182),
+    ("1y", "1 year", 365),
+    ("all", "All time", None),
+]
+
+
+def _window_cutoff(store: Path, days: int | None) -> str | None:
+    """ISO cutoff `days` back from the newest row, or None for all-time.
+
+    Anchored to the newest observation rather than today: the store is refreshed
+    by a batch job, so anchoring to wall-clock would silently empty the 7-day
+    window whenever the job has not run yet.
+    """
+    if days is None:
+        return None
+    rows = _work_sessions(read_all(store))
+    newest = max((str(r["date"]) for r in rows), default="")
+    if not newest:
+        return None
+    return (_date.fromisoformat(newest) - timedelta(days=days)).isoformat()
+
+
+def render_subagent_windows_card(store: Path) -> str:
+    """Subagent attribution with a rolling-window toggle (7d/30d/6mo/1y/all).
+
+    Replaces the hardcoded "84% unattributed" prose: the share is computed per
+    window, so the number cannot go stale, and a reader can see whether recent
+    work is better attributed than the all-time figure suggests.
+    """
+    panels, buttons = [], []
+    for i, (key, label, days) in enumerate(SUBAGENT_WINDOWS):
+        cutoff = _window_cutoff(store, days)
+        by_agent, by_model, spawn_counts = _subagent_totals(store, since=cutoff)
+        grand = sum(s["cost"] for s in by_agent.values())
+        unattr = by_agent.get(UNATTRIBUTED_AGENT, {}).get("cost", 0.0)
+        active = " active" if i == 0 else ""
+        hidden = "" if i == 0 else ' style="display:none"'
+
+        if not grand:
+            body = (
+                '<p class="empty">No subagent spend recorded in this window.</p>'
+                if cutoff
+                else '<p class="empty">No subagent spend recorded.</p>'
+            )
+        else:
+            pct = unattr / grand * 100
+            tone = "bad" if pct >= 60 else ("warn" if pct >= 25 else "good")
+            body = (
+                f'<div class="stat-row">'
+                f'<div class="stat"><span class="value">{grand / 1_000_000:,.1f}M</span>'
+                f'<span class="label">subagent cost</span></div>'
+                f'<div class="stat"><span class="value" style="color:var(--{tone})">'
+                f"{pct:.0f}%</span>"
+                f'<span class="label">unattributed</span></div>'
+                f'<div class="stat"><span class="value">{sum(spawn_counts.values()):,}</span>'
+                f'<span class="label">agents spawned</span></div></div>'
+                f'<div class="overflow-x">{_share_rows(by_agent, "agent")}</div>'
+                f'<div class="overflow-x">{_share_rows(by_model, "model")}</div>'
+            )
+
+        panels.append(f'<div class="win-panel" data-win="{key}"{hidden}>{body}</div>')
+        buttons.append(
+            f'<button type="button" class="win-btn{active}" data-win="{key}">{label}</button>'
+        )
+
+    return (
+        '<div class="card">\n'
+        '      <div class="card-title">Subagent attribution</div>\n'
+        '      <p class="card-note">Cost of subagent transcripts, charged to the parent '
+        "session that spawned them. Only CLI "
+        f"{SUBAGENT_ATTRIBUTION_CLI}+ transcripts carry an agent name, so "
+        "<em>unattributed</em> is a coverage measure, not an agent.</p>\n"
+        f'      <div class="win-toggle" role="group" aria-label="Time window">'
+        f"{''.join(buttons)}</div>\n"
+        f"      {''.join(panels)}\n"
+        "    </div>"
+    )
+
+
 def _render_subagents(store: Path) -> str:
     """Subagent spend split by agent type and by model.
 
@@ -1483,6 +1651,40 @@ def build_skill_economics(store: Path) -> dict[str, dict[str, float]]:
     return dict(sorted(totals.items(), key=lambda kv: -kv[1]["cost"]))
 
 
+def build_skill_daily(store: Path) -> dict[str, list[Point]]:
+    """Per-skill daily cost/session series, for the trend_7d component.
+
+    `build_series` is whole-store by construction, so a per-skill breakdown
+    needs its own bucketing. Value is mean cost per invocation on that day —
+    the same quantity the table's cost/session column ranks, so the sparkline
+    and the number next to it describe one metric.
+
+    Days a skill was not invoked are absent, not zero (GUA-137 metric fence).
+    """
+    by_skill: dict[str, dict[str, list[float]]] = {}
+    for row in _work_sessions(read_all(store)):
+        raw = row.get("skill_costs")
+        if not raw:
+            continue
+        try:
+            costs: dict[str, float] = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        date = str(row.get("date") or "")
+        if not date:
+            continue
+        for skill, cost in costs.items():
+            by_skill.setdefault(skill, {}).setdefault(date, []).append(float(cost))
+
+    series: dict[str, list[Point]] = {}
+    for skill, by_date in by_skill.items():
+        series[skill] = [
+            Point(date=date, value=sum(vals) / len(vals), regime="", n=len(vals))
+            for date, vals in sorted(by_date.items())
+        ]
+    return series
+
+
 def _render_skill_economics(store: Path) -> str:
     """Per-skill invocation count and cost table.
 
@@ -1491,6 +1693,7 @@ def _render_skill_economics(store: Path) -> str:
     (that is the review-card pattern, not needed here).
     """
     totals = build_skill_economics(store)
+    daily = build_skill_daily(store)
     if not totals:
         return (
             '<section class="chart"><h3>Skill economics</h3>'
@@ -1504,7 +1707,9 @@ def _render_skill_economics(store: Path) -> str:
         f"<td>{stats['cost']:,.0f}</td>"
         f"<td>{stats['cost'] / grand * 100:.0f}%</td>"
         f"<td>{int(stats['n'])}</td>"
-        f"<td>{stats['cost'] / stats['n']:,.0f}</td></tr>"
+        f"<td>{stats['cost'] / stats['n']:,.0f}</td>"
+        f'<td class="trend-cell">{_sparkline_svg(daily.get(skill, [])[-7:], unit="cost")}</td>'
+        "</tr>"
         for skill, stats in totals.items()
         if stats["n"]
     )
@@ -1523,7 +1728,7 @@ def _render_skill_economics(store: Path) -> str:
         f'<p class="population">n = {sessions:,} skill invocations</p>'
         '<div class="table-view"><table>'
         "<thead><tr><th>Skill</th><th>cost units</th><th>share</th><th>sessions</th>"
-        "<th>cost/session</th></tr></thead>"
+        "<th>cost/session</th><th>7-day trend</th></tr></thead>"
         f"<tbody>{rows}</tbody></table></div></section>"
     )
 
@@ -1992,6 +2197,40 @@ TOOL_TRENDS_CARD_END = "<!-- TOOL-TRENDS:END -->"
 FRICTION_REGROUP_CARD_START = "<!-- FRICTION-REGROUP:START"
 FRICTION_REGROUP_CARD_END = "<!-- FRICTION-REGROUP:END -->"
 
+FAILURE_KINDS_CARD_START = "<!-- FAILURE-KINDS:START"
+FAILURE_KINDS_CARD_END = "<!-- FAILURE-KINDS:END -->"
+
+# Display groups for the failure-kind card. The categories are the canonical
+# ones from factstore.classify_error_kind -- this table only supplies the
+# labelling, so the card can never disagree with the errors_code/env/tool/
+# unknown series on Loop Health.
+_FAILURE_KIND_GROUPS: tuple[tuple[str, str, str, str], ...] = (
+    (
+        "Code-side",
+        "The call was wrong. Lower is better.",
+        "var(--bad)",
+        ERROR_CATEGORY_CODE,
+    ),
+    (
+        "Harness-side",
+        "A guard or the user stopped it. Working as designed.",
+        "var(--good)",
+        ERROR_CATEGORY_TOOL,
+    ),
+    (
+        "Environment",
+        "Reality pushed back. Not usually actionable.",
+        "var(--text-2)",
+        ERROR_CATEGORY_ENV,
+    ),
+    (
+        "Unclassified",
+        "No category yet — widen the lookup table.",
+        "var(--warn)",
+        ERROR_CATEGORY_UNKNOWN,
+    ),
+)
+
 EXPERIMENTS_CARD_START = "<!-- EXPERIMENTS-LIFECYCLE:START"
 EXPERIMENTS_CARD_END = "<!-- EXPERIMENTS-LIFECYCLE:END -->"
 
@@ -2208,38 +2447,227 @@ def patch_input_tokens_card(dashboard: Path, store: Path) -> bool:
     )
 
 
+_AGENT_TYPES = frozenset(
+    {
+        "general-purpose",
+        "Explore",
+        "Plan",
+        "correctness",
+        "intent",
+        "architecture",
+        "safety",
+        "testing",
+        "silent-failure",
+        "performance",
+        "wander",
+        "runtime",
+        "safeguards",
+        "leakage",
+        "contracts",
+        "plan-research-scout",
+        "agent-creator",
+        "claude-code-guide",
+        "akira-scan",
+        "akira-wander",
+        "fog-advisor",
+        "review",
+    }
+)
+
+_SKILL_REPO: dict[str, str] = {
+    "meta-wake": "guacamayo",
+    "meta-grow": "guacamayo",
+    "meta-dream": "guacamayo",
+    "meta-insights": "guacamayo",
+    "meta-retro": "guacamayo",
+    "workflow-research": "guacamayo",
+    "workflow-plan": "guacamayo",
+    "workflow-refine": "guacamayo",
+    "workflow-execute": "guacamayo",
+    "workflow-review": "guacamayo",
+    "code-review": "global",
+    "code-debug": "global",
+    "code-refactor": "global",
+    "docs-check": "guacamayo",
+    "new-agent": "guacamayo",
+    "skill-creator": "guacamayo",
+    "proto-refine": "galactus",
+    "proto-plan": "galactus",
+    "proto-execute": "galactus",
+    "interview-drill": "sisyphus",
+}
+
+# Pre-rename aliases. The meta-* family was invoked bare (/wake, /grow) before the
+# 2026-07-18 v3 consolidation; the trend lines are continuous across the rename, so
+# the old name folds into the new one rather than splitting the series.
+_SKILL_ALIASES: dict[str, str] = {
+    "wake": "meta-wake",
+    "grow": "meta-grow",
+    "dream": "meta-dream",
+    "retro": "meta-retro",
+    "insights": "meta-insights",
+    "workflow-retro": "meta-retro",
+    "workflow-insights": "meta-insights",
+}
+
+# Domain groups by name prefix. Order is display order. Proto (galactus) was
+# dropped 2026-08-19 — its single skill has n=1 and so no trend line to plot.
+_SKILL_DOMAINS: tuple[tuple[str, str, str], ...] = (
+    ("workflow-", "Workflow", "guacamayo"),
+    ("meta-", "Meta", "guacamayo"),
+)
+
+
+def _canonical_skill(name: str) -> str:
+    """Map a pre-rename skill name onto its current name."""
+    return _SKILL_ALIASES.get(name, name)
+
+
+def _skill_domain(name: str) -> str | None:
+    """Return the domain label for a skill name, or None if it belongs to Other."""
+    for prefix, label, _repo in _SKILL_DOMAINS:
+        if name.startswith(prefix):
+            return label
+    return None
+
+
+def _merge_skill_aliases(
+    items: dict[str, dict[str, float]],
+) -> dict[str, dict[str, float]]:
+    """Fold pre-rename names into their current name, summing cost and count."""
+    merged: dict[str, dict[str, float]] = {}
+    for name, stats in items.items():
+        entry = merged.setdefault(_canonical_skill(name), {"cost": 0.0, "n": 0})
+        entry["cost"] += stats["cost"]
+        entry["n"] += stats["n"]
+    return dict(sorted(merged.items(), key=lambda kv: -kv[1]["cost"]))
+
+
+def _merge_daily_aliases(daily: dict[str, list[Point]]) -> dict[str, list[Point]]:
+    """Concatenate the daily series of aliased names under the current name.
+
+    Same-day points from two names are averaged, matching build_skill_daily's
+    mean-cost-per-invocation semantics.
+    """
+    by_name: dict[str, dict[str, list[Point]]] = {}
+    for name, points in daily.items():
+        target = by_name.setdefault(_canonical_skill(name), {})
+        for point in points:
+            target.setdefault(point.date, []).append(point)
+
+    merged: dict[str, list[Point]] = {}
+    for name, by_date in by_name.items():
+        merged[name] = [
+            points[0]
+            if len(points) == 1
+            else Point(
+                date=date,
+                value=sum(p.value * p.n for p in points) / max(sum(p.n for p in points), 1),
+                regime="",
+                n=sum(p.n for p in points),
+            )
+            for date, points in sorted(by_date.items())
+        ]
+    return merged
+
+
+def _skill_table(
+    items: dict[str, dict[str, float]],
+    grand: float,
+    daily: dict[str, list[Point]],
+    show_repo: bool = False,
+) -> str:
+    """Render a skill/agent economics table with optional repo column."""
+    header = (
+        "<th>Name</th><th>Repo</th><th>Cost</th><th>Share</th><th>Sessions</th><th>7d</th>"
+        if show_repo
+        else "<th>Name</th><th>Cost</th><th>Share</th><th>Sessions</th><th>7d</th>"
+    )
+    rows = ""
+    for name, stats in items.items():
+        repo_col = (
+            f'<td style="color:var(--text-3);font-size:11px">{html.escape(_SKILL_REPO.get(name, ""))}</td>'
+            if show_repo
+            else ""
+        )
+        rows += (
+            f"<tr><td><code>{html.escape(name)}</code></td>"
+            f"{repo_col}"
+            f"<td>{stats['cost'] / 1_000_000:,.1f}M</td>"
+            f"<td>{stats['cost'] / grand * 100:.0f}%</td>"
+            f"<td>{int(stats['n'])}</td>"
+            f'<td class="trend-cell">{_sparkline_svg(daily.get(name, [])[-7:], unit="cost")}</td>'
+            "</tr>"
+        )
+    return (
+        '<div class="table-view">'
+        f"<table><thead><tr>{header}</tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+    )
+
+
 def render_skill_economics_card(store: Path) -> str:
-    """Render the skill economics card for the canonical guacamayo dashboard."""
+    """Render the skill economics card, split into skills and agents."""
     totals = build_skill_economics(store)
     if not totals:
         return (
             '<div class="card">\n'
-            '      <div class="card-title">Skill economics</div>\n'
-            '      <p class="card-note">No skill cost data yet. Skill invocations are '
-            "attributed from JSONL era sessions (July+).</p>\n"
+            '      <div class="card-title">Skill &amp; agent economics</div>\n'
+            '      <p class="card-note">No cost data yet (July+ sessions only).</p>\n'
             "    </div>"
         )
     grand = sum(e["cost"] for e in totals.values()) or 1.0
-    rows = "".join(
-        f"<tr><td>{html.escape(skill)}</td>"
-        f"<td>{stats['cost'] / 1_000_000:,.1f}M</td>"
-        f"<td>{stats['cost'] / grand * 100:.0f}%</td>"
-        f"<td>{int(stats['n'])}</td></tr>"
-        for skill, stats in totals.items()
-    )
+    daily = build_skill_daily(store)
+
+    skills = _merge_skill_aliases({k: v for k, v in totals.items() if k not in _AGENT_TYPES})
+    agents = {k: v for k, v in totals.items() if k in _AGENT_TYPES}
+    daily = _merge_daily_aliases(daily)
+
+    agent_cost = sum(s["cost"] for s in agents.values())
+
+    parts = []
+
+    # Only domains with a real trend line are shown. Proto (one skill, n=1) and the
+    # Other catch-all were dropped 2026-08-19: every row in them is "no trend (n=1)",
+    # so the sparkline column was empty and the tables carried no signal.
+    grouped: dict[str, dict[str, dict[str, float]]] = {
+        label: {} for _prefix, label, _repo in _SKILL_DOMAINS
+    }
+    for name, stats in skills.items():
+        domain = _skill_domain(name)
+        if domain in grouped:
+            grouped[domain][name] = stats
+
+    for _prefix, label, repo in _SKILL_DOMAINS:
+        items = grouped[label]
+        if not items:
+            continue
+        cost = sum(s["cost"] for s in items.values())
+        parts.append(
+            f'<h4 style="font-size:13px;font-weight:600;margin:16px 0 8px">'
+            f"{label} "
+            f'<span style="font-weight:400;color:var(--text-3);font-size:12px">'
+            f"{html.escape(repo)} \u00b7 {_fmt_value(cost, 'cost')} "
+            f"\u00b7 {cost / grand * 100:.0f}% of spend"
+            f"</span></h4>" + _skill_table(items, grand, daily)
+        )
+
+    if agents:
+        parts.append(
+            f'<h4 style="font-size:13px;font-weight:600;margin:20px 0 8px">'
+            f"Agents "
+            f'<span style="font-weight:400;color:var(--text-3);font-size:12px">'
+            f"{_fmt_value(agent_cost, 'cost')} \u00b7 {agent_cost / grand * 100:.0f}% of spend"
+            f"</span></h4>" + _skill_table(agents, grand, daily)
+        )
+
     return (
         '<div class="card">\n'
-        '      <div class="card-title">Skill economics</div>\n'
-        '      <p class="card-note">Cost and session count per skill. Cost attributed from '
-        "JSONL output between a slash invocation and the next human turn. "
-        "Work sessions only; July-forward.</p>\n"
-        '      <div class="overflow-x">\n'
-        '      <table class="repo-table">\n'
-        "        <thead><tr><th>Skill</th><th>Cost</th><th>Share</th><th>Sessions</th></tr></thead>\n"
-        f"        <tbody>{rows}</tbody>\n"
-        "      </table>\n"
-        "      </div>\n"
-        "    </div>"
+        '      <div class="card-title">Skill &amp; agent economics</div>\n'
+        '      <p class="card-note">Cost attributed from JSONL output between '
+        "a slash invocation and the next human turn. Work sessions only; July-forward.</p>\n"
+        + "\n".join(parts)
+        + "\n    </div>"
     )
 
 
@@ -2283,6 +2711,118 @@ def render_tool_trends_card(store: Path) -> str:
     )
 
 
+def build_failure_kinds(store: Path) -> tuple[dict[str, int], int, int, int]:
+    """Tally tool failures by kind, July-forward.
+
+    `tool_errors` is keyed by failure kind (``command_failed``,
+    ``read_before_write``, ...), while `tool_counts` is keyed by tool name, so
+    the two cannot be joined -- there is no per-tool error rate to compute here.
+    The call total is returned alongside so the card can normalise, matching the
+    `tool_error_rate` metric's errors-per-100-calls framing.
+
+    Returns (kind -> count, total_errors, total_calls, session_count).
+    """
+    rows = [r for r in _work_sessions(read_all(store)) if str(r.get("date") or "") >= JULY_BOUNDARY]
+    kinds: dict[str, int] = {}
+    calls = 0
+    scored = 0
+    for row in rows:
+        raw = row.get("tool_errors")
+        if not raw:
+            continue
+        try:
+            parsed: dict[str, int] = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        scored += 1
+        for kind, n in parsed.items():
+            kinds[kind] = kinds.get(kind, 0) + int(n)
+        calls += _tool_call_total(row)
+    return kinds, sum(kinds.values()), calls, scored
+
+
+def render_failure_kinds_card(store: Path) -> str:
+    """Render the failure-kind card, grouped for comparison.
+
+    Follows the three-column shape of the friction regroup card: each group is a
+    sub-card so the buckets read side by side rather than as one long ranked
+    list. The split is by *who* the failure implicates -- a guard firing is the
+    system working, a malformed call is not.
+    """
+    kinds, total, calls, scored = build_failure_kinds(store)
+    if not kinds:
+        return (
+            '<div class="card">\n'
+            '      <div class="card-title">Tool failures by kind</div>\n'
+            '      <p class="card-note">No tool-error data yet. July-forward only.</p>\n'
+            "    </div>"
+        )
+
+    grouped: dict[str, dict[str, int]] = {}
+    for kind, n in kinds.items():
+        grouped.setdefault(classify_error_kind(kind), {})[kind] = n
+
+    def _group(title: str, note: str, color: str, category: str) -> str:
+        rows = sorted(grouped.get(category, {}).items(), key=lambda kv: -kv[1])
+        subtotal = sum(n for _k, n in rows)
+        share = f"{subtotal / total * 100:.0f}%" if total else "&mdash;"
+        lines = (
+            "".join(
+                f'<div style="display:flex;justify-content:space-between;'
+                f'font-size:12px;margin-bottom:4px">'
+                f"<span>{html.escape(k.replace('_', ' '))}</span>"
+                f'<span style="font-weight:600">{n}</span></div>'
+                for k, n in rows
+                if n
+            )
+            or '<p class="card-note">None recorded.</p>'
+        )
+        return (
+            '<div class="card" style="flex:1">\n'
+            f'          <div class="card-title">{title}</div>\n'
+            f'          <p class="card-note" style="color:{color}">{note}</p>\n'
+            f'          <div class="stat-row"><div class="stat">'
+            f'<span class="value" style="color:{color}">{subtotal}</span>'
+            f'<span class="label">{share} of failures</span></div></div>\n'
+            f"          {lines}\n"
+            "        </div>"
+        )
+
+    rate = f"{100 * total / calls:.2f}" if calls else "&mdash;"
+    groups = "\n        ".join(
+        _group(title, note, color, category)
+        for title, note, color, category in _FAILURE_KIND_GROUPS
+    )
+    return (
+        '<div class="card">\n'
+        '      <div class="card-title">Tool failures by kind</div>\n'
+        f'      <p class="card-note">{total} failures across {scored} sessions since '
+        f"{JULY_BOUNDARY} &mdash; <strong>{rate} per 100 calls</strong>. Grouped by what "
+        "the failure implicates: a guard firing is the harness working, a malformed call "
+        "is not. Errors are keyed by failure kind, not by tool, so this is not a per-tool "
+        "error rate.</p>\n"
+        '      <div class="card-row">\n'
+        f"        {groups}\n"
+        "      </div>\n"
+        "    </div>"
+    )
+
+
+def patch_failure_kinds_card(dashboard: Path, store: Path) -> bool:
+    """Regenerate the failure-kinds card between FAILURE-KINDS markers, in place."""
+    return _patch_marker_region(
+        dashboard,
+        FAILURE_KINDS_CARD_START,
+        FAILURE_KINDS_CARD_END,
+        render_failure_kinds_card(store),
+    )
+
+
+def render_failure_kinds_region(store: Path) -> str:
+    """Return the injectable HTML for the FAILURE-KINDS marker region."""
+    return render_failure_kinds_card(store)
+
+
 def patch_tool_trends_card(dashboard: Path, store: Path) -> bool:
     """Regenerate the tool-trends card between TOOL-TRENDS markers, in place."""
     return _patch_marker_region(
@@ -2307,11 +2847,16 @@ def render_friction_regroup_card(store: Path) -> str:
             )
         latest = series.points[-1]
         svg = _svg_line(series.points, "var(--s1)", height=60, unit=unit)
+        # GUA-137: the shared 7-day component sits beside the headline number as
+        # a trailing-window read. The 60px chart below it covers the full window,
+        # so this is a different span of the same metric, not a second copy.
+        spark = _sparkline_svg(series.points[-7:], unit=unit)
         return (
             f'<div style="margin-bottom:12px">'
             f'<div style="font-size:12px;font-weight:600;margin-bottom:2px">{html.escape(title)}</div>'
             f'<span style="font-size:18px;font-weight:600">{html.escape(_fmt_value(latest.value, unit))}</span>'
             f'<span style="color:var(--text-3);font-size:11px;margin-left:6px">{html.escape(label_hint)}</span>'
+            f'<span class="trend-cell" style="margin-left:6px">{spark}</span>'
             f"{svg}</div>"
         )
 
@@ -2682,32 +3227,245 @@ def patch_hook_activity_card(dashboard: Path, event_log: Path, pass_log: Path) -
     )
 
 
-def _render_experiments(experiments: list[Experiment] | None) -> str:
+def _experiment_trend(experiment: Experiment, store: Path | None) -> str:
+    """7-day sparkline for an experiment whose ledger metric has store backing.
+
+    Most ledger rows name absence/presence meta-signals that no series can
+    chart (see `warn_unmapped_experiments`), so the common case is deliberately
+    empty — an unchartable hypothesis renders no trend rather than a
+    placeholder line implying data exists.
+    """
+    if store is None:
+        return ""
+    for signal in _experiment_signals(experiment):
+        metric = LEDGER_METRIC_MAPPING.get(signal)
+        if metric:
+            return trend_7d(metric, store)
+    return ""
+
+
+_GRAD_ROW = re.compile(r"^\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|", re.MULTILINE)
+_RETRO_HEAD = re.compile(r"^## (R\d+)\b.*$", re.MULTILINE)
+
+
+def render_loop_closure_card(log_path: Path) -> str:
+    """Graduation throughput from the append-only tooling-ledger archive.
+
+    The active ledger says what is being tried; this says what actually landed.
+    A verdict alone does not close the loop — graduating the row out of the
+    active ledger does, so this counts the archive rather than the verdicts.
+    """
+    if not log_path.exists():
+        return ""
+    text = log_path.read_text(encoding="utf-8", errors="replace")
+
+    verdicts: Counter[str] = Counter()
+    for _date_cell, _change, _area, verdict_cell, _evidence in _GRAD_ROW.findall(text):
+        word = (
+            re.sub(r"[^a-z/]", "", verdict_cell.strip().lower().split()[0])
+            if verdict_cell.strip()
+            else ""
+        )
+        if not word or word.startswith(("verdict", "---")):
+            continue
+        if "verified" in word and "failed" in word:  # "verified/failed" rollup cell
+            verdicts["rollup"] += 1
+        elif word.startswith(("verified", "confirmed")):
+            verdicts["verified"] += 1
+        elif word.startswith("failed"):
+            verdicts["failed"] += 1
+        elif word.startswith("superseded"):
+            verdicts["superseded"] += 1
+        else:
+            verdicts["inconclusive"] += 1
+
+    graduated = sum(verdicts.values())
+    if not graduated:
+        return ""
+    rounds = len(_RETRO_HEAD.findall(text))
+    called = verdicts["verified"] + verdicts["failed"]
+    hit_rate = verdicts["verified"] / called * 100 if called else 0.0
+
+    return (
+        '<div class="card"><div class="card-title">Loop closure</div>'
+        '<p class="card-note">Experiments graduated out of the active ledger into '
+        "<code>tooling-ledger-log.md</code>. This is the loop actually closing — a "
+        "verdict is a measurement, graduation is a decision.</p>"
+        f'<div class="stat-row">'
+        f'<div class="stat"><span class="value">{graduated}</span>'
+        f'<span class="label">graduated</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--good)">'
+        f'{verdicts["verified"]}</span><span class="label">verified</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--bad)">'
+        f'{verdicts["failed"]}</span><span class="label">failed</span></div>'
+        f'<div class="stat"><span class="value">{hit_rate:.0f}%</span>'
+        f'<span class="label">hit rate (of called)</span></div>'
+        f'<div class="stat"><span class="value">{rounds}</span>'
+        f'<span class="label">retro rounds</span></div>'
+        f'<div class="stat"><span class="value">{graduated / rounds:.1f}</span>'
+        f'<span class="label">per round</span></div></div>'
+        '<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
+        "A failed experiment still closes the loop — it is a question answered. "
+        "Hit rate counts only verified/failed; inconclusive and superseded rows are "
+        "excluded from the denominator.</p></div>"
+    )
+
+
+_VERDICT_BADGE = {
+    "confirmed": "exp-confirmed",
+    "trending": "exp-trending",
+    "failed": "exp-failed",
+    "inconclusive": "exp-pending",
+    "unscored": "exp-other",
+}
+
+# A due date in a ledger status: "due 08-17" or "due 2026-09-15". The year is
+# frequently omitted, so it is inferred from the experiment's own date.
+_DUE_RE = re.compile(r"due\s+(?:(\d{4})-)?(\d{1,2})-(\d{1,2})", re.IGNORECASE)
+
+
+def _latest_verdicts(store: Path | None) -> dict[str, dict[str, Any]]:
+    """Newest verdict row per experiment name, keyed for the ledger join.
+
+    `experiment_verdicts` is append-only — one row per experiment per insights
+    run — so the current call is the row with the greatest `run_at`.
+    """
+    if store is None:
+        return {}
+    latest: dict[str, dict[str, Any]] = {}
+    for row in read_verdicts(store):
+        name = str(row.get("experiment") or "")
+        run_at = str(row.get("run_at") or "")
+        if not name:
+            continue
+        prev = latest.get(name)
+        if prev is None or run_at >= str(prev.get("run_at") or ""):
+            latest[name] = row
+    return latest
+
+
+def _experiment_due(experiment: Experiment) -> str | None:
+    """The due date named in a ledger status, as an ISO date, or None."""
+    m = _DUE_RE.search(experiment.status)
+    if not m:
+        return None
+    year, month, day = m.groups()
+    if year is None:
+        # Infer from the row's own date; a due month before the start month
+        # means the deadline rolled into the following year.
+        base = experiment.date[:4]
+        if not base.isdigit():
+            return None
+        year = base
+        if experiment.date[5:7].isdigit() and int(month) < int(experiment.date[5:7]):
+            year = str(int(base) + 1)
+    try:
+        return _date(int(year), int(month), int(day)).isoformat()
+    except ValueError:
+        return None
+
+
+def _render_experiments(experiments: list[Experiment] | None, store: Path | None = None) -> str:
     if not experiments:
         return (
             '<section class="chart"><h3>Experiments</h3>'
             '<p class="note">No experiments tracked. Add hypothesis rows to the '
             "tooling ledger.</p></section>"
         )
-    grouped = sorted(
-        experiments, key=lambda e: (_STATUS_ORDER.get(_status_key(e.status), 9), e.name)
+    # The ledger's Status: text is hand-written and rarely updated after the row
+    # is added, so reading it alone reported "107 pending" while the scorer held
+    # 1,395 verdict rows. The scored verdict wins where it exists; the ledger
+    # status is the fallback for rows the scorer never reached.
+    latest = _latest_verdicts(store)
+    # Overdue is judged against the newest observation, not the wall clock: the
+    # store is refreshed in batches, so anchoring to the data keeps a render
+    # reproducible and stops a stale store from inventing overdue rows.
+    today = max(
+        (str(r.get("run_at") or "")[:10] for r in latest.values()),
+        default=max((e.date for e in experiments), default=""),
     )
-    rows = "".join(
-        f"<tr><td>{html.escape(e.name)}</td><td>{html.escape(e.metric)}</td>"
-        f'<td><span class="exp-badge {_STATUS_CLASS.get(_status_key(e.status), "exp-other")}">'
-        f"{html.escape(e.status)}</span></td>"
-        f"<td>{html.escape(e.date)}</td></tr>"
-        for e in grouped
+
+    def _verdict_of(e: Experiment) -> str:
+        row = latest.get(e.name)
+        if row:
+            return str(row.get("verdict") or "inconclusive")
+        key = _status_key(e.status)
+        if key in ("confirmed", "verified"):
+            return "confirmed"
+        return "failed" if key == "failed" else "unscored"
+
+    tally = Counter(_verdict_of(e) for e in experiments)
+    scored = len(experiments) - tally["unscored"]
+    decisive = tally["confirmed"] + tally["failed"]
+    inconclusive_share = tally["inconclusive"] / scored * 100 if scored else 0.0
+
+    order = {"failed": 0, "trending": 1, "confirmed": 2, "inconclusive": 3, "unscored": 4}
+    grouped = sorted(experiments, key=lambda e: (order.get(_verdict_of(e), 9), e.name))
+
+    rows = ""
+    overdue_n = 0
+    for e in grouped:
+        verdict = _verdict_of(e)
+        due = _experiment_due(e)
+        # Only an undecided experiment can be overdue — a called one is done.
+        overdue = bool(due and due < today and verdict in ("inconclusive", "unscored"))
+        overdue_n += overdue
+        due_cell = (
+            f'<span style="color:var(--bad);font-weight:600">{html.escape(due)}</span>'
+            if overdue
+            else html.escape(due or "—")
+        )
+        row = latest.get(e.name)
+        evidence = str(row.get("evidence") or "") if row else ""
+        title_attr = (
+            f' title="{html.escape(_truncate(evidence, 200), quote=True)}"' if evidence else ""
+        )
+        rows += (
+            f"<tr><td>{html.escape(e.name)}</td><td>{html.escape(e.metric)}</td>"
+            f'<td><span class="exp-badge {_VERDICT_BADGE.get(verdict, "exp-other")}"'
+            f"{title_attr}>"
+            f"{html.escape(verdict)}</span></td>"
+            f"<td>{html.escape(e.date)}</td><td>{due_cell}</td>"
+            f'<td class="trend-cell">{_experiment_trend(e, store)}</td></tr>'
+        )
+
+    kpis = (
+        f'<div class="stat-row" style="margin-bottom:12px">'
+        f'<div class="stat"><span class="value" style="color:var(--good)">{tally["confirmed"]}</span>'
+        f'<span class="label">confirmed</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--bad)">{tally["failed"]}</span>'
+        f'<span class="label">failed</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--s3)">{tally["trending"]}</span>'
+        f'<span class="label">trending</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--warn)">'
+        f"{inconclusive_share:.0f}%</span>"
+        f'<span class="label">inconclusive of scored</span></div>'
+        f'<div class="stat"><span class="value">{tally["unscored"]}</span>'
+        f'<span class="label">never scored</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--bad)">{overdue_n}</span>'
+        f'<span class="label">overdue</span></div></div>'
     )
-    confirmed = sum(1 for e in experiments if _status_key(e.status) in ("confirmed", "verified"))
-    failed = sum(1 for e in experiments if _status_key(e.status) == "failed")
-    pending = len(experiments) - confirmed - failed
+
+    diagnosis = (
+        f"{decisive} of {len(experiments)} experiments reached a decisive call. "
+        f"The bottleneck is measurability, not outcome: {inconclusive_share:.0f}% of "
+        f"scored experiments came back <em>inconclusive</em>, and {tally['unscored']} "
+        f"carry no scorable metric at all. An unfalsifiable hypothesis cannot close "
+        f"the loop."
+    )
+
     return (
         f'<section class="chart"><h3>Experiments</h3>'
-        f'<p class="note">{confirmed} confirmed, {failed} failed, {pending} pending.</p>'
+        f"{kpis}"
+        f'<p class="note">{diagnosis}</p>'
         f'<div class="table-view"><table>'
-        f"<thead><tr><th>Change</th><th>Metric</th><th>Status</th><th>Date</th></tr></thead>"
-        f"<tbody>{rows}</tbody></table></div></section>"
+        f"<thead><tr><th>Change</th><th>Metric</th><th>Verdict</th><th>Opened</th>"
+        f"<th>Due</th><th>7-day trend</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table></div>"
+        f'<p class="frame">Verdict is the scorer\'s latest call from '
+        f"<code>experiment_verdicts</code> where the ledger name joins "
+        f"({len(latest)} scored experiments); otherwise the ledger's own status. "
+        f"Hover a badge for the scoring evidence.</p></section>"
     )
 
 
@@ -2721,6 +3479,21 @@ def _render_experiments(experiments: list[Experiment] | None) -> str:
 # renders — hypothesis date, then the ordered sequence of (run_at, verdict)
 # observations — so a reader can see an experiment move from `inconclusive`
 # to `trending` to `confirmed` across runs, rather than only its latest call.
+
+# Caps on what one trajectory row renders. Without them the region injected
+# 302KB into context-dashboard.html (GUA-137) — 66 experiments' entire scored
+# history, each step carrying its full evidence string in a title attribute.
+_TRAJECTORY_MAX_STEPS = 12
+_TRAJECTORY_EVIDENCE_CHARS = 160
+
+
+def _truncate(text: str, limit: int) -> str:
+    """`text` clipped to `limit` chars on a word boundary, with an ellipsis."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rsplit(" ", 1)[0].rstrip()
+    return f"{cut or text[:limit]}…"
+
 
 _TRAJECTORY_BADGE_CLASS = {
     "confirmed": "exp-confirmed",
@@ -2749,17 +3522,36 @@ def _render_verdict_trajectories(verdict_rows: list[dict[str, Any]] | None) -> s
     for row in verdict_rows:
         grouped.setdefault(row["experiment"], []).append(row)
 
+    def _steps(runs: list[dict[str, Any]]) -> str:
+        """The trailing `_TRAJECTORY_MAX_STEPS` runs, with an elision marker.
+
+        GUA-137: uncapped, this rendered 302KB into the page — every run's full
+        evidence string inlined as a title attribute. The recent steps are what
+        a trajectory is read for; the elision marker keeps the truncation
+        visible rather than silently showing a shorter history than exists.
+        """
+        ordered = sorted(runs, key=lambda r: r.get("run_at") or "")
+        shown = ordered[-_TRAJECTORY_MAX_STEPS:]
+        steps = '<span class="verdict-arrow">&rarr;</span>'.join(
+            f'<span class="verdict-step {_TRAJECTORY_BADGE_CLASS.get(r["verdict"], "exp-other")}" '
+            f'title="{html.escape(r.get("run_at", ""))}: '
+            f'{html.escape(_truncate(r.get("evidence", ""), _TRAJECTORY_EVIDENCE_CHARS))}">'
+            f"{html.escape(r['verdict'])}</span>"
+            for r in shown
+        )
+        if len(ordered) > len(shown):
+            elided = len(ordered) - len(shown)
+            steps = (
+                f'<span class="verdict-elided" title="{elided} earlier run(s) not shown">'
+                f"+{elided}&hellip;</span>"
+                '<span class="verdict-arrow">&rarr;</span>' + steps
+            )
+        return steps
+
     rows_html = "".join(
         f"<tr><td>{html.escape(name)}</td>"
         f"<td>{html.escape(runs[0].get('date', ''))}</td>"
-        f'<td class="verdict-trajectory">'
-        + '<span class="verdict-arrow">&rarr;</span>'.join(
-            f'<span class="verdict-step {_TRAJECTORY_BADGE_CLASS.get(r["verdict"], "exp-other")}" '
-            f'title="{html.escape(r.get("run_at", ""))}: {html.escape(r.get("evidence", ""))}">'
-            f"{html.escape(r['verdict'])}</span>"
-            for r in sorted(runs, key=lambda r: r.get("run_at") or "")
-        )
-        + "</td></tr>"
+        f'<td class="verdict-trajectory">{_steps(runs)}</td></tr>'
         for name, runs in sorted(grouped.items(), key=lambda kv: kv[1][0].get("date", ""))
     )
     return (
@@ -3299,7 +4091,7 @@ def render_dashboard(
     sec_progress = (
         f'<section id="progress"><h2>Experiments &amp; Progress</h2>'
         f'<p class="sub">Are my changes working?</p>'
-        f"{_render_experiments(experiments)}"
+        f"{_render_experiments(experiments, store)}"
         f"{_render_verdict_trajectories(verdict_rows)}"
         f"{_render_funnel(funnel)}"
         f"{_render_repo_activity(store)}"
@@ -3308,6 +4100,11 @@ def render_dashboard(
     )
 
     return (
+        # Without this, a file:// open leaves the browser guessing the encoding
+        # and every em-dash, arrow and ellipsis in the page renders as mojibake.
+        # The rendered fragment carries no <head>, so the declaration has to
+        # lead the output to fall inside the first 1024 bytes the parser scans.
+        f'<meta charset="utf-8">'
         f"<style>{_CSS}</style>"
         f'<div class="viz-root"><h1>Context engineering dashboard</h1>'
         f'<p class="sub">Work sessions only, faceted by instrumentation regime. '
@@ -3425,9 +4222,11 @@ def render_review_findings_region(findings: list[dict] | None) -> str:
     return _render_review_findings(findings)
 
 
-def render_experiments_region(experiments: list[Experiment] | None) -> str:
+def render_experiments_region(
+    experiments: list[Experiment] | None, store: Path | None = None
+) -> str:
     """Return the injectable HTML for the EXPERIMENTS-LIFECYCLE marker region."""
-    return _render_experiments(experiments)
+    return _render_experiments(experiments, store)
 
 
 def render_verdict_trajectories_region(verdict_rows: list[dict[str, Any]] | None) -> str:
@@ -3802,3 +4601,1764 @@ def _render_automated_actions(records: list[dict[str, Any]] | None) -> str:
 def render_automated_actions_region(records: list[dict[str, Any]] | None) -> str:
     """Return the injectable HTML for the AUTOMATED-ACTIONS marker region."""
     return _render_automated_actions(records)
+
+
+# ---------------------------------------------------------------------------
+# Insights embedding (GUA-137) — the Overview tab IS the daily insights report
+# ---------------------------------------------------------------------------
+#
+# The report is a standalone document with its own <style>. Embedding it whole
+# would let its rules (body{}, h2{}, .tag{}) rewrite the board around it, so the
+# body is extracted and every one of its selectors is scoped under a wrapper
+# class. Colours stay as the report authored them — it is a guest document with
+# its own palette, not a region that should inherit the board's tokens.
+
+_INSIGHTS_SCOPE = "insights-embed"
+
+
+def _scope_css(css: str, scope: str) -> str:
+    """Prefix every selector in `css` with `.scope`, mapping body/html to the wrapper.
+
+    Skips at-rule preludes (@media, @keyframes) — their inner blocks are still
+    walked, so a rule nested inside @media gets scoped like any other.
+    """
+    out: list[str] = []
+    i = 0
+    while i < len(css):
+        brace = css.find("{", i)
+        if brace == -1:
+            break
+        prelude = css[i:brace].strip()
+
+        if prelude.startswith("@"):
+            # Nested block (@media/@supports) — scope its interior, copy the prelude.
+            if prelude.split()[0] in ("@media", "@supports"):
+                close = _matching_brace(css, brace)
+                out.append(f"{prelude}{{{_scope_css(css[brace + 1 : close], scope)}}}")
+                i = close + 1
+                continue
+            close = _matching_brace(css, brace)
+            out.append(css[i : close + 1])
+            i = close + 1
+            continue
+
+        close = _matching_brace(css, brace)
+        body = css[brace + 1 : close]
+        selectors = []
+        for sel in prelude.split(","):
+            sel = sel.strip()
+            if not sel:
+                continue
+            if sel in ("body", "html", ":root", "html body"):
+                selectors.append(f".{scope}")
+            else:
+                selectors.append(f".{scope} {sel}")
+        if selectors:
+            out.append(f"{','.join(selectors)}{{{body}}}")
+        i = close + 1
+    return "".join(out)
+
+
+def _matching_brace(text: str, open_idx: int) -> int:
+    """Index of the `}` matching the `{` at `open_idx`; len(text) if unbalanced."""
+    depth = 0
+    for i in range(open_idx, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(text)
+
+
+# Which report sections belong to which board tab. The report is one document;
+# the board splits it so a reader looking at cost sees cost charts, not a wall.
+# Sections not listed stay on the Overview — the default is "leave it where the
+# report put it", so a new section added upstream never silently disappears.
+INSIGHTS_TAB_SECTIONS: dict[str, tuple[str, ...]] = {
+    "cost": ("section-economics",),
+    "context": ("section-ce", "section-pe"),
+}
+
+
+def _split_report_sections(inner: str) -> tuple[str, dict[str, str]]:
+    """Split report HTML into (overview_remainder, {tab: sections_html}).
+
+    Sections are lifted whole, in document order, so each keeps its own header
+    and intro text rather than arriving as orphaned charts.
+    """
+    taken: dict[str, list[str]] = {}
+    for tab, section_ids in INSIGHTS_TAB_SECTIONS.items():
+        for sid in section_ids:
+            m = re.search(rf'<section id="{re.escape(sid)}">.*?</section>', inner, re.DOTALL)
+            if not m:
+                log.warning("insights.section_missing", section=sid, tab=tab)
+                continue
+            taken.setdefault(tab, []).append(m.group(0))
+            inner = inner.replace(m.group(0), "", 1)
+    return inner, {tab: "".join(parts) for tab, parts in taken.items()}
+
+
+def render_insights_region(report_path: Path | None, *, today: str | None = None) -> str:
+    """Embed the newest insights report as the Overview's content.
+
+    Renders the report's own charts rather than restating its numbers: the
+    report is already the daily read, and a second rendering of the same data
+    would be one more thing to keep in sync.
+    """
+    if report_path is None or not report_path.exists():
+        return (
+            '<div class="card"><div class="card-title">Daily insights</div>'
+            '<p class="card-note">No insights report found. Run <code>/meta-insights</code> '
+            "to generate one.</p></div>"
+        )
+
+    raw = report_path.read_text(encoding="utf-8")
+
+    generated = ""
+    m = re.search(r"insights-report-(\d{4}-\d{2}-\d{2})", str(report_path.resolve()))
+    if m:
+        generated = m.group(1)
+
+    age_note = ""
+    if generated and today:
+        days = (_date.fromisoformat(today) - _date.fromisoformat(generated)).days
+        if days > 1:
+            tone = "saturated" if days > 7 else "note"
+            age_note = (
+                f'<p class="{tone}">Report generated {html.escape(generated)} — '
+                f"{days} days old. Run <code>/meta-insights</code> to refresh.</p>"
+            )
+
+    styles = "".join(
+        _scope_css(m.group(1), _INSIGHTS_SCOPE)
+        for m in re.finditer(r"<style[^>]*>(.*?)</style>", raw, re.DOTALL)
+    )
+
+    body_m = re.search(r"<body[^>]*>(.*)</body>", raw, re.DOTALL)
+    inner = body_m.group(1) if body_m else raw
+    # The report's own <script> is dropped: its charts are pure CSS, and an
+    # embedded script would run against the board's DOM, not its own.
+    inner = re.sub(r"<script[^>]*>.*?</script>", "", inner, flags=re.DOTALL)
+
+    overview_inner, _by_tab = _split_report_sections(inner)
+
+    return (
+        f"<style>{styles}</style>"
+        f'<div class="card">'
+        f'<div class="card-title">Daily insights</div>'
+        f'<p class="card-note">The <code>/meta-insights</code> report, rendered inline. '
+        f"Token economics moved to Cost &amp; Efficiency; context-engineering and "
+        f"prompt-engineering health moved to Context Health. "
+        f"Source: <code>{html.escape(report_path.name)}</code>.</p>"
+        f"{age_note}"
+        f"</div>"
+        f'<div class="{_INSIGHTS_SCOPE}">{overview_inner}</div>'
+    )
+
+
+def render_insights_tab_region(
+    report_path: Path | None, tab: str, *, today: str | None = None
+) -> str:
+    """The slice of the insights report belonging to `tab`.
+
+    Styles are emitted with each slice: the tabs are independent marker regions
+    and a reader may land on any of them, so each must carry the CSS its own
+    charts need rather than depending on the Overview having rendered first.
+    """
+    if report_path is None or not report_path.exists():
+        return (
+            f'<p class="empty">No insights report — run <code>/meta-insights</code> '
+            f"for {html.escape(tab)} charts.</p>"
+        )
+
+    raw = report_path.read_text(encoding="utf-8")
+    styles = "".join(
+        _scope_css(m.group(1), _INSIGHTS_SCOPE)
+        for m in re.finditer(r"<style[^>]*>(.*?)</style>", raw, re.DOTALL)
+    )
+    body_m = re.search(r"<body[^>]*>(.*)</body>", raw, re.DOTALL)
+    inner = body_m.group(1) if body_m else raw
+    inner = re.sub(r"<script[^>]*>.*?</script>", "", inner, flags=re.DOTALL)
+
+    _overview, by_tab = _split_report_sections(inner)
+    section_html = by_tab.get(tab, "")
+    if not section_html:
+        return f'<p class="empty">The insights report carries no {html.escape(tab)} section.</p>'
+
+    return f'<style>{styles}</style><div class="{_INSIGHTS_SCOPE}">{section_html}</div>'
+
+
+# ---------------------------------------------------------------------------
+# Retro (GUA-137) — does the improvement loop actually close?
+# ---------------------------------------------------------------------------
+#
+# The three table-only tabs (code review, experiments, workflow loop) answered
+# separate questions that are really one question: findings arrive, become
+# hypotheses, get scored, and a few graduate. Rendered as tables that chain is
+# invisible — 59 experiments with 44 still open reads the same as 59 shipped.
+# The funnel makes the drop-off the headline and keeps the tables as detail.
+
+_FUNNEL_STAGES = ("findings", "hypotheses", "scored", "resolved")
+
+
+def _retro_funnel(
+    findings: list[dict[str, Any]] | None,
+    experiments: list[Experiment] | None,
+    verdict_rows: list[dict[str, Any]] | None,
+) -> str:
+    """Stage bars for findings → hypotheses → scored → resolved.
+
+    Each bar is scaled to the widest stage, so the shape *is* the attrition.
+    A stage with no data renders at zero width with its count stated, never
+    omitted — a missing bar would read as a narrower funnel than reality.
+    """
+    n_findings = len(findings or [])
+    exps = experiments or []
+    n_hypotheses = len(exps)
+    # Scored-but-unknown experiments would make a later stage wider than an
+    # earlier one, which a funnel cannot mean. Count only scored rows that
+    # correspond to a known hypothesis, and report the orphans separately.
+    known = {e.name for e in exps}
+    scored_all = {str(r.get("experiment")) for r in (verdict_rows or [])}
+    scored = scored_all & known
+    orphan_scored = scored_all - known
+    n_scored = len(scored)
+    resolved = sum(
+        1
+        for e in exps
+        if any(k in e.status.lower() for k in ("verified", "confirmed", "failed", "graduated"))
+    )
+
+    stages = [
+        ("findings", n_findings, "review findings logged", "var(--s2)"),
+        ("hypotheses", n_hypotheses, "ledger rows under test", "var(--s4)"),
+        ("scored", n_scored, "experiments with a verdict", "var(--s1)"),
+        ("resolved", resolved, "verified, confirmed or failed", "var(--s3)"),
+    ]
+    peak = max((n for _, n, _, _ in stages), default=0) or 1
+
+    bars = "".join(
+        f'<div class="fn-row">'
+        f'<div class="fn-head"><span class="fn-name">{html.escape(name)}</span>'
+        f'<span class="fn-n">{n:,}</span></div>'
+        f'<div class="fn-track"><div class="fn-fill" style="width:{n / peak * 100:.1f}%;'
+        f'background:{color}"></div></div>'
+        f'<div class="fn-note">{html.escape(note)}</div></div>'
+        for name, n, note, color in stages
+    )
+
+    # The interesting number is what does NOT make it through.
+    open_pct = (n_hypotheses - resolved) / n_hypotheses * 100 if n_hypotheses else 0.0
+    verdict = (
+        f'<p class="fn-verdict">{n_hypotheses - resolved} of {n_hypotheses} hypotheses '
+        f"({open_pct:.0f}%) are still open. A hypothesis that never resolves is not "
+        f"evidence of anything — it is a question the loop stopped asking.</p>"
+        if n_hypotheses
+        else ""
+    )
+    orphans = (
+        f'<p class="fn-orphan">&#9888; {len(orphan_scored)} scored experiment(s) match no '
+        f"ledger row — verdicts accumulated against hypotheses that were renamed or "
+        f"removed. They are excluded from the funnel above.</p>"
+        if orphan_scored
+        else ""
+    )
+    return f'<div class="funnel">{bars}</div>{verdict}{orphans}'
+
+
+def _verdict_mix(verdict_rows: list[dict[str, Any]] | None) -> str:
+    """Latest verdict per experiment, as a proportional bar.
+
+    Latest-per-experiment, not every row: an experiment scored 25 times would
+    otherwise outvote one scored twice, and the question is where experiments
+    stand now, not how many times the scorer ran.
+    """
+    if not verdict_rows:
+        return '<p class="empty">No scored verdicts yet.</p>'
+
+    latest: dict[str, dict[str, Any]] = {}
+    for row in verdict_rows:
+        name = str(row.get("experiment"))
+        prev = latest.get(name)
+        if prev is None or str(row.get("run_at") or "") >= str(prev.get("run_at") or ""):
+            latest[name] = row
+
+    counts: dict[str, int] = {}
+    for row in latest.values():
+        counts[str(row.get("verdict"))] = counts.get(str(row.get("verdict")), 0) + 1
+
+    tone = {
+        "confirmed": "var(--good)",
+        "trending": "var(--s1)",
+        "inconclusive": "var(--text-3)",
+        "failed": "var(--bad)",
+    }
+    total = sum(counts.values()) or 1
+    order = sorted(counts.items(), key=lambda kv: -kv[1])
+
+    segs = "".join(
+        f'<div class="mix-seg" style="width:{n / total * 100:.1f}%;'
+        f'background:{tone.get(v, "var(--s4)")}" '
+        f'title="{html.escape(v)}: {n} of {total}"></div>'
+        for v, n in order
+    )
+    legend = "".join(
+        f'<span class="mix-key"><i style="background:{tone.get(v, "var(--s4)")}"></i>'
+        f"{html.escape(v)} <b>{n}</b></span>"
+        for v, n in order
+    )
+    return (
+        f'<div class="mix-bar">{segs}</div><div class="mix-legend">{legend}</div>'
+        f'<p class="card-note">Latest verdict per experiment ({total} scored).</p>'
+    )
+
+
+def render_retro_region(
+    *,
+    findings: list[dict[str, Any]] | None = None,
+    experiments: list[Experiment] | None = None,
+    verdict_rows: list[dict[str, Any]] | None = None,
+    store: Path | None = None,
+) -> str:
+    """The retro tab: the improvement loop as a funnel, then per-experiment trends."""
+    funnel = _retro_funnel(findings, experiments, verdict_rows)
+    mix = _verdict_mix(verdict_rows)
+
+    trend_rows = ""
+    if experiments:
+        scored = {str(r.get("experiment")) for r in (verdict_rows or [])}
+        interesting = [e for e in experiments if e.name in scored][:12]
+        if interesting:
+            trend_rows = "".join(
+                f"<tr><td>{html.escape(_truncate(e.name, 70))}</td>"
+                f"<td>{html.escape(_truncate(e.status, 60))}</td>"
+                f'<td class="trend-cell">{_experiment_trend(e, store)}</td></tr>'
+                for e in interesting
+            )
+
+    trends = (
+        f'<div class="overflow-x"><table class="repo-table">'
+        f"<thead><tr><th>Experiment</th><th>Status</th><th>7-day trend</th></tr></thead>"
+        f"<tbody>{trend_rows}</tbody></table></div>"
+        if trend_rows
+        else '<p class="empty">No scored experiments to trend yet.</p>'
+    )
+
+    return (
+        '<div class="card">\n'
+        '      <div class="card-title">Does the loop close?</div>\n'
+        '      <p class="card-note">Findings become hypotheses, hypotheses get scored, '
+        "a few resolve. The width of each stage is its share of the widest one.</p>\n"
+        f"      {funnel}\n"
+        "    </div>\n"
+        '    <div class="card">\n'
+        '      <div class="card-title">Where experiments stand</div>\n'
+        f"      {mix}\n"
+        "    </div>\n"
+        '    <div class="card">\n'
+        '      <div class="card-title">Scored experiments — 7-day trend</div>\n'
+        '      <p class="card-note">Experiments whose ledger metric has session-data backing. '
+        "A blank trend means the metric is a meta-signal nothing can chart.</p>\n"
+        f"      {trends}\n"
+        "    </div>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Context & orchestration visuals (GUA-137)
+# ---------------------------------------------------------------------------
+#
+# Rebuilt natively from the fact store rather than lifted from an insights
+# report. The July-era reports carried these three panels; the current
+# LLM-authored report contract dropped them, so embedding an old report would
+# freeze them at July numbers. Computed here, they refresh on every --facts run.
+
+_CONTEXT_BUCKETS: tuple[tuple[str, float, float], ...] = (
+    ("<50k", 0, 50_000),
+    ("50–100k", 50_000, 100_000),
+    ("100–150k", 100_000, 150_000),
+    (">150k (heavy)", 150_000, float("inf")),
+)
+
+_DURATION_BUCKETS: tuple[tuple[str, float, float], ...] = (
+    ("<5 min", 0, 5),
+    ("5–15 min", 5, 15),
+    ("15–45 min", 15, 45),
+    ("45–90 min", 45, 90),
+    ("90+ min", 90, float("inf")),
+)
+
+
+def _bucket_bars(
+    rows: list[dict[str, Any]],
+    column: str,
+    buckets: tuple[tuple[str, float, float], ...],
+    *,
+    highlight_last: bool = False,
+) -> tuple[str, int]:
+    """Horizontal bars over `buckets`, plus the scored row count.
+
+    Rows with a null `column` are excluded and the surviving count is returned
+    so the caller can render the frame — a distribution over 319 of 599 rows
+    is not a distribution over all sessions, and must not be drawn as one.
+    """
+    values = [float(r[column]) for r in rows if r.get(column) is not None]
+    if not values:
+        return '<p class="empty">No data for this metric.</p>', 0
+
+    counts = []
+    for label, lo, hi in buckets:
+        counts.append((label, sum(1 for v in values if lo <= v < hi)))
+    peak = max(n for _, n in counts) or 1
+
+    bars = ""
+    for i, (label, n) in enumerate(counts):
+        pct = n / len(values) * 100
+        is_last = highlight_last and i == len(counts) - 1
+        color = "var(--bad)" if is_last and n else "var(--s1)"
+        bars += (
+            f'<div class="dist-row">'
+            f'<div class="dist-label">{html.escape(label)}</div>'
+            f'<div class="dist-track"><div class="dist-fill" '
+            f'style="width:{n / peak * 100:.1f}%;background:{color}"></div></div>'
+            f'<div class="dist-val">{n:,} <span>({pct:.0f}%)</span></div></div>'
+        )
+    return bars, len(values)
+
+
+def render_context_orchestration_card(store: Path) -> str:
+    """Context-window distribution, cache performance, and subagent orchestration."""
+    rows = _work_sessions(read_all(store))
+
+    ctx_bars, ctx_n = _bucket_bars(rows, "max_context", _CONTEXT_BUCKETS, highlight_last=True)
+    dur_bars, dur_n = _bucket_bars(rows, "duration_min", _DURATION_BUCKETS)
+
+    # Cache efficiency: reads as a share of all input the model saw.
+    reads = sum(float(r.get("cache_read_tokens") or 0) for r in rows)
+    writes = sum(float(r.get("cache_write_tokens") or 0) for r in rows)
+    fresh = sum(float(r.get("input_tokens") or 0) for r in rows)
+    total_in = reads + writes + fresh
+    hit = reads / total_in * 100 if total_in else 0.0
+
+    # Subagent orchestration, all-time. The windowed view lives in its own card;
+    # this is the shape of parallel work, not its cost trend.
+    by_agent, _by_model, spawns = _subagent_totals(store)
+    sub_cost = sum(s["cost"] for s in by_agent.values())
+    all_cost = sum(float(r.get("cost_units") or 0) for r in rows) or 1.0
+    n_transcripts = sum(int(s["n"]) for s in by_agent.values())
+    heavy = sum(1 for r in rows if (r.get("max_context") or 0) > 150_000)
+
+    return (
+        '<div class="card">\n'
+        '      <div class="card-title">Context window &amp; cache</div>\n'
+        f'      <p class="card-note">Peak context per session. Above 150k the overflow cannot be '
+        f"cached, so each turn costs ~5&times; more. Computed over {ctx_n:,} sessions carrying a "
+        f"context reading.</p>\n"
+        f'      <div class="dist">{ctx_bars}</div>\n'
+        f'      <div class="stat-row" style="margin-top:14px">'
+        f'<div class="stat"><span class="value">{hit:.0f}%</span>'
+        f'<span class="label">cache hit rate</span></div>'
+        f'<div class="stat"><span class="value">{reads / 1e9:,.1f}B</span>'
+        f'<span class="label">tokens read from cache</span></div>'
+        f'<div class="stat"><span class="value">{heavy:,}</span>'
+        f'<span class="label">sessions over 150k</span></div></div>\n'
+        "    </div>\n"
+        '    <div class="card">\n'
+        '      <div class="card-title">Parallelism &amp; subagent orchestration</div>\n'
+        '      <p class="card-note">How much work runs in spawned agents rather than the main '
+        "loop, and how long sessions run.</p>\n"
+        f'      <div class="stat-row">'
+        f'<div class="stat"><span class="value">{n_transcripts:,}</span>'
+        f'<span class="label">subagent transcripts</span></div>'
+        f'<div class="stat"><span class="value">{sub_cost / all_cost * 100:.0f}%</span>'
+        f'<span class="label">share of usage</span></div>'
+        f'<div class="stat"><span class="value">{sum(spawns.values()):,}</span>'
+        f'<span class="label">agents spawned</span></div></div>\n'
+        f'      <p class="card-note" style="margin-top:14px">Session duration '
+        f"({dur_n:,} sessions timed)</p>\n"
+        f'      <div class="dist">{dur_bars}</div>\n'
+        "    </div>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Insights KPI panel (GUA-137) — the dashboards/insights-report.html shape
+# ---------------------------------------------------------------------------
+#
+# A different pipeline from librarian's LLM-authored narrative report. That one
+# is retrospective prose and belongs on Retro; this is a metrics read: KPIs,
+# context/cache distribution, parallelism, response time. Rebuilt from the fact
+# store so it refreshes on every --facts run rather than freezing at a snapshot.
+
+_RESPONSE_BUCKETS: tuple[tuple[str, float, float], ...] = (
+    ("<1 min", 0, 1),
+    ("1–3 min", 1, 3),
+    ("3–10 min", 3, 10),
+    ("10–30 min", 10, 30),
+    ("30+ min", 30, float("inf")),
+)
+
+
+def _kpi(
+    label: str,
+    value: str,
+    sub: str,
+    accent: str,
+    status: str = "",
+    status_tone: str = "",
+) -> str:
+    """One KPI card. `status` is the optional third line carrying a judgement."""
+    status_html = f'<div class="ikpi-status {status_tone}">{status}</div>' if status else ""
+    return (
+        f'<div class="ikpi {accent}">'
+        f'<div class="ikpi-label">{html.escape(label)}</div>'
+        f'<div class="ikpi-value">{html.escape(value)}</div>'
+        f'<div class="ikpi-sub">{html.escape(sub)}</div>'
+        f"{status_html}</div>"
+    )
+
+
+def _fmt_duration(minutes: float) -> str:
+    """`2m 42s` / `1h 05m` — the source report's duration idiom."""
+    if minutes <= 0:
+        return "—"
+    if minutes < 60:
+        whole = int(minutes)
+        secs = round((minutes - whole) * 60)
+        if secs == 60:
+            whole, secs = whole + 1, 0
+        return f"{whole}m {secs:02d}s"
+    hours = int(minutes // 60)
+    return f"{hours}h {int(minutes - hours * 60):02d}m"
+
+
+def _hbar(label: str, value: str, pct: float, color: str) -> str:
+    """A labelled horizontal bar with the value inside the fill."""
+    return (
+        f'<div class="hb-row"><div class="hb-label">{html.escape(label)}</div>'
+        f'<div class="hb-track"><div class="hb-fill" style="width:{max(pct, 3):.1f}%;'
+        f'background:{color}"><span>{html.escape(value)}</span></div></div>'
+        f'<div class="hb-val">{html.escape(value)}</div></div>'
+    )
+
+
+def _short_model(name: str) -> str:
+    """Trim a model id to its readable tier: claude-haiku-4-5-20251001 -> haiku-4.5."""
+    label = name.removeprefix("claude-")
+    # Strip a trailing yyyymmdd build stamp; keep the version that precedes it.
+    label = re.sub(r"-\d{8}$", "", label)
+    # opus-4-6 -> opus-4.6, but leave a bare tier (opus-5) alone.
+    return re.sub(r"-(\d+)-(\d+)$", r"-\1.\2", label)
+
+
+INSIGHTS_WINDOWS: tuple[tuple[str, str, int | None], ...] = (
+    ("7d", "7 days", 7),
+    ("30d", "30 days", 30),
+    ("90d", "90 days", 90),
+    ("all", "All time", None),
+)
+_INSIGHTS_DEFAULT_WINDOW = "30d"
+
+# Cache reads bill at roughly a tenth of fresh input; the saving is that 90%
+# discount applied to the share of input that was served from cache.
+_CACHE_READ_DISCOUNT = 0.9
+
+_SPAWN_BUCKETS: tuple[tuple[str, float, float], ...] = (
+    ("solo", 0, 1),
+    ("1 agent", 1, 2),
+    ("2–3 agents", 2, 4),
+    ("4+ agents", 4, float("inf")),
+)
+
+
+def _spawn_records(row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Parsed agent_spawns for a row, or [] when absent or malformed."""
+    raw = row.get("agent_spawns")
+    if not raw:
+        return []
+    try:
+        parsed = json.loads(raw)
+    except (TypeError, json.JSONDecodeError):
+        return []
+    return parsed if isinstance(parsed, list) else []
+
+
+def _insights_panel(rows: list[dict[str, Any]], store: Path, cutoff: str | None) -> str:
+    """One window's worth of the insights read."""
+    if not rows:
+        return '<p class="empty">No sessions in this window.</p>'
+
+    n = len(rows)
+    total_cost = sum(float(r.get("cost_units") or 0) for r in rows)
+    dates = {str(r["date"]) for r in rows}
+    turns_total = sum(int(r.get("human_turns") or 0) for r in rows)
+
+    durations = [float(r["duration_min"]) for r in rows if r.get("duration_min") is not None]
+    med_dur = _percentile(durations, 50) if durations else 0.0
+    avg_dur = sum(durations) / len(durations) if durations else 0.0
+
+    reads = sum(float(r.get("cache_read_tokens") or 0) for r in rows)
+    writes = sum(float(r.get("cache_write_tokens") or 0) for r in rows)
+    fresh = sum(float(r.get("input_tokens") or 0) for r in rows)
+    total_in = reads + writes + fresh
+    hit = reads / total_in * 100 if total_in else 0.0
+    saved = (reads * _CACHE_READ_DISCOUNT) / total_in * 100 if total_in else 0.0
+
+    compacted = sum(1 for r in rows if r.get("compacted"))
+    compact_pct = compacted / n * 100 if n else 0.0
+
+    by_agent, _bm, spawns = _subagent_totals(store, since=cutoff)
+    sub_n = sum(int(s["n"]) for s in by_agent.values())
+    sub_cost = sum(s["cost"] for s in by_agent.values())
+    sub_share = sub_cost / total_cost * 100 if total_cost else 0.0
+    heavy = sum(1 for r in rows if (r.get("max_context") or 0) > 150_000)
+    heavy_cost = sum(
+        float(r.get("cost_units") or 0) for r in rows if (r.get("max_context") or 0) > 150_000
+    )
+    heavy_share = heavy_cost / total_cost * 100 if total_cost else 0.0
+
+    ba_rows = [r for r in rows if r.get("bash_antipatterns") is not None]
+    ba_total = sum(int(r["bash_antipatterns"]) for r in ba_rows)
+    ba_avg = ba_total / len(ba_rows) if ba_rows else 0.0
+    interruptions = sum(int(r.get("user_interruptions") or 0) for r in rows)
+    hook_blocks = sum(int(r.get("hook_blocks") or 0) for r in rows)
+
+    # --- headline row: cost and efficiency levers ---------------------------
+    headline = "".join(
+        [
+            _kpi(
+                "Total cost units", f"{total_cost / 1e9:,.2f}B", "usage_cost_units", "accent-left"
+            ),
+            _kpi("Sessions", f"{n:,}", f"{len(dates)} active days", "accent-teal"),
+            _kpi(
+                "Turns / day",
+                f"{turns_total / len(dates):,.0f}" if dates else "—",
+                f"{turns_total:,} total",
+                "accent-blue",
+            ),
+            _kpi(
+                "Compact rate",
+                f"{compact_pct:.0f}%",
+                f"{compacted:,} of {n:,} sessions",
+                "accent-green",
+                "&#10003; Active context management"
+                if compact_pct >= 40
+                else "&#9888; Low — context runs long",
+                "good" if compact_pct >= 40 else "warn",
+            ),
+        ]
+    )
+
+    # --- context + cache ----------------------------------------------------
+    ctx_bars, ctx_n = _bucket_bars(rows, "max_context", _CONTEXT_BUCKETS, highlight_last=True)
+    heavy_pct = heavy / ctx_n * 100 if ctx_n else 0.0
+    ctx_flag = (
+        f'<p class="dist-flag bad"><b>{heavy_pct:.0f}%</b> of sessions exceed 150k context '
+        f"— high risk of cost degradation</p>"
+        if heavy_pct >= 10
+        else ""
+    )
+
+    # --- subagent concurrency + activity + attribution ----------------------
+    spawn_counts = [float(len(_spawn_records(r))) for r in rows]
+    conc_bars, _conc_n = _bucket_bars(
+        [{"spawns": c} for c in spawn_counts], "spawns", _SPAWN_BUCKETS
+    )
+    type_counts: dict[str, int] = {}
+    for r in rows:
+        for rec in _spawn_records(r):
+            key = str(rec.get("type") or "unknown")
+            type_counts[key] = type_counts.get(key, 0) + 1
+
+    palette = [
+        "var(--ac-violet)",
+        "var(--ac-teal)",
+        "var(--ac-blue)",
+        "var(--ac-orange)",
+        "var(--ac-rose)",
+        "var(--ac-green)",
+    ]
+    type_total = sum(type_counts.values()) or 1
+    type_bars = (
+        "".join(
+            _hbar(
+                name,
+                f"{cnt / type_total * 100:.0f}%",
+                cnt / max(type_counts.values()) * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, cnt) in enumerate(sorted(type_counts.items(), key=lambda kv: -kv[1])[:6])
+        )
+        or '<p class="empty">No agent spawns recorded in this window.</p>'
+    )
+
+    attr_bars = ""
+    if by_agent:
+        top = sorted(by_agent.items(), key=lambda kv: -kv[1]["cost"])[:6]
+        peak = top[0][1]["cost"] or 1
+        attr_bars = "".join(
+            _hbar(
+                name,
+                f"{st['cost'] / sub_cost * 100:.0f}%" if sub_cost else "0%",
+                st["cost"] / peak * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, st) in enumerate(top)
+        )
+
+    out_tokens = [float(r["output_tokens"]) for r in rows if r.get("output_tokens")]
+    o50 = _percentile(out_tokens, 50) if out_tokens else 0.0
+    o75 = _percentile(out_tokens, 75) if out_tokens else 0.0
+    o90 = _percentile(out_tokens, 90) if out_tokens else 0.0
+    dur_bars, dur_n = _bucket_bars(rows, "duration_min", _RESPONSE_BUCKETS)
+
+    # --- secondary row: quality signals, below the graphs -------------------
+    secondary = "".join(
+        [
+            _kpi(
+                "Bash antipatterns",
+                f"{ba_total:,}",
+                f"{ba_avg:.1f} per session avg",
+                "accent-orange",
+                "&#9888; High — needs attention" if ba_avg > 10 else "&#10003; Within range",
+                "bad" if ba_avg > 10 else "good",
+            ),
+            _kpi(
+                "Interruptions", f"{interruptions:,}", f"Hook blocks: {hook_blocks:,}", "accent-red"
+            ),
+            _kpi(
+                "Median session",
+                _fmt_duration(med_dur),
+                f"avg {_fmt_duration(avg_dur)}",
+                "accent-violet" if False else "accent-blue",
+            ),
+            _kpi(
+                "Subagent sessions",
+                f"{sub_n:,}",
+                f"{sub_share:.0f}% of usage · {heavy} heavy",
+                "accent-left",
+                f"&#9889; {heavy_share:.0f}% usage in heavy sessions",
+                "warn" if heavy_share > 40 else "",
+            ),
+        ]
+    )
+
+    return (
+        f'<div class="ikpi-grid four">{headline}</div>\n'
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Context usage distribution</div>'
+        f'<p class="card-note">Peak context per session, over {ctx_n:,} sessions carrying a '
+        f"reading. Above 150k the overflow cannot be cached.</p>"
+        f'<div class="dist">{ctx_bars}</div>{ctx_flag}</div>'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Cache efficiency</div>'
+        f'<div class="mini-stats">'
+        f'<div><b style="color:var(--good)">{hit:.0f}%</b><span>Hit rate</span></div>'
+        f'<div><b style="color:var(--ac-teal)">{saved:.0f}%</b><span>Cost saved</span></div>'
+        f'<div><b style="color:var(--ac-blue)">{reads / 1e9:,.2f}B</b><span>Cache read</span></div>'
+        f'<div><b style="color:var(--ac-violet)">{writes / 1e6:,.0f}M</b>'
+        f"<span>Cache write</span></div></div>"
+        f'<div class="meter"><div class="meter-head"><span>Cache hit rate</span>'
+        f'<span class="meter-pct">{hit:.0f}%</span></div><div class="meter-track">'
+        f'<div class="meter-fill" style="width:{hit:.1f}%;background:var(--good)"></div></div></div>'
+        f'<div class="meter"><div class="meter-head"><span>Cost savings vs uncached</span>'
+        f'<span class="meter-pct">{saved:.0f}%</span></div><div class="meter-track">'
+        f'<div class="meter-fill" style="width:{saved:.1f}%;background:var(--ac-teal)">'
+        f"</div></div></div>"
+        f'<p class="dist-note">{reads / max(writes, 1):.1f}&times; more cache reads than writes — '
+        f"prefix caching is working across sessions.</p></div></div>\n"
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent concurrency</div>'
+        '<p class="card-note">Agents spawned per session. Session <em>overlap</em> needs '
+        "start/end timestamps the fact store does not capture — this is agents-per-session, "
+        "not concurrent sessions.</p>"
+        f'<div class="dist">{conc_bars}</div></div>'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent activity</div>'
+        f'<div class="mini-stats">'
+        f"<div><b>{sub_n:,}</b><span>Transcripts</span></div>"
+        f'<div><b style="color:var(--ac-teal)">{sub_share:.0f}%</b><span>Share of usage</span></div>'
+        f'<div><b style="color:var(--ac-orange)">{heavy}</b><span>Heavy sessions</span></div>'
+        f'<div><b style="color:var(--ac-rose)">{heavy_share:.0f}%</b>'
+        f"<span>Heavy usage</span></div></div>"
+        f'<p class="card-note" style="margin-top:8px">Agents by type</p>'
+        f'<div class="hbars">{type_bars}</div></div></div>\n'
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent attribution</div>'
+        '<p class="card-note">Share of subagent spend by agent type. <em>unattributed</em> is a '
+        "coverage gap, not an agent.</p>"
+        f'<div class="hbars">{attr_bars or "<p class='empty'>No subagent spend.</p>"}</div>'
+        f'<p class="dist-note">{sub_n:,} transcripts · {sum(spawns.values()):,} agents spawned · '
+        f"{sub_share:.0f}% of all usage</p></div>"
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Output tokens per session</div>'
+        '<p class="card-note">Output bills ~5&times; input — the primary cost lever.</p>'
+        f'<div class="mini-stats">'
+        f"<div><b>{o50 / 1000:,.0f}k</b><span>Median</span></div>"
+        f'<div><b style="color:var(--ac-blue)">{o75 / 1000:,.0f}k</b><span>p75</span></div>'
+        f'<div><b style="color:var(--ac-orange)">{o90 / 1000:,.0f}k</b><span>p90</span></div>'
+        f"</div></div></div>\n"
+        '<div class="card">'
+        '<div class="card-title">Session duration</div>'
+        f'<p class="card-note">Wall-clock per session, over {dur_n:,} timed sessions. '
+        f"Per-request response time needs timestamps the fact store does not capture.</p>"
+        f'<div class="dist">{dur_bars}</div></div>\n'
+        f'<div class="ikpi-grid four" style="margin-top:12px">{secondary}</div>'
+    )
+
+
+# ---------------------------------------------------------------------------
+# Split KPI regions — Session Health + Context Health (GUA-137)
+# ---------------------------------------------------------------------------
+
+
+def _dual_chart_svg(
+    p50_points: list[Point],
+    p90_points: list[Point],
+    color1: str,
+    color2: str,
+    *,
+    width: int = 420,
+    height: int = 140,
+    unit: str = "count",
+    threshold: float | None = None,
+    threshold_label: str = "",
+) -> str:
+    """SVG line chart with p50 + p90 dual series and optional threshold line."""
+    all_points = p50_points + p90_points
+    if not all_points:
+        return '<p class="empty">no data</p>'
+    pad_left = 48
+    pad_bottom = 18
+    plot_w = width - pad_left
+    plot_h = height - pad_bottom
+    values = [p.value for p in all_points]
+    lo, hi = min(values), max(values)
+    if threshold is not None:
+        lo = min(lo, threshold * 0.95)
+        hi = max(hi, threshold * 1.05)
+    span = (hi - lo) or 1.0
+
+    def _x(i: int, n: int) -> float:
+        return pad_left + i * (plot_w / max(n - 1, 1))
+
+    def _y(v: float) -> float:
+        return plot_h - ((v - lo) / span) * (plot_h - 20) - 10
+
+    def _polyline(pts: list[Point], color: str, dashed: bool = False) -> str:
+        if not pts:
+            return ""
+        n = len(pts)
+        coords = " ".join(f"{_x(i, n):.1f},{_y(p.value):.1f}" for i, p in enumerate(pts))
+        dash = ' stroke-dasharray="4,3"' if dashed else ""
+        dots = "".join(
+            f'<circle cx="{_x(i, n):.1f}" cy="{_y(p.value):.1f}" r="3" '
+            f'fill="{color}" opacity="0.7"><title>{html.escape(p.date)}: '
+            f"{_fmt_value(p.value, unit)} (n={p.n})</title></circle>"
+            for i, p in enumerate(pts)
+        )
+        return (
+            f'<polyline points="{coords}" fill="none" stroke="{color}" stroke-width="2" '
+            f'stroke-linejoin="round" stroke-linecap="round"{dash}/>{dots}'
+        )
+
+    # threshold dashed line
+    thresh_svg = ""
+    if threshold is not None:
+        ty = _y(threshold)
+        thresh_svg = (
+            f'<line x1="{pad_left}" y1="{ty:.1f}" x2="{width}" y2="{ty:.1f}" '
+            f'stroke="var(--text-3)" stroke-width="1" stroke-dasharray="6,4" opacity="0.5"/>'
+            f'<text x="{width - 2}" y="{ty - 4:.1f}" text-anchor="end" '
+            f'class="axis-label" fill="var(--text-3)" opacity="0.7">'
+            f"{html.escape(threshold_label or _fmt_value(threshold, unit))}</text>"
+        )
+
+    # grid lines (3 horizontal)
+    grid = ""
+    for i in range(4):
+        gv = lo + span * i / 3
+        gy = _y(gv)
+        grid += f'<line x1="{pad_left}" y1="{gy:.1f}" x2="{width}" y2="{gy:.1f}" stroke="var(--grid)" stroke-width="1"/>'
+
+    # y-axis labels
+    y_labels = (
+        f'<text x="{pad_left - 4}" y="{_y(hi):.1f}" text-anchor="end" '
+        f'dominant-baseline="middle" class="axis-label">{html.escape(_fmt_value(hi, unit))}</text>'
+        f'<text x="{pad_left - 4}" y="{_y(lo):.1f}" text-anchor="end" '
+        f'dominant-baseline="middle" class="axis-label">{html.escape(_fmt_value(lo, unit))}</text>'
+    )
+
+    # x-axis date labels
+    ref = p50_points or p90_points
+    x_labels = ""
+    if len(ref) > 14:
+        seen: set[str] = set()
+        for i, p in enumerate(ref):
+            m = p.date[:7]
+            if m not in seen:
+                seen.add(m)
+                x_labels += (
+                    f'<text x="{_x(i, len(ref)):.1f}" y="{height - 2}" text-anchor="middle" '
+                    f'class="axis-label">{_MONTH_ABBR[int(p.date[5:7])]}</text>'
+                )
+    elif ref:
+        x_labels = (
+            f'<text x="{_x(0, len(ref)):.1f}" y="{height - 2}" text-anchor="start" '
+            f'class="axis-label">{html.escape(ref[0].date[5:])}</text>'
+            f'<text x="{_x(len(ref) - 1, len(ref)):.1f}" y="{height - 2}" text-anchor="end" '
+            f'class="axis-label">{html.escape(ref[-1].date[5:])}</text>'
+        )
+
+    return (
+        f'<svg viewBox="0 0 {width} {height}" role="img" preserveAspectRatio="none">'
+        f"{grid}{thresh_svg}"
+        f"{_polyline(p50_points, color1)}"
+        f"{_polyline(p90_points, color2, dashed=True)}"
+        f"{y_labels}{x_labels}</svg>"
+    )
+
+
+def _cost_efficiency_panel(rows: list[dict[str, Any]], store: Path, cutoff: str | None) -> str:
+    """Cost & Efficiency: headline KPIs + the 3x2 token/cost/cache chart grid.
+
+    Split from Session Health (2026-08-19): the six token charts answer "where did
+    effort go", which is this tab's question. Session Health keeps the behavioural
+    half (profile, parallelism, duration, workspace totals). Both panels still run
+    through `_windowed_region`, so the window toggle drives them independently.
+    """
+    if not rows:
+        return '<p class="empty">No sessions in this window.</p>'
+
+    n = len(rows)
+    total_cost = sum(float(r.get("cost_units") or 0) for r in rows)
+    dates = {str(r["date"]) for r in rows}
+    turns_total = sum(int(r.get("human_turns") or 0) for r in rows)
+
+    headline = "".join(
+        [
+            _kpi(
+                "Total cost units",
+                f"{total_cost / 1e9:,.2f}B",
+                "usage_cost_units",
+                "accent-left",
+            ),
+            _kpi("Sessions", f"{n:,}", f"{len(dates)} active days", "accent-teal"),
+            _kpi(
+                "Turns / day",
+                f"{turns_total / len(dates):,.0f}" if dates else "\u2014",
+                f"{turns_total:,} total",
+                "accent-blue",
+            ),
+        ]
+    )
+
+    # Build daily aggregates
+    by_day: dict[str, dict[str, list[float]]] = {}
+    for r in rows:
+        d = str(r["date"])
+        day = by_day.setdefault(d, {"cost": [], "cache": [], "out": [], "in": [], "compact": []})
+        day["cost"].append(float(r.get("cost_units") or 0))
+        inp = float(r.get("input_tokens") or 0) + float(r.get("cache_read_tokens") or 0)
+        day["in"].append(inp)
+        day["out"].append(float(r.get("output_tokens") or 0))
+        reads = float(r.get("cache_read_tokens") or 0)
+        writes = float(r.get("cache_write_tokens") or 0)
+        fresh = float(r.get("input_tokens") or 0)
+        total_in = reads + writes + fresh
+        day["cache"].append(reads / total_in * 100 if total_in else 0.0)
+        day["compact"].append(1.0 if r.get("compacted") else 0.0)
+
+    sorted_days = sorted(by_day.keys())
+
+    def _pts(key: str, agg: str) -> list[Point]:
+        result = []
+        for d in sorted_days:
+            vals = by_day[d][key]
+            if not vals:
+                continue
+            if agg == "p50":
+                v = _percentile(vals, 50)
+            elif agg == "p90":
+                v = _percentile(vals, 90)
+            elif agg == "sum":
+                v = sum(vals)
+            elif agg == "mean":
+                v = sum(vals) / len(vals)
+            elif agg == "pct":
+                v = sum(vals) / len(vals) * 100  # fraction → %
+            else:
+                v = sum(vals) / len(vals)
+            result.append(Point(date=d, value=v, regime="", n=len(vals)))
+        return result
+
+    def _chart(
+        title: str,
+        note: str,
+        p50: list[Point],
+        p90: list[Point],
+        c1: str,
+        c2: str,
+        unit: str,
+        threshold: float | None = None,
+        thresh_label: str = "",
+    ) -> str:
+        if not p50 and not p90:
+            return (
+                f'<div class="card" style="flex:1"><div class="card-title">{title}</div>'
+                f'<p class="empty">No data</p></div>'
+            )
+        ref = p50 or p90
+        vals = [p.value for p in ref]
+        med = _percentile(vals, 50) if vals else 0.0
+        tail = _percentile(vals, 90) if vals else 0.0
+        # Check threshold breach
+        breach = ""
+        if threshold is not None and ref:
+            last_3 = [p.value for p in ref[-3:]]
+            avg_recent = sum(last_3) / len(last_3) if last_3 else 0.0
+            if (unit == "pct" and avg_recent < threshold) or (
+                unit != "pct" and avg_recent > threshold
+            ):
+                breach = (
+                    f'<p class="dist-flag bad" style="margin-top:6px">'
+                    f"Recent average ({_fmt_value(avg_recent, unit)}) "
+                    f"{'below' if unit == 'pct' else 'above'} threshold "
+                    f"({_fmt_value(threshold, unit)})</p>"
+                )
+        chart = _dual_chart_svg(
+            p50,
+            p90,
+            c1,
+            c2,
+            width=420,
+            height=140,
+            unit=unit,
+            threshold=threshold,
+            threshold_label=thresh_label,
+        )
+        return (
+            f'<div class="card" style="flex:1"><div class="card-title">{title}</div>'
+            f'<p class="card-note">{note}</p>'
+            f'<div class="mini-stats" style="margin-bottom:6px">'
+            f'<div><b style="color:{c1}">{_fmt_value(med, unit)}</b><span>p50</span></div>'
+            f'<div><b style="color:{c2}">{_fmt_value(tail, unit)}</b><span>p90</span></div>'
+            f"<div><b>{len(ref)}</b><span>days</span></div></div>"
+            f'<div class="chart-wrap" style="height:140px">{chart}</div>'
+            f"{breach}</div>"
+        )
+
+    return (
+        f'<div class="ikpi-grid four" style="grid-template-columns:repeat(3,1fr)">{headline}</div>\n'
+        # Row 1: cost + cache
+        '<div class="card-row">'
+        + _chart(
+            "Cost per session",
+            "Lower is better. Solid = p50, dashed = p90.",
+            _pts("cost", "p50"),
+            _pts("cost", "p90"),
+            "var(--s1)",
+            "var(--s2)",
+            "cost",
+        )
+        + _chart(
+            "Cache hit rate",
+            "Higher is better. Below 95% = context churn.",
+            _pts("cache", "mean"),
+            [],
+            "var(--good)",
+            "var(--good)",
+            "pct",
+            threshold=95.0,
+            thresh_label="95%",
+        )
+        + "</div>\n"
+        # Row 2: output tokens
+        '<div class="card-row">'
+        + _chart(
+            "Output tokens / session",
+            "Output bills 5\u00d7 input. Solid = p50, dashed = p90.",
+            _pts("out", "p50"),
+            _pts("out", "p90"),
+            "var(--s2)",
+            "var(--s4)",
+            "tokens",
+        )
+        + _chart(
+            "Output tokens / day",
+            "Daily output volume. Dashed threshold = p90 day (heavy).",
+            _pts("out", "sum"),
+            [],
+            "var(--s2)",
+            "var(--s2)",
+            "tokens",
+            threshold=(
+                _percentile(
+                    [sum(by_day[d]["out"]) for d in sorted_days if by_day[d]["out"]],
+                    90,
+                )
+                if len(sorted_days) > 2
+                else None
+            ),
+            thresh_label="p90 day",
+        )
+        + "</div>\n"
+        # Row 3: input tokens
+        '<div class="card-row">'
+        + _chart(
+            "Input tokens / session",
+            "Fresh input + cache reads. Solid = p50, dashed = p90.",
+            _pts("in", "p50"),
+            _pts("in", "p90"),
+            "var(--s3)",
+            "var(--s4)",
+            "tokens",
+        )
+        + _chart(
+            "Input tokens / day",
+            "Daily intake. Dashed threshold = p90 day.",
+            _pts("in", "sum"),
+            [],
+            "var(--s3)",
+            "var(--s3)",
+            "tokens",
+            threshold=(
+                _percentile(
+                    [sum(by_day[d]["in"]) for d in sorted_days if by_day[d]["in"]],
+                    90,
+                )
+                if len(sorted_days) > 2
+                else None
+            ),
+            thresh_label="p90 day",
+        )
+        + "</div>\n"
+    )
+
+
+def _session_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str | None) -> str:
+    """Session Health: how sessions *behaved* — shape, parallelism, duration, friction.
+
+    Deliberately excludes the token/cost/cache grid, which moved to
+    `_cost_efficiency_panel`. What stays answers "how did the session run", not
+    "what did it cost": context distribution, agent concurrency, wall-clock
+    duration, friction signals, and the workspace totals they landed against.
+    """
+    if not rows:
+        return '<p class="empty">No sessions in this window.</p>'
+
+    n = len(rows)
+    dates = {str(r["date"]) for r in rows}
+    turns_total = sum(int(r.get("human_turns") or 0) for r in rows)
+    turn_vals = [float(r["human_turns"]) for r in rows if r.get("human_turns") is not None]
+    single_turn = sum(1 for v in turn_vals if v <= 1)
+
+    # Friction signals — moved here from Context Health (2026-08-19). These are
+    # properties of how a session ran, not of how context was managed.
+    interruptions = sum(int(r.get("user_interruptions") or 0) for r in rows)
+    ba_rows = [r for r in rows if r.get("bash_antipatterns") is not None]
+    ba_total = sum(int(r["bash_antipatterns"]) for r in ba_rows)
+    err_total = sum(int(r.get("tool_error_count") or 0) for r in rows)
+
+    headline = "".join(
+        [
+            _kpi("Sessions", f"{n:,}", f"{len(dates)} active days", "accent-teal"),
+            _kpi(
+                "Turns / session",
+                f"{_percentile(turn_vals, 50):,.0f}" if turn_vals else "—",
+                f"{turns_total:,} total · {single_turn * 100 // n if n else 0}% single-turn",
+                "accent-blue",
+            ),
+            _kpi(
+                "Interruptions",
+                f"{interruptions:,}",
+                f"{interruptions / n:.2f} per session" if n else "—",
+                "accent-left",
+            ),
+        ]
+    )
+
+    friction = (
+        '<div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>\n'
+        '<h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Friction signals</h3>\n'
+        '<div class="card">'
+        '<div class="card-title">What pushed back during the session</div>'
+        '<p class="card-note">User interruptions, tool failures and bash antipatterns are '
+        "properties of how the session <em>ran</em> — they moved here from Context Health, "
+        "which now covers context <em>management</em> only.</p>"
+        '<div class="stat-row" style="margin-top:12px">'
+        f'<div class="stat"><span class="value">{interruptions:,}</span>'
+        '<span class="label">interruptions</span></div>'
+        f'<div class="stat"><span class="value">{err_total:,}</span>'
+        '<span class="label">tool failures</span></div>'
+        f'<div class="stat"><span class="value">{ba_total:,}</span>'
+        f'<span class="label">bash antipatterns</span></div>'
+        f'<div class="stat"><span class="value">{ba_total / len(ba_rows):.1f}</span>'
+        '<span class="label">antipatterns / session</span></div>'
+        if ba_rows
+        else '<div class="stat"><span class="value">—</span>'
+        '<span class="label">antipatterns / session</span></div>'
+    ) + (
+        "</div>"
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
+        f"Antipattern counts computed over {len(ba_rows):,} of {n:,} sessions that carry the "
+        f"column; tool failures over all {n:,}.</p>"
+        "</div>"
+    )
+
+    return (
+        f'<div class="ikpi-grid four" style="grid-template-columns:repeat(3,1fr)">{headline}</div>\n'
+        '<div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>\n'
+        '<h3 style="font-size:15px;font-weight:600;margin-bottom:16px">'
+        "Session Profile</h3>\n"
+        + _session_health_viz(rows, n)
+        + friction
+        + _repo_totals_card(store, cutoff)
+    )
+
+
+def _repo_totals_card(store: Path, cutoff: str | None) -> str:
+    """Workspace totals (commits, churn, PRs), windowed to the panel's cutoff.
+
+    Rendered once per window panel so the Session Health toggle drives it. Git
+    facts are per-day (git_activity) and per-PR (pull_requests), both dated, so
+    the same cutoff that filters sessions filters these — no separate anchor.
+
+    NOT a Claude-productivity metric and not joinable to a session: Ramsey
+    commits, always, so the Co-Authored-By trailer is absent by policy and its
+    absence means nothing (see gitstore.ATTRIBUTION). Read as workspace throughput.
+    """
+    activity = [r for r in read_git_activity(store) if cutoff is None or str(r["date"]) >= cutoff]
+    prs = [
+        p for p in read_prs(store) if cutoff is None or str(p.get("created_date") or "") >= cutoff
+    ]
+    if not activity and not prs:
+        return ""
+
+    commits = sum(r["commits"] for r in activity)
+    bot = sum(r["commits_bot"] for r in activity)
+    insertions = sum(r["insertions"] for r in activity)
+    deletions = sum(r["deletions"] for r in activity)
+    repos = len({r["repo"] for r in activity})
+    human_prs = [p for p in prs if not p["is_bot"]]
+    merged = sum(p["merged"] for p in human_prs)
+
+    tiles = [
+        (f"{commits - bot:,}", "human commits"),
+        (f"{bot:,}", "bot commits"),
+        (f"+{insertions:,}", "lines added"),
+        (f"-{deletions:,}", "lines removed"),
+        (f"{len(human_prs)}", "human PRs"),
+        (f"{merged}", "PRs merged"),
+        (f"{repos}", "active repos"),
+    ]
+    tile_html = "".join(
+        f'<div class="stat"><span class="value">{html.escape(v)}</span>'
+        f'<span class="label">{html.escape(label)}</span></div>'
+        for v, label in tiles
+    )
+    span = "all time" if cutoff is None else f"since {html.escape(cutoff)}"
+    return (
+        '<div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>\n'
+        '<h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Totals</h3>\n'
+        '<div class="card">'
+        f'<div class="card-title">Workspace totals ({span})</div>'
+        '<p class="card-note">What landed in the repos over this window. Not joinable '
+        "to a session &mdash; Ramsey commits, always, so read these as workspace "
+        "throughput rather than Claude output.</p>"
+        f'<div class="stat-row">{tile_html}</div>'
+        '<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
+        "Churn counts source files only &mdash; PDFs, notebooks, lockfiles, vendored "
+        "course material and bundled plugin JS are excluded. PRs are counted by "
+        "creation date.</p>"
+        "</div>"
+    )
+
+
+def _session_health_viz(rows: list[dict[str, Any]], n: int) -> str:
+    """Context dist, session parallelism, response time — gradient viz cards."""
+    # Context usage distribution
+    ctx_buckets = [
+        ("<50k", 0, 50_000, "linear-gradient(90deg,#4ade80,#22d3a0)"),
+        ("50\u2013100k", 50_000, 100_000, "linear-gradient(90deg,#6ab8f7,#7c6af7)"),
+        ("100\u2013150k", 100_000, 150_000, "linear-gradient(90deg,#fbbf24,#f7936a)"),
+        (">150k", 150_000, float("inf"), "linear-gradient(90deg,#f76a8a,#f7406a)"),
+    ]
+    ctx_counts = []
+    for label, lo, hi, grad in ctx_buckets:
+        cnt = sum(1 for r in rows if lo <= (r.get("max_context") or 0) < hi)
+        ctx_counts.append((label, cnt, grad))
+    peak_ctx = max((c for _, c, _ in ctx_counts), default=1) or 1
+    ctx_bars = "".join(
+        f'<div class="hb-row"><div class="hb-label">{lbl}</div>'
+        f'<div class="hb-track"><div class="hb-fill" style="width:{cnt / peak_ctx * 100:.0f}%;'
+        f'background:{grad}"><span>{cnt}</span></div></div>'
+        f'<div class="hb-val">{cnt * 100 // n if n else 0}%</div></div>'
+        for lbl, cnt, grad in ctx_counts
+    )
+    heavy = sum(1 for r in rows if (r.get("max_context") or 0) >= 150_000)
+    heavy_pct = heavy * 100 / n if n else 0
+    ctx_flag = (
+        f'<p class="dist-flag bad" style="margin-top:8px"><b>{heavy_pct:.0f}%</b> of sessions '
+        f"exceed 150k \u2014 cost degradation risk</p>"
+        if heavy_pct >= 15
+        else ""
+    )
+
+    # Session parallelism
+    solo = sum(1 for r in rows if len(_spawn_records(r)) == 0)
+    para_23 = sum(1 for r in rows if 1 <= len(_spawn_records(r)) <= 3)
+    para_4p = sum(1 for r in rows if len(_spawn_records(r)) >= 4)
+    pt = solo + para_23 + para_4p or 1
+    para_bar = (
+        f'<div class="mix-bar">'
+        f'<div class="mix-seg" style="flex:{solo};background:#4ade80">{solo * 100 // pt}%</div>'
+        f'<div class="mix-seg" style="flex:{para_23};background:#7c6af7">{para_23 * 100 // pt}%</div>'
+        f'<div class="mix-seg" style="flex:{para_4p};background:#f76a8a">{para_4p * 100 // pt}%</div>'
+        f"</div>"
+        f'<div style="display:flex;gap:14px;margin-top:8px;font-size:11px;color:var(--text-2)">'
+        f'<span style="display:flex;align-items:center;gap:4px">'
+        f'<span style="width:8px;height:8px;border-radius:50%;background:#4ade80"></span>'
+        f"Solo {solo * 100 // pt}%</span>"
+        f'<span style="display:flex;align-items:center;gap:4px">'
+        f'<span style="width:8px;height:8px;border-radius:50%;background:#7c6af7"></span>'
+        f"2\u20133 {para_23 * 100 // pt}%</span>"
+        f'<span style="display:flex;align-items:center;gap:4px">'
+        f'<span style="width:8px;height:8px;border-radius:50%;background:#f76a8a"></span>'
+        f"4+ {para_4p * 100 // pt}%</span></div>"
+    )
+
+    # Response time distribution
+    dur_buckets = [
+        ("<1m", 0, 1, "linear-gradient(180deg,#4ade80,#22d3a0)"),
+        ("1\u20133m", 1, 3, "linear-gradient(180deg,#6ab8f7,#56cfb2)"),
+        ("3\u201310m", 3, 10, "linear-gradient(180deg,#7c6af7,#6ab8f7)"),
+        ("10\u201330m", 10, 30, "linear-gradient(180deg,#fbbf24,#f7936a)"),
+        ("30m+", 30, float("inf"), "linear-gradient(180deg,#f76a8a,#c04080)"),
+    ]
+    dur_rows = [r for r in rows if r.get("duration_min") is not None]
+    dur_counts = []
+    for label, lo, hi, grad in dur_buckets:
+        cnt = sum(1 for r in dur_rows if lo <= float(r["duration_min"]) < hi)
+        dur_counts.append((label, cnt, grad))
+    dur_peak = max((c for _, c, _ in dur_counts), default=1) or 1
+    dur_vals = [float(r["duration_min"]) for r in dur_rows]
+    med_dur = _percentile(dur_vals, 50) if dur_vals else 0.0
+    avg_dur = sum(dur_vals) / len(dur_vals) if dur_vals else 0.0
+    rt_bars = "".join(
+        f'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+        f'<div style="font-size:10px;color:var(--text-1);font-weight:600">{cnt}</div>'
+        f'<div style="width:100%;height:{max(cnt / dur_peak * 80, 2):.0f}px;'
+        f'border-radius:4px 4px 0 0;background:{grad}"></div>'
+        f'<div style="font-size:10px;color:var(--text-3)">{lbl}</div></div>'
+        for lbl, cnt, grad in dur_counts
+    )
+
+    return (
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
+        '<div class="card">'
+        '<div class="card-title">Context Window</div>'
+        f'<p class="card-note">{n:,} sessions by peak context.</p>'
+        f'<div class="hbars" style="margin-top:12px">{ctx_bars}</div>{ctx_flag}</div>'
+        '<div class="card">'
+        '<div class="card-title">Session Parallelism</div>'
+        f'<p class="card-note">{n:,} sessions \u2014 agent concurrency.</p>'
+        f'<div style="margin-top:12px">{para_bar}</div></div>'
+        '<div class="card">'
+        '<div class="card-title">Session Duration</div>'
+        f'<p class="card-note">{len(dur_rows):,} timed. '
+        f"Median {_fmt_duration(med_dur)}, avg {_fmt_duration(avg_dur)}.</p>"
+        f'<div style="display:flex;gap:6px;align-items:flex-end;height:90px;margin-top:12px">'
+        f"{rt_bars}</div></div>"
+        "</div>"
+    )
+
+
+def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str | None) -> str:
+    """Context Health KPI panel: subagent concurrency, activity, attribution,
+    bash antipatterns, interruptions, hook blocks."""
+    if not rows:
+        return '<p class="empty">No sessions in this window.</p>'
+
+    total_cost = sum(float(r.get("cost_units") or 0) for r in rows)
+
+    by_agent, _bm, spawns = _subagent_totals(store, since=cutoff)
+    sub_n = sum(int(s["n"]) for s in by_agent.values())
+    sub_cost = sum(s["cost"] for s in by_agent.values())
+    sub_share = sub_cost / total_cost * 100 if total_cost else 0.0
+    heavy = sum(1 for r in rows if (r.get("max_context") or 0) > 150_000)
+    heavy_cost = sum(
+        float(r.get("cost_units") or 0) for r in rows if (r.get("max_context") or 0) > 150_000
+    )
+    heavy_share = heavy_cost / total_cost * 100 if total_cost else 0.0
+
+    # Friction signals (interruptions, bash antipatterns, hook blocks) moved to
+    # Session Health 2026-08-19 — they describe how a session ran, not how context was
+    # managed. What replaces them is compaction discipline.
+    #
+    # `compact_trigger` is null on sessions that never compacted, so the denominator is
+    # compacted sessions only: an "auto" share over all sessions would dilute with
+    # sessions that had nothing to compact. An auto trigger is direct evidence the
+    # proactive-compaction rule was NOT followed — the session hit the threshold before
+    # a phase boundary rescued it.
+    compacted = [r for r in rows if r.get("compact_trigger")]
+    auto_n = sum(1 for r in compacted if str(r["compact_trigger"]) == "auto")
+    auto_share = auto_n * 100 / len(compacted) if compacted else 0.0
+    tslc = [
+        float(r["turns_since_last_compact"])
+        for r in rows
+        if r.get("turns_since_last_compact") is not None
+    ]
+
+    palette = [
+        "var(--ac-violet)",
+        "var(--ac-teal)",
+        "var(--ac-blue)",
+        "var(--ac-orange)",
+        "var(--ac-rose)",
+        "var(--ac-green)",
+    ]
+
+    spawn_counts = [float(len(_spawn_records(r))) for r in rows]
+    conc_bars, _conc_n = _bucket_bars(
+        [{"spawns": c} for c in spawn_counts], "spawns", _SPAWN_BUCKETS
+    )
+
+    type_counts: dict[str, int] = {}
+    for r in rows:
+        for rec in _spawn_records(r):
+            key = str(rec.get("type") or "unknown")
+            type_counts[key] = type_counts.get(key, 0) + 1
+    type_total = sum(type_counts.values()) or 1
+    type_bars = (
+        "".join(
+            _hbar(
+                name,
+                f"{cnt / type_total * 100:.0f}%",
+                cnt / max(type_counts.values()) * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, cnt) in enumerate(sorted(type_counts.items(), key=lambda kv: -kv[1])[:6])
+        )
+        or '<p class="empty">No agent spawns recorded.</p>'
+    )
+
+    attr_bars = ""
+    if by_agent:
+        top = sorted(by_agent.items(), key=lambda kv: -kv[1]["cost"])[:6]
+        peak = top[0][1]["cost"] or 1
+        attr_bars = "".join(
+            _hbar(
+                name,
+                f"{st['cost'] / sub_cost * 100:.0f}%" if sub_cost else "0%",
+                st["cost"] / peak * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, st) in enumerate(top)
+        )
+
+    # --- model usage: main loop vs subagents --------------------------------
+    # Two independent frames. Main-loop turns come from sessions.models (populated
+    # on every row); subagent spend comes from subagent_costs.by_model (populated
+    # only on parent sessions that spawned). Never summed together — a turn and a
+    # spawned agent are different units.
+    main_models: dict[str, int] = {}
+    for r in rows:
+        try:
+            for model, turns in json.loads(r.get("models") or "{}").items():
+                main_models[model] = main_models.get(model, 0) + int(turns)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+    main_turns = sum(main_models.values())
+    main_model_bars = (
+        "".join(
+            _hbar(
+                _short_model(name),
+                f"{cnt / main_turns * 100:.0f}%",
+                cnt / max(main_models.values()) * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, cnt) in enumerate(sorted(main_models.items(), key=lambda kv: -kv[1])[:6])
+        )
+        if main_turns
+        else '<p class="empty">No model data in this window.</p>'
+    )
+
+    sub_model_cost = sum(s["cost"] for s in _bm.values())
+    sub_model_n = sum(int(s["n"]) for s in _bm.values())
+    sub_model_bars = (
+        "".join(
+            _hbar(
+                _short_model(name),
+                f"{st['cost'] / sub_model_cost * 100:.0f}%",
+                st["cost"] / max(s["cost"] for s in _bm.values()) * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, st) in enumerate(sorted(_bm.items(), key=lambda kv: -kv[1]["cost"])[:6])
+        )
+        if sub_model_cost
+        else '<p class="empty">No subagent model data in this window.</p>'
+    )
+
+    # Parallelism headline: how much work actually fans out.
+    spawned = [c for c in spawn_counts if c > 0]
+    parallel_note = (
+        f"{len(spawned)} of {len(rows):,} sessions spawned agents · "
+        f"{sum(spawn_counts):,.0f} total · "
+        f"{sum(spawned) / len(spawned):.1f} avg when spawning · "
+        f"peak {max(spawn_counts):.0f}"
+        if spawned
+        else "No agent spawns in this window."
+    )
+
+    quality = "".join(
+        [
+            _kpi(
+                "Compaction discipline",
+                f"{auto_share:.0f}% auto" if compacted else "—",
+                (
+                    f"{auto_n} of {len(compacted):,} compactions"
+                    if compacted
+                    else "no compactions in window"
+                ),
+                "accent-orange",
+                (
+                    "&#9888; Auto-rescued — compact at phase boundaries"
+                    if auto_share > 50
+                    else "&#10003; Mostly proactive"
+                ),
+                "bad" if auto_share > 50 else "good",
+            ),
+            _kpi(
+                "Turns before compaction",
+                f"{_percentile(tslc, 50):,.0f}" if tslc else "—",
+                f"p50 over {len(tslc):,} compacted sessions",
+                "accent-red",
+            ),
+            _kpi(
+                "Subagent sessions",
+                f"{sub_n:,}",
+                f"{sub_share:.0f}% of usage \u00b7 {heavy} heavy",
+                "accent-left",
+                f"&#9889; {heavy_share:.0f}% usage in heavy sessions",
+                "warn" if heavy_share > 40 else "",
+            ),
+        ]
+    )
+
+    return (
+        # KPI row
+        f'<div class="ikpi-grid four" style="grid-template-columns:repeat(3,1fr)">{quality}</div>\n'
+        # Row 1: subagent concurrency + activity
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent Concurrency</div>'
+        '<p class="card-note">Agents spawned per session \u2014 the shape of parallel work.</p>'
+        f'<div class="dist">{conc_bars}</div>'
+        f'<p class="dist-note">{parallel_note}</p></div>'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent Activity</div>'
+        f'<div class="mini-stats">'
+        f"<div><b>{sub_n:,}</b><span>Transcripts</span></div>"
+        f'<div><b style="color:var(--ac-teal)">{sub_share:.0f}%</b><span>Share of usage</span></div>'
+        f'<div><b style="color:var(--ac-orange)">{heavy}</b><span>Heavy sessions</span></div>'
+        f'<div><b style="color:var(--ac-rose)">{heavy_share:.0f}%</b>'
+        f"<span>Heavy usage</span></div></div>"
+        f'<p class="card-note" style="margin-top:8px">Agents by type</p>'
+        f'<div class="hbars">{type_bars}</div></div></div>\n'
+        # Row 2: model usage \u2014 main loop vs subagents
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Main-loop model</div>'
+        '<p class="card-note">Assistant turns by model in the session itself. '
+        "Policy: opus-5 is the session default; fable is verdict-only.</p>"
+        f'<div class="hbars">{main_model_bars}</div>'
+        f'<p class="dist-note">{main_turns:,} turns \u00b7 {len(main_models)} models</p></div>'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent model</div>'
+        '<p class="card-note">Spawned-agent spend by model. '
+        "Policy: haiku for fan-out, sonnet for bounded execution.</p>"
+        f'<div class="hbars">{sub_model_bars}</div>'
+        f'<p class="dist-note">{sub_model_n:,} agents \u00b7 '
+        f"{_fmt_value(sub_model_cost, 'cost')} attributed</p></div></div>\n"
+        # Row 3: attribution
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Subagent Attribution</div>'
+        '<p class="card-note">Share of subagent spend by type. '
+        "<em>unattributed</em> = coverage gap.</p>"
+        f'<div class="hbars">{attr_bars or "<p class=empty>No subagent spend.</p>"}</div>'
+        f'<p class="dist-note">{sub_n:,} transcripts \u00b7 {sum(spawns.values()):,} agents \u00b7 '
+        f"{sub_share:.0f}% of usage</p></div></div>"
+    )
+
+
+def _windowed_region(store: Path, panel_fn) -> str:
+    """Shared windowing wrapper for Session Health and Context Health."""
+    all_rows = _work_sessions(read_all(store))
+    if not all_rows:
+        return '<p class="empty">No session data yet.</p>'
+
+    newest = max(str(r["date"]) for r in all_rows)
+    panels, buttons = [], []
+    for key, label, days in INSIGHTS_WINDOWS:
+        cutoff = (_date.fromisoformat(newest) - timedelta(days=days)).isoformat() if days else None
+        rows = [r for r in all_rows if cutoff is None or str(r["date"]) >= cutoff]
+        is_default = key == _INSIGHTS_DEFAULT_WINDOW
+        buttons.append(
+            f'<button type="button" class="win-btn{" active" if is_default else ""}" '
+            f'data-win="{key}">{label}</button>'
+        )
+        hidden = "" if is_default else ' style="display:none"'
+        panels.append(
+            f'<div class="win-panel" data-win="{key}"{hidden}>{panel_fn(rows, store, cutoff)}</div>'
+        )
+
+    frame = (
+        f'<p class="card-note">Windowed to the most recent data '
+        f"(newest observation {html.escape(newest)}). Percentiles and shares are "
+        f"computed over the selected window only.</p>"
+    )
+    return (
+        f'<div class="win-toggle" role="group" aria-label="Time window">'
+        f"{''.join(buttons)}</div>\n{frame}\n{''.join(panels)}"
+    )
+
+
+def render_session_health_region(store: Path) -> str:
+    """Windowed Session Health region: session shape, parallelism, duration, friction."""
+    return _windowed_region(store, _session_health_panel)
+
+
+def render_cost_efficiency_region(store: Path) -> str:
+    """Windowed Cost & Efficiency region: the token/cost/cache chart grid."""
+    return _windowed_region(store, _cost_efficiency_panel)
+
+
+def render_context_health_kpi_region(store: Path) -> str:
+    """Windowed Context Health region: subagents, antipatterns, hooks."""
+    return _windowed_region(store, _context_health_panel)
+
+
+def render_insights_kpi_region(store: Path) -> str:
+    """The metrics insights read, windowed 7d/30d/90d/all.
+
+    All windows are computed server-side and emitted together; the toggle only
+    changes which is visible, so switching never re-reads the store. Windowing
+    matters here beyond freshness: an all-time view of subagent attribution is
+    dominated by pre-CLI-2.1.201 transcripts that structurally cannot carry a
+    name, which buries how well recent work is attributed.
+    """
+    all_rows = _work_sessions(read_all(store))
+    if not all_rows:
+        return '<p class="empty">No session data yet.</p>'
+
+    newest = max(str(r["date"]) for r in all_rows)
+    panels, buttons = [], []
+    for key, label, days in INSIGHTS_WINDOWS:
+        cutoff = (_date.fromisoformat(newest) - timedelta(days=days)).isoformat() if days else None
+        rows = [r for r in all_rows if cutoff is None or str(r["date"]) >= cutoff]
+        is_default = key == _INSIGHTS_DEFAULT_WINDOW
+        buttons.append(
+            f'<button type="button" class="win-btn{" active" if is_default else ""}" '
+            f'data-win="{key}">{label}</button>'
+        )
+        hidden = "" if is_default else ' style="display:none"'
+        panels.append(
+            f'<div class="win-panel" data-win="{key}"{hidden}>'
+            f"{_insights_panel(rows, store, cutoff)}</div>"
+        )
+
+    frame = (
+        f'<p class="card-note">Windowed to the most recent data '
+        f"(newest observation {html.escape(newest)}). Percentiles and shares are computed "
+        f"over the selected window only.</p>"
+    )
+    return (
+        f'<div class="win-toggle" role="group" aria-label="Insights window">'
+        f"{''.join(buttons)}</div>\n{frame}\n{''.join(panels)}"
+    )
+
+
+def render_token_grid_region(store: Path) -> str:
+    """Input and output tokens, each per-session and per-day — a true 2x2.
+
+    Per-session answers "how heavy is a typical session"; per-day answers "how
+    much am I doing". They move independently — fewer, larger sessions raise one
+    and lower the other — so neither substitutes for the other.
+    """
+    rows = _work_sessions(read_all(store))
+    if not rows:
+        return '<p class="empty">No session data yet.</p>'
+
+    by_day: dict[str, dict[str, float]] = {}
+    for r in rows:
+        day = by_day.setdefault(str(r["date"]), {"in": 0.0, "out": 0.0, "n": 0.0})
+        day["in"] += float(r.get("input_tokens") or 0) + float(r.get("cache_read_tokens") or 0)
+        day["out"] += float(r.get("output_tokens") or 0)
+        day["n"] += 1
+
+    def _pts(key: str) -> list[Point]:
+        return [
+            Point(date=d, value=v[key], regime="", n=int(v["n"])) for d, v in sorted(by_day.items())
+        ]
+
+    in_session = [
+        float(r.get("input_tokens") or 0) + float(r.get("cache_read_tokens") or 0) for r in rows
+    ]
+    out_session = [float(r.get("output_tokens") or 0) for r in rows]
+
+    def _panel(title: str, note: str, p50: float, p90: float, pts: list[Point], unit: str) -> str:
+        return (
+            '<div class="card">'
+            f'<div class="card-title">{title}</div>'
+            f'<p class="card-note">{note}</p>'
+            f'<div class="mini-stats">'
+            f"<div><b>{_fmt_value(p50, unit)}</b><span>p50</span></div>"
+            f'<div><b style="color:var(--ac-orange)">{_fmt_value(p90, unit)}</b>'
+            f"<span>p90</span></div></div>"
+            f'<div class="trend-cell">{_sparkline_svg(pts[-14:], unit=unit)}</div>'
+            "</div>"
+        )
+
+    return (
+        '<div class="grid-2x2">'
+        + _panel(
+            "Input tokens per session",
+            "Fresh input plus cache reads. Cache reads bill at ~10% of fresh input.",
+            _percentile(in_session, 50) if in_session else 0.0,
+            _percentile(in_session, 90) if in_session else 0.0,
+            _pts("in"),
+            "tokens",
+        )
+        + _panel(
+            "Input tokens per day",
+            "Daily intake across every session. Grows with volume, not session size.",
+            _percentile([v["in"] for v in by_day.values()], 50) if by_day else 0.0,
+            _percentile([v["in"] for v in by_day.values()], 90) if by_day else 0.0,
+            _pts("in"),
+            "tokens",
+        )
+        + _panel(
+            "Output tokens per session",
+            "Output bills ~5&times; input — the primary cost lever.",
+            _percentile(out_session, 50) if out_session else 0.0,
+            _percentile(out_session, 90) if out_session else 0.0,
+            _pts("out"),
+            "tokens",
+        )
+        + _panel(
+            "Output tokens per day",
+            "Daily output volume. The 14-day trend is under each figure.",
+            _percentile([v["out"] for v in by_day.values()], 50) if by_day else 0.0,
+            _percentile([v["out"] for v in by_day.values()], 90) if by_day else 0.0,
+            _pts("out"),
+            "tokens",
+        )
+        + "</div>"
+    )

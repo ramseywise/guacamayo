@@ -812,8 +812,9 @@ def _run_facts() -> None:
         help=(
             "Path to the shared context-dashboard.html for region injection. "
             "Telemetry injects only the regions it owns (REVIEW-FINDINGS, "
-            "EXPERIMENTS-LIFECYCLE, INPUT-TOKENS, SKILL-ECONOMICS, TOOL-TRENDS, "
-            "FRICTION-REGROUP, SKILL-EVALS, LOOP); all other regions and hand-written "
+            "EXPERIMENTS-LIFECYCLE, LOOP-CLOSURE, INPUT-TOKENS, SKILL-ECONOMICS, "
+            "TOOL-TRENDS, FRICTION-REGROUP, SKILL-EVALS, LOOP); all other regions "
+            "and hand-written "
             "content are left untouched."
         ),
     )
@@ -1024,15 +1025,29 @@ def _run_facts() -> None:
             parse_findings,
             parse_ledger,
             render_automated_actions_region,
+            render_context_health_kpi_region,
+            render_context_orchestration_card,
+            render_cost_efficiency_region,
             render_eval_results_region,
             render_experiments_region,
+            render_failure_kinds_region,
             render_friction_regroup_card,
             render_input_tokens_card,
+            render_insights_kpi_region,
+            render_insights_region,
+            render_insights_tab_region,
+            render_loop_closure_card,
             render_loop_region,
+            render_retro_region,
             render_review_findings_region,
+            render_session_health_region,
             render_skill_economics_card,
+            render_subagent_windows_card,
+            render_token_grid_region,
             render_tool_trends_card,
+            render_verdict_trajectories_region,
         )
+        from telemetry.factstore import read_verdicts
         from telemetry.gitstore import read_issues
         from telemetry.loop import collect_plan_docs
 
@@ -1056,10 +1071,16 @@ def _run_facts() -> None:
 
             regions: dict[str, str] = {
                 "REVIEW-FINDINGS": render_review_findings_region(review_findings),
-                "EXPERIMENTS-LIFECYCLE": render_experiments_region(experiments or None),
+                "EXPERIMENTS-LIFECYCLE": render_experiments_region(experiments or None, store),
+                "LOOP-CLOSURE": render_loop_closure_card(
+                    Path(args.ledger_log).expanduser()
+                    if args.ledger_log
+                    else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md"
+                ),
                 "INPUT-TOKENS": render_input_tokens_card(store),
                 "SKILL-ECONOMICS": render_skill_economics_card(store),
                 "TOOL-TRENDS": render_tool_trends_card(store),
+                "FAILURE-KINDS": render_failure_kinds_region(store),
                 "FRICTION-REGROUP": render_friction_regroup_card(store),
                 "SKILL-EVALS": render_eval_results_region(eval_results),
                 "LOOP": render_loop_region(
@@ -1067,6 +1088,30 @@ def _run_facts() -> None:
                     read_issues(store),
                 ),
                 "AUTOMATED-ACTIONS": render_automated_actions_region(action_records),
+                "SUBAGENT-WINDOWS": render_subagent_windows_card(store),
+                "INSIGHTS-KPI": render_insights_kpi_region(store),
+                "SESSION-HEALTH": render_session_health_region(store),
+                "COST-EFFICIENCY": render_cost_efficiency_region(store),
+                "CONTEXT-HEALTH-KPI": render_context_health_kpi_region(store),
+                "TOKEN-GRID": render_token_grid_region(store),
+                "INSIGHTS-COST": render_insights_tab_region(
+                    ctx_path.parent / "insights" / "insights-report.html", "cost"
+                ),
+                "INSIGHTS-CONTEXT": render_insights_tab_region(
+                    ctx_path.parent / "insights" / "insights-report.html", "context"
+                ),
+                "CONTEXT-ORCHESTRATION": render_context_orchestration_card(store),
+                "RETRO": render_retro_region(
+                    findings=review_findings,
+                    experiments=experiments or None,
+                    verdict_rows=read_verdicts(store),
+                    store=store,
+                ),
+                "OVERVIEW": render_insights_region(
+                    ctx_path.parent / "insights" / "insights-report.html",
+                    today=datetime.now(UTC).date().isoformat(),
+                ),
+                "VERDICT-TRAJECTORIES": render_verdict_trajectories_region(read_verdicts(store)),
             }
             injected = inject_regions(ctx_path, regions)
             print(f"Region injection: {injected}")

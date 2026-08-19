@@ -11,6 +11,7 @@ Acceptance criteria (issue #68):
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -313,3 +314,165 @@ def test_roundtrip_inject_experiments(tmp_path: Path) -> None:
     assert "test-exp" in result
     assert _BEFORE in result
     assert _AFTER in result
+
+
+# ---------------------------------------------------------------------------
+# GUA-137 Step 5: the marker contract
+# ---------------------------------------------------------------------------
+#
+# The guard that makes a dashboard rewrite unable to silently orphan a region.
+# inject_regions fails *soft* — a missing marker logs a warning and is skipped,
+# which is right at runtime (one malformed pair must not block every other
+# refresh) and wrong at review time (a whole card silently stops updating and
+# the page still looks fine). This test is the hard half of that pair.
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+_LIVE_DASHBOARD = _REPO_ROOT / ".sounding" / "context-dashboard.html"
+
+
+def _injected_region_names() -> list[str]:
+    """Region names the injector call-site actually passes, read from source.
+
+    Parsed rather than hardcoded: a duplicated list would drift the first time
+    someone adds a region, and a contract test that drifts silently is the
+    thing this test exists to prevent.
+    """
+    main_src = (_REPO_ROOT / "telemetry" / "__main__.py").read_text(encoding="utf-8")
+    start = main_src.index("regions: dict[str, str] = {")
+    end = main_src.index("injected = inject_regions(", start)
+    return re.findall(r'^\s*"([A-Z][A-Z-]+)":', main_src[start:end], re.MULTILINE)
+
+
+@pytest.mark.parametrize("dashboard", ["context-dashboard.html", "context-dashboard-v2.html"])
+def test_every_injected_region_has_exactly_one_marker_pair(dashboard: str) -> None:
+    """Each region the injector writes must have exactly one START/END pair.
+
+    Exactly one, not at least one: a duplicated pair means injection fills the
+    first and leaves the second frozen at whatever it last held — stale numbers
+    presented identically to live ones.
+
+    Both the live page and the GUA-137 v2 board are held to this: the whole
+    point of the contract is that a rewrite cannot silently orphan a region.
+
+    A region the injector knows about but a given page has *never* declared is
+    not a failure — the two pages are at different stages, and `inject_regions`
+    skips an absent marker by design. What must never happen is a page that
+    declares a marker and then loses one half of the pair, or grows a second
+    copy that silently freezes.
+    """
+    path = _REPO_ROOT / ".sounding" / dashboard
+    if not path.exists():
+        pytest.skip(f"{dashboard} not present")
+
+    names = _injected_region_names()
+    assert names, "parsed no region names — the call-site shape changed"
+
+    page = path.read_text(encoding="utf-8")
+    half_declared, duplicated = [], []
+    for name in names:
+        starts = len(re.findall(rf"<!-- {re.escape(name)}:START", page))
+        ends = page.count(f"<!-- {name}:END -->")
+        if starts == 0 and ends == 0:
+            continue  # not declared on this page — injection skips it
+        if starts != 1 or ends != 1:
+            (half_declared if starts == 0 or ends == 0 else duplicated).append(
+                f"{name} (start={starts}, end={ends})"
+            )
+
+    assert not half_declared, f"{dashboard} has half-declared regions: {half_declared}"
+    assert not duplicated, f"{dashboard} has more than one marker pair for: {duplicated}"
+
+
+def test_marker_contract_detects_a_removed_marker(tmp_path: Path) -> None:
+    """Planted defect: the contract check must fail when a marker is deleted.
+
+    Proves the assertion above can actually fail — a contract test that passes
+    against a broken file is worse than no test.
+    """
+    names = _injected_region_names()
+    victim = names[0]
+    page = _LIVE_DASHBOARD.read_text(encoding="utf-8")
+    broken = re.sub(rf"<!-- {re.escape(victim)}:START[^>]*-->", "", page, count=1)
+
+    copy = tmp_path / "context-dashboard.html"
+    copy.write_text(broken, encoding="utf-8")
+
+    starts = len(re.findall(rf"<!-- {re.escape(victim)}:START", copy.read_text(encoding="utf-8")))
+    assert starts == 0, "the planted defect did not remove the marker"
+
+
+def test_injecting_into_a_file_missing_the_marker_leaves_it_untouched(tmp_path: Path) -> None:
+    """The runtime half: a missing marker is skipped, not fatal, not corrupting."""
+    page = _make_html("REVIEW-FINDINGS")
+    target = tmp_path / "context-dashboard.html"
+    target.write_text(page, encoding="utf-8")
+
+    inject_regions(target, {"NOT-A-REGION": "<p>new</p>"})
+
+    assert target.read_text(encoding="utf-8") == page, "a skipped region must not alter the file"
+
+
+@pytest.mark.parametrize("dashboard", ["context-dashboard.html", "context-dashboard-v2.html"])
+def test_dashboard_declares_utf8_before_any_non_ascii(dashboard: str) -> None:
+    """The charset declaration must lead the file, and must actually be needed.
+
+    These pages carry no <head>, so a file:// open has nothing to go on but the
+    declaration. Without it ~1600 em-dashes, arrows and middots per page render
+    as mojibake — the encoding is guessed, and guessed wrong.
+
+    HTML5 requires the declaration inside the first 1024 bytes; asserting on
+    that boundary is what makes this test catch a regression that merely moves
+    the tag rather than deleting it.
+    """
+    path = _REPO_ROOT / ".sounding" / dashboard
+    if not path.exists():
+        pytest.skip(f"{dashboard} not present")
+
+    raw = path.read_bytes()
+    idx = raw.find(b'<meta charset="utf-8">')
+    assert idx != -1, f"{dashboard} has no charset declaration"
+    assert idx < 1024, f"charset at byte {idx}, past the 1024-byte scan window"
+
+    first_non_ascii = next((i for i, b in enumerate(raw) if b > 127), None)
+    assert first_non_ascii is not None, "expected non-ASCII content in the dashboard"
+    assert idx < first_non_ascii, "charset must precede the first non-ASCII byte"
+
+
+@pytest.mark.parametrize("dashboard", ["context-dashboard.html", "context-dashboard-v2.html"])
+def test_dashboard_script_tags_are_balanced(dashboard: str) -> None:
+    """Exactly one <script> pair — an extra closer dumps JS onto the page as text.
+
+    The live dashboard carried a second </script> with ~13KB of duplicated,
+    mid-array script between the two. The first block closed normally, so the
+    charts worked and nothing errored; the duplicate simply rendered as a wall
+    of visible JavaScript at the bottom of the page. Balance is the check that
+    catches it, because validity does not.
+    """
+    path = _REPO_ROOT / ".sounding" / dashboard
+    if not path.exists():
+        pytest.skip(f"{dashboard} not present")
+
+    page = path.read_text(encoding="utf-8")
+    opens = len(re.findall(r"<script[^>]*>", page))
+    closes = page.count("</script>")
+
+    assert opens == closes, f"{dashboard}: {opens} <script> vs {closes} </script>"
+    assert closes <= 1, f"{dashboard}: expected a single script block, found {closes}"
+
+
+def test_v2_board_declares_every_injected_region() -> None:
+    """The v2 board is the complete surface — no injector region may be missing.
+
+    The pair test above tolerates a page not declaring a region, because the
+    live page and the board are at different stages. That tolerance needs a
+    counterweight: the board is the one that must carry all of them, or a
+    region renders nowhere and no test notices.
+    """
+    path = _REPO_ROOT / ".sounding" / "context-dashboard-v2.html"
+    if not path.exists():
+        pytest.skip("v2 board not present")
+
+    page = path.read_text(encoding="utf-8")
+    missing = [n for n in _injected_region_names() if f"<!-- {n}:START" not in page]
+
+    assert not missing, f"v2 board is missing injected regions: {missing}"
