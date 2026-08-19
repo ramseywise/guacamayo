@@ -36,10 +36,12 @@ evidence saying so -- never a fabricated confirm/fail.
 
 from __future__ import annotations
 
-import json
 import re
 from dataclasses import dataclass
 from typing import Any
+
+from telemetry import signals
+from telemetry.signals import SignalSources
 
 # ---------------------------------------------------------------------------
 # Verdict vocabulary (matches the workflow-insights SKILL.md step 10 vocabulary
@@ -153,90 +155,97 @@ def parse_metric(metric: str) -> list[MetricClause]:
 # absence" apart from "no data to judge absence".
 
 
-def _bash_antipatterns_p50(rows: list[dict[str, Any]]) -> float | None:
-    values = [float(r["bash_antipatterns"]) for r in rows if r.get("bash_antipatterns") is not None]
-    if not values:
-        return None
-    ordered = sorted(values)
-    idx = len(ordered) // 2
-    return float(ordered[idx])
-
-
-def _bash_antipatterns_total(rows: list[dict[str, Any]]) -> float | None:
-    values = [r.get("bash_antipatterns") for r in rows if r.get("bash_antipatterns") is not None]
-    if not values:
-        return None
-    return float(sum(values))
-
-
-def _output_tokens_p90(rows: list[dict[str, Any]]) -> float | None:
-    values = [float(r.get("output_tokens") or 0) for r in rows]
-    if not values:
-        return None
-    ordered = sorted(values)
-    idx = min(round(0.9 * (len(ordered) - 1)), len(ordered) - 1)
-    return float(ordered[idx])
-
-
-def _execution_skill_compliance_pct(rows: list[dict[str, Any]]) -> float | None:
-    exec_rows = [r for r in rows if r.get("session_intent") == "execution"]
-    if not exec_rows:
-        return None
-    with_skills = sum(1 for r in exec_rows if len(json.loads(r.get("skill_costs") or "{}")) > 0)
-    return round(100 * with_skills / len(exec_rows), 2)
-
-
-def _cost_over_150k_share_pct(rows: list[dict[str, Any]]) -> float | None:
-    scored = [r for r in rows if r.get("max_context") is not None]
-    if not scored:
-        return None
-    total_cost = sum(float(r.get("cost_units") or 0) for r in scored)
-    if not total_cost:
-        return None
-    over_cost = sum(
-        float(r.get("cost_units") or 0) for r in scored if (r.get("max_context") or 0) >= 150_000
-    )
-    return round(100 * over_cost / total_cost, 2)
-
-
-def _fable_share_of_cost_pct(rows: list[dict[str, Any]]) -> float | None:
-    """Share of total cost spent on fable across sessions with a `models` breakdown."""
-    total = 0.0
-    fable = 0.0
-    scored = False
-    for r in rows:
-        try:
-            models: dict[str, Any] = json.loads(r.get("models") or "{}")
-        except (TypeError, ValueError):
-            continue
-        if not models:
-            continue
-        scored = True
-        for model, cost in models.items():
-            c = float(cost) if isinstance(cost, int | float) else 0.0
-            total += c
-            if "fable" in model.lower():
-                fable += c
-    if not scored or not total:
-        return None
-    return round(100 * fable / total, 2)
-
-
-# Registry keyed by a normalised (lowercased, non-alnum-stripped) signal slug so
-# the ledger's free-text hyphenation does not need to match a Python identifier
-# exactly. Values are (measurement_fn, description) -- description feeds the
-# inconclusive evidence string for unregistered signals via KeyError avoidance.
+# The signal namespace now lives in `signals.py` so the /hypothesis authoring
+# skill and this scorer share one source of truth -- a hypothesis must not be
+# writable against a name the scorer will silently fail to resolve.
+#
+# `_SIGNAL_METRICS` is retained as a thin compatibility view over the registry:
+# it maps name -> a callable taking session rows, which is the signature the
+# pre-2026-08-19 scorers and their tests use. Signals whose resolver needs a
+# source other than session rows are absent from this view by construction --
+# they are reached through `_measure` below, which passes the full bundle.
 _SIGNAL_METRICS: dict[str, Any] = {
-    "bash-antipatterns": _bash_antipatterns_p50,
-    "p90-output-tokens": _output_tokens_p90,
-    "execution-sessions-with-skills": _execution_skill_compliance_pct,
-    "top-session-cost-concentration": _cost_over_150k_share_pct,
-    "fable-tokens-in-non-verdict-skills": _fable_share_of_cost_pct,
+    name: (lambda rows, _n=name: signals.resolve(_n, signals.SignalSources(sessions=rows)))
+    for name in signals.registered_names()
 }
 
 
 def _normalize_signal(signal: str) -> str:
-    return signal.strip().lower()
+    """Normalise a ledger signal slug to its registry key.
+
+    Backticks are stripped because the ledger writes some metrics inside code
+    spans (`` `presence:co-authored-by-rule-in-CLAUDE.md` ``). `_METRIC_CLAUSE`
+    captures `[^\\s]+` for the signal, so the closing backtick lands inside the
+    captured slug and the name can never match a registry key no matter what is
+    registered -- three live ledger rows were unscorable for this reason alone
+    (2026-08-19), independent of whether their signal existed.
+    """
+    return signal.strip().strip("`").strip().lower()
+
+
+# ---------------------------------------------------------------------------
+# Measurement front-end
+# ---------------------------------------------------------------------------
+
+
+def _as_sources(rows: list[dict[str, Any]] | SignalSources) -> SignalSources:
+    """Accept either a bare session-row list (legacy) or a full source bundle.
+
+    The pre-2026-08-19 signature took only `sessions` rows. Signals backed by
+    git tables, the hook logs, findings, or repo files need more, so scorers now
+    take a bundle -- but every existing caller and test passes a list, which is
+    promoted here rather than at each call site.
+    """
+    return rows if isinstance(rows, SignalSources) else SignalSources(sessions=rows)
+
+
+def _measure(clause: MetricClause, src: SignalSources) -> tuple[float | None, Verdict | None]:
+    """Resolve a clause's signal to a value, or to the Verdict explaining why not.
+
+    Returns `(value, None)` on success and `(None, verdict)` otherwise. The four
+    registry states produce four *distinct* evidence strings -- collapsing them
+    into one "no factstore signal registered" message is what made 49 ledger rows
+    indistinguishable, hiding the difference between a claim nobody registered, a
+    claim awaiting a collection change, and a claim no telemetry could ever see.
+    """
+    name = _normalize_signal(clause.signal)
+    state = signals.state_of(name)
+    verb = _MEASURE_VERB[clause.metric_type]
+
+    if state == signals.UNREGISTERED:
+        return None, Verdict(
+            VERDICT_INCONCLUSIVE,
+            f"unregistered signal '{clause.signal}' — cannot {verb}; "
+            f"declare it in telemetry/signals.py or rewrite the metric",
+        )
+    if state == signals.NEEDS_COLLECTION:
+        sig = signals.lookup(name)
+        return None, Verdict(
+            VERDICT_INCONCLUSIVE,
+            f"'{clause.signal}' needs a collection change before it can be scored — "
+            f"{sig.remedy if sig else ''}",
+        )
+    if state == signals.UNOBSERVABLE:
+        sig = signals.lookup(name)
+        return None, Verdict(
+            VERDICT_INCONCLUSIVE,
+            f"'{clause.signal}' is unobservable by design — {sig.remedy if sig else ''}",
+        )
+
+    value = signals.resolve(name, src)
+    if value is None:
+        return None, Verdict(
+            VERDICT_INCONCLUSIVE, f"no data for '{clause.signal}' in the scored window"
+        )
+    return value, None
+
+
+_MEASURE_VERB = {
+    "absence": "measure absence",
+    "presence": "measure presence",
+    "count-drop": "measure count-drop",
+    "ratio": "measure ratio",
+}
 
 
 # ---------------------------------------------------------------------------
@@ -244,7 +253,7 @@ def _normalize_signal(signal: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-def _score_absence(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
+def _score_absence(clause: MetricClause, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """absence:<signal> — confirmed iff the registered count is exactly 0.
 
     Ledger semantics: "absence" always means an event-count signal (e.g.
@@ -255,48 +264,30 @@ def _score_absence(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
     absence signals (they describe git/GitHub/hook-log events, not session
     facts), so silence is not evidence.
     """
-    key = _normalize_signal(clause.signal)
-    fn = _SIGNAL_METRICS.get(key)
-    if fn is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE,
-            f"no factstore signal registered for '{clause.signal}' — cannot measure absence",
-        )
-    value = fn(rows)
-    if value is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE, f"no data for '{clause.signal}' in the scored session window"
-        )
+    value, blocked = _measure(clause, _as_sources(rows))
+    if blocked is not None:
+        return blocked
     if value == 0:
         return Verdict(VERDICT_CONFIRMED, f"{clause.signal}=0 across scored sessions")
     return Verdict(VERDICT_FAILED, f"{clause.signal}={value} (expected 0)")
 
 
-def _score_presence(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
+def _score_presence(clause: MetricClause, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """presence:<signal> — confirmed iff the registered count/value is >0.
 
     Mirror of absence: a registered signal with any positive occurrence
     confirms; zero occurrences with real data available is `failed` (the
     capability never showed up); no registered signal is `inconclusive`.
     """
-    key = _normalize_signal(clause.signal)
-    fn = _SIGNAL_METRICS.get(key)
-    if fn is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE,
-            f"no factstore signal registered for '{clause.signal}' — cannot measure presence",
-        )
-    value = fn(rows)
-    if value is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE, f"no data for '{clause.signal}' in the scored session window"
-        )
+    value, blocked = _measure(clause, _as_sources(rows))
+    if blocked is not None:
+        return blocked
     if value > 0:
         return Verdict(VERDICT_CONFIRMED, f"{clause.signal}={value} observed")
     return Verdict(VERDICT_FAILED, f"{clause.signal}=0 (expected at least one occurrence)")
 
 
-def _score_count_drop(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
+def _score_count_drop(clause: MetricClause, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """count-drop:<signal> <above|below> <N> — a raw-count threshold.
 
     A single run cannot distinguish "stagnant" from "not yet improved enough"
@@ -308,18 +299,9 @@ def _score_count_drop(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdi
     /retro once the trajectory shows no movement across runs, not to a single
     insights run.
     """
-    key = _normalize_signal(clause.signal)
-    fn = _SIGNAL_METRICS.get(key)
-    if fn is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE,
-            f"no factstore signal registered for '{clause.signal}' — cannot measure count-drop",
-        )
-    value = fn(rows)
-    if value is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE, f"no data for '{clause.signal}' in the scored session window"
-        )
+    value, blocked = _measure(clause, _as_sources(rows))
+    if blocked is not None:
+        return blocked
     if clause.threshold is None or clause.comparator is None:
         return Verdict(VERDICT_INCONCLUSIVE, f"{clause.signal}={value}, no parseable threshold")
     met = value < clause.threshold if clause.comparator == "below" else value > clause.threshold
@@ -333,7 +315,7 @@ def _score_count_drop(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdi
     )
 
 
-def _score_ratio(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
+def _score_ratio(clause: MetricClause, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """ratio:<signal> <above|below> <N%> — a percentage/fraction threshold.
 
     Same confirmed/trending split as count-drop for a not-yet-met threshold;
@@ -343,18 +325,9 @@ def _score_ratio(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
     notion of "still plausibly moving" across different signals in a way a
     count-drop's unbounded raw value is not.
     """
-    key = _normalize_signal(clause.signal)
-    fn = _SIGNAL_METRICS.get(key)
-    if fn is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE,
-            f"no factstore signal registered for '{clause.signal}' — cannot measure ratio",
-        )
-    value = fn(rows)
-    if value is None:
-        return Verdict(
-            VERDICT_INCONCLUSIVE, f"no data for '{clause.signal}' in the scored session window"
-        )
+    value, blocked = _measure(clause, _as_sources(rows))
+    if blocked is not None:
+        return blocked
     if clause.threshold is None or clause.comparator is None:
         return Verdict(VERDICT_INCONCLUSIVE, f"{clause.signal}={value}, no parseable threshold")
     met = value < clause.threshold if clause.comparator == "below" else value > clause.threshold
@@ -384,13 +357,13 @@ _SCORERS = {
 }
 
 
-def score_clause(clause: MetricClause, rows: list[dict[str, Any]]) -> Verdict:
+def score_clause(clause: MetricClause, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """Score one parsed metric clause against factstore rows."""
     scorer = _SCORERS[clause.metric_type]
     return scorer(clause, rows)
 
 
-def score_metric(metric: str, rows: list[dict[str, Any]]) -> Verdict:
+def score_metric(metric: str, rows: list[dict[str, Any]] | SignalSources) -> Verdict:
     """Score a raw ledger Metric cell (one or more clauses) into one Verdict.
 
     Empty/unparseable metrics (legacy `—` rows) return `inconclusive` — the
