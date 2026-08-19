@@ -1168,6 +1168,7 @@ def _run_facts() -> None:
     # coupling them would mean the daily job never refreshes a region. --no-inject is
     # the only opt-out.
     if not args.no_inject:
+        from telemetry.actions import read_actions
         from telemetry.dashboard import (
             inject_regions,
             parse_actions_log,
@@ -1175,23 +1176,30 @@ def _run_facts() -> None:
             parse_findings,
             parse_ledger,
             render_automated_actions_region,
+            render_cadence_region,
             render_context_health_kpi_region,
             render_context_orchestration_card,
             render_cost_efficiency_region,
+            render_decision_log_region,
             render_eval_results_region,
             render_experiments_region,
             render_failure_kinds_region,
             render_friction_regroup_card,
+            render_harness_region,
             render_input_tokens_card,
             render_insights_kpi_region,
             render_insights_region,
             render_insights_tab_region,
             render_loop_closure_card,
             render_loop_region,
+            render_measurement_gap_region,
             render_pipeline_health_region,
+            render_plane_counts_regions,
             render_retro_region,
             render_review_findings_region,
+            render_runway_region,
             render_scope_decisions_region,
+            render_session_context_region,
             render_session_health_region,
             render_skill_economics_card,
             render_subagent_windows_card,
@@ -1247,6 +1255,7 @@ def _run_facts() -> None:
                 "SUBAGENT-WINDOWS": render_subagent_windows_card(store),
                 "INSIGHTS-KPI": render_insights_kpi_region(store),
                 "SESSION-HEALTH": render_session_health_region(store),
+                "SESSION-CONTEXT": render_session_context_region(store),
                 "COST-EFFICIENCY": render_cost_efficiency_region(store),
                 "CONTEXT-HEALTH-KPI": render_context_health_kpi_region(store),
                 "TOKEN-GRID": render_token_grid_region(store),
@@ -1268,6 +1277,29 @@ def _run_facts() -> None:
                     today=datetime.now(UTC).date().isoformat(),
                 ),
                 "VERDICT-TRAJECTORIES": render_verdict_trajectories_region(read_verdicts(store)),
+                "MEASUREMENT-GAP": render_measurement_gap_region(read_verdicts(store)),
+                "HARNESS": render_harness_region(
+                    repo_root / "logs", Path(args.hook_pass_log).expanduser(), store
+                ),
+                "RUNWAY": render_runway_region(experiments or None, store),
+                "DECISION-LOG": render_decision_log_region(read_actions(actions_log_path)),
+                "CADENCE": render_cadence_region(
+                    Path(args.ledger_log).expanduser()
+                    if args.ledger_log
+                    else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md",
+                    experiments or None,
+                ),
+                **render_plane_counts_regions(
+                    store,
+                    consistency_path=Path(args.actions_log).expanduser().parent
+                    / "consistency.json",
+                    experiments=experiments or None,
+                    ledger_log_path=Path(args.ledger_log).expanduser()
+                    if args.ledger_log
+                    else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md",
+                    reflections_dir=repo_root / ".sounding" / "reflections",
+                    pass_log=Path(args.hook_pass_log).expanduser(),
+                ),
             }
             # The v2 board retired these three from Context Health (which now ends at
             # tool failures), but v1 still renders them, so the renderers stay wired.

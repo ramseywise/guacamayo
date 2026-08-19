@@ -2843,3 +2843,459 @@ def test_insights_separates_output_tokens_from_session_duration(tmp_path: Path) 
     # The duration distribution must live under the duration card, not the token one.
     between = out[out_idx:dur_idx]
     assert between.count('class="dist-row"') == 0, "duration bars must not sit in the token card"
+
+
+# --- GUA-151: static cards -> telemetry-fed marker regions ------------------
+
+
+def test_session_context_region_reports_the_live_7day_figure(tmp_path: Path) -> None:
+    """The tiles compute from the store's 7-day window — a planted stale value
+    (the old hand-set "0% today") disagrees with the render and fails here."""
+    from telemetry.dashboard import render_session_context_region
+
+    store = tmp_path / "facts.db"
+    rows = [
+        # Outside the 7-day window ending at the newest observation (08-19).
+        _row("old", "2026-08-01", "session-hygiene-v1", max_context=500_000),
+        # Inside: 2 of 4 scored sessions over 150k -> 50%.
+        _row("a", "2026-08-14", "session-hygiene-v1", max_context=100_000),
+        _row("b", "2026-08-16", "session-hygiene-v1", max_context=120_000),
+        _row("c", "2026-08-18", "session-hygiene-v1", max_context=200_000),
+        _row("d", "2026-08-19", "session-hygiene-v1", max_context=240_000),
+    ]
+    upsert(rows, store)
+    out = render_session_context_region(store)
+
+    # The over-150k stat tile must carry the live 7-day figure (2 of 4 = 50%),
+    # not the planted stale "0%" the hand-set card reported.
+    m = re.search(r'<span class="value"[^>]*>(\d+)%</span>\s*<span class="label">over 150k', out)
+    assert m, "over-150k stat tile missing"
+    assert m.group(1) == "50", f"expected live 50%, rendered {m.group(1)}%"
+    # Percentile tiles computed over [100k, 120k, 200k, 240k] only — the
+    # out-of-window 500k row excluded (it would be p90 otherwise). _percentile
+    # is nearest-rank: p50=200k, p90=240k.
+    assert ">200k</span>" in out, "p50 tile must be the windowed 200k"
+    assert ">240k</span>" in out, "p90 tile must be the windowed 240k"
+    assert "Computed from 4 of 4" in out, "the tile must state its denominator"
+
+
+def test_session_context_region_empty_store_is_stated(tmp_path: Path) -> None:
+    from telemetry.dashboard import render_session_context_region
+
+    store = tmp_path / "facts.db"
+    upsert([_row("a", "2026-08-19", "session-hygiene-v1", max_context=None)], store)
+    out = render_session_context_region(store)
+    assert "No max_context observations" in out
+
+
+def test_measurement_gap_region_reconciles_against_the_newest_run() -> None:
+    """The four-way split counts only the newest run_at, and its buckets sum to
+    that run's row count — the reconciliation the DoD demands."""
+    from telemetry.dashboard import _gap_bucket, render_measurement_gap_region
+
+    def v(exp, verdict, evidence, metric, run_at):
+        return {
+            "experiment": exp,
+            "date": "2026-08-01",
+            "metric": metric,
+            "verdict": verdict,
+            "evidence": evidence,
+            "run_at": run_at,
+        }
+
+    old, new = "2026-08-18T12:00:00+00:00", "2026-08-19T12:00:00+00:00"
+    rows = [
+        # Old run: must not be counted (it would add a 5th decisive row).
+        v("e1", "confirmed", "x=0 across scored sessions", "absence:x above 0", old),
+        # Newest run: 2 decisive, 1 needs-collection, 1 unobservable,
+        # 1 no-typed-metric, 1 unregistered.
+        v("e1", "confirmed", "x=0 across scored sessions", "absence:x", new),
+        v("e2", "trending", "y at 12% (was 17%)", "ratio:y below 5%", new),
+        v(
+            "e3",
+            "inconclusive",
+            "'z' needs a collection change before it can be scored — add hook",
+            "presence:z",
+            new,
+        ),
+        v(
+            "e4",
+            "inconclusive",
+            "'w' is unobservable by design — rewrite the row",
+            "presence:w",
+            new,
+        ),
+        v("e5", "inconclusive", "no typed metric to score", "watch it", new),
+        v(
+            "e6",
+            "inconclusive",
+            "unregistered signal 'q' — cannot measure presence; declare it",
+            "presence:q",
+            new,
+        ),
+    ]
+    out = render_measurement_gap_region(rows)
+
+    newest = [r for r in rows if r["run_at"] == new]
+    from collections import Counter as _Counter
+
+    buckets = _Counter(_gap_bucket(r) for r in newest)
+    assert sum(buckets.values()) == len(newest), "buckets must partition the run"
+    assert buckets == {
+        "decisive": 2,
+        "needs-collection": 1,
+        "unobservable": 1,
+        "no-typed-metric": 1,
+        "unregistered": 1,
+    }
+    assert (
+        "6 hypotheses" in out.replace("<strong>", "").replace("</strong>", "")
+        or "6 hypotheses" in out
+    )
+    assert "2 decisive" in out
+    assert 'title="needs a collection: 1 of 6"' in out
+    assert 'title="unobservable by design: 1 of 6"' in out
+    assert "unregistered signal" in out, "a residual bucket with rows must be shown"
+    assert new in out, "the run_at scoping must be stated"
+
+
+def test_measurement_gap_prefix_bars_recompute_from_the_run() -> None:
+    from telemetry.dashboard import render_measurement_gap_region
+
+    new = "2026-08-19T12:00:00+00:00"
+    rows = [
+        {
+            "experiment": "a",
+            "date": "d",
+            "metric": "absence:x",
+            "verdict": "confirmed",
+            "evidence": "x=0",
+            "run_at": new,
+        },
+        {
+            "experiment": "b",
+            "date": "d",
+            "metric": "absence:y",
+            "verdict": "inconclusive",
+            "evidence": "'y' is unobservable by design — z",
+            "run_at": new,
+        },
+        {
+            "experiment": "c",
+            "date": "d",
+            "metric": "ratio:r above 1",
+            "verdict": "failed",
+            "evidence": "r=2",
+            "run_at": new,
+        },
+    ]
+    out = render_measurement_gap_region(rows)
+    assert ">1/2</div>" in out, "absence prefix must show 1 decisive of 2"
+    assert ">1/1</div>" in out, "ratio prefix must show 1 of 1"
+
+
+def test_measurement_gap_empty_is_stated() -> None:
+    from telemetry.dashboard import render_measurement_gap_region
+
+    out = render_measurement_gap_region(None)
+    assert "No verdict rows" in out
+
+
+def _write_job_log(path: Path, finishes: list[str]) -> None:
+    lines = []
+    for ts in finishes:
+        day, clock = ts.split("T")
+        lines.append(f"{day} {clock} --- run started (mode=x, repo=/r)")
+        lines.append(f"{day} {clock} --- run finished (exit 0)")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def test_harness_region_surfaces_a_job_gap_without_hand_editing(tmp_path: Path) -> None:
+    """The facts job's multi-day silence renders as a red cell and a named gap
+    — and a job that stops running turns red on the next render."""
+    from datetime import datetime as dt
+
+    from telemetry.dashboard import render_harness_region
+
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    # Naive local time, matching the clock the cron wrapper stamps the logs with.
+    now = dt.fromisoformat("2026-08-19T12:00:00")
+    # Board ticked 5 minutes ago: healthy.
+    _write_job_log(logs / "telemetry-board.log", ["2026-08-19T11:55:00"])
+    # Facts ran 08-04 then went silent until 08-17 — the 13-day gap — and its
+    # last run is recent enough to be healthy *now*, but the gap stays named.
+    _write_job_log(
+        logs / "telemetry-facts.log",
+        ["2026-08-04T09:00:00", "2026-08-17T09:06:00", "2026-08-19T09:00:00"],
+    )
+    pass_log = tmp_path / "pass.jsonl"
+    pass_log.write_text(
+        '{"ts":"t","hook":"risky_git_guard","context":"pass"}\n'
+        '{"ts":"t","hook":"branch_guard","context":"pass"}\n',
+        encoding="utf-8",
+    )
+    store = tmp_path / "facts.db"  # empty: verdict cell reports no runs
+
+    out = render_harness_region(logs, pass_log, store, now=now)
+
+    assert "&#10003; healthy" in out, "board cell must be healthy"
+    assert "Longest gap <b>13d</b>" in out
+    assert "(08-04 &rarr; 08-17)" in out
+    assert "~ 2 of 5 hooks" in out, "breadth below threshold must warn"
+    assert "no runs" in out, "empty verdict store must be stated"
+
+    # The same board, rendered two days later with no new tick, turns red.
+    later = dt.fromisoformat("2026-08-21T12:00:00")
+    out2 = render_harness_region(logs, pass_log, store, now=later)
+    board_cell = out2.split('<div class="hz-name">facts</div>')[0]
+    assert "&#10007;" in board_cell, "a stalled job must turn red on the next render"
+
+
+def test_harness_region_counts_only_exit_zero_runs(tmp_path: Path) -> None:
+    from datetime import datetime as dt
+
+    from telemetry.dashboard import render_harness_region
+
+    logs = tmp_path / "logs"
+    logs.mkdir()
+    (logs / "telemetry-board.log").write_text(
+        "2026-08-19 11:55:00 --- run started (mode=board, repo=/r)\n"
+        "2026-08-19 11:55:10 --- run finished (exit 1)\n",
+        encoding="utf-8",
+    )
+    out = render_harness_region(
+        logs,
+        tmp_path / "absent.jsonl",
+        tmp_path / "facts.db",
+        now=dt.fromisoformat("2026-08-19T12:00:00"),
+    )
+    assert "never ran" in out, "an exit-1 completion is not a successful run"
+
+
+def test_plane_counts_regions_derive_every_count(tmp_path: Path) -> None:
+    from telemetry.dashboard import Experiment, render_plane_counts_regions
+    from telemetry.factstore import upsert_findings
+    from telemetry.gitstore import upsert_issues
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("s1", "2026-08-18", "session-hygiene-v1"),
+            _row("s2", "2026-08-19", "session-hygiene-v1"),
+        ],
+        store,
+    )
+    upsert_findings(
+        [
+            {
+                "id": "F1",
+                "source": "s",
+                "date": "2026-08-01",
+                "repo": "r",
+                "file": "f",
+                "title": "t",
+                "merge_impact": "blocker",
+            },
+            {
+                "id": "F2",
+                "source": "s",
+                "date": "2026-08-02",
+                "repo": "r",
+                "file": "f",
+                "title": "t",
+                "merge_impact": "important",
+            },
+        ],
+        store,
+    )
+    upsert_issues([{"repo": "r", "number": 1, "state": "open", "title": "i"}], store)
+
+    consistency = tmp_path / "consistency.json"
+    consistency.write_text(json.dumps({"total": 3, "unmatchable_plans": 7}), encoding="utf-8")
+    ledger_log = tmp_path / "tooling-ledger-log.md"
+    ledger_log.write_text(
+        "## R0 (2026-07-20)\nx\n## R2 (2026-08-01)\nx\n## R1 (2026-07-25)\nx\n",
+        encoding="utf-8",
+    )
+    reflections = tmp_path / "reflections"
+    reflections.mkdir()
+    (reflections / "2026-08-18_10-00.md").write_text("r", encoding="utf-8")
+    (reflections / "reflection-logs.md").write_text("index", encoding="utf-8")
+    pass_log = tmp_path / "pass.jsonl"
+    pass_log.write_text('{"hook":"a"}\n{"hook":"b"}\n{"hook":"a"}\n', encoding="utf-8")
+
+    regions = render_plane_counts_regions(
+        store,
+        consistency_path=consistency,
+        experiments=[Experiment("e1", "m", "hypothesis", "2026-08-01")],
+        ledger_log_path=ledger_log,
+        reflections_dir=reflections,
+        pass_log=pass_log,
+    )
+
+    work = regions["PLANE-COUNTS-WORK"]
+    assert "<b>2</b> findings" in work and "<b>1</b> blockers" in work
+    assert "<b>1</b> issues" in work
+    assert "<b>3</b> open inconsistencies" in work and "<b>7</b> plans unmatchable" in work
+
+    meta = regions["PLANE-COUNTS-META"]
+    assert "<b>2</b> sessions" in meta
+    assert "<b>1</b> reflections" in meta, "only dated reflection files count"
+    assert "<b>3</b> retro rounds" in meta
+    assert "<b>1</b> live hypotheses" in meta
+
+    control = regions["PLANE-COUNTS-CONTROL"]
+    assert "<b>2</b> unique hooks" in control and "<b>3</b> pass events" in control
+
+
+def test_runway_region_positions_overdue_and_undated_rows(tmp_path: Path) -> None:
+    from telemetry.dashboard import Experiment, render_runway_region
+    from telemetry.factstore import append_verdicts
+
+    store = tmp_path / "facts.db"
+    append_verdicts(
+        [
+            {
+                "experiment": "late-pair-a",
+                "date": "2026-08-01",
+                "metric": "ratio:x above 1",
+                "verdict": "confirmed",
+                "evidence": "x=2",
+            },
+            {
+                "experiment": "future-row",
+                "date": "2026-08-01",
+                "metric": "presence:y",
+                "verdict": "inconclusive",
+                "evidence": "'y' is unobservable by design — z",
+            },
+        ],
+        store,
+        run_at="2026-08-19T12:00:00+00:00",
+    )
+    experiments = [
+        Experiment("late-pair-a", "ratio:x above 1", "hypothesis — due 08-17", "2026-08-01"),
+        Experiment("late-pair-b", "presence:q", "hypothesis — due 08-17", "2026-08-01"),
+        Experiment("future-row", "presence:y", "hypothesis — due 08-30", "2026-08-01"),
+        Experiment("no-date-row", "watch it", "hypothesis", "2026-08-01"),
+    ]
+    out = render_runway_region(experiments, store, today="2026-08-19")
+
+    assert "4 hypotheses by due date" in out
+    assert "2 of 3 dated rows are overdue" in out, "the shared 08-17 pair is overdue"
+    assert 'title="2 hypotheses due 2026-08-17' in out, "same-deadline rows must cluster"
+    assert "<b>1</b> rows carry no due date" in out, "undated rows are counted, not dropped"
+    # Legend counts from the newest verdict per dated row: late-pair-a is
+    # confirmed; late-pair-b (never scored) and future-row are inconclusive.
+    assert "confirmed (1)" in out
+    assert "inconclusive (2)" in out
+
+
+def test_runway_region_all_undated_is_stated() -> None:
+    from telemetry.dashboard import Experiment, render_runway_region
+
+    out = render_runway_region([Experiment("a", "watch", "hypothesis", "2026-08-01")], None)
+    assert "none carrying a due date" in out
+
+
+def test_decision_log_region_groups_by_plane_and_folds_effects() -> None:
+    from telemetry.dashboard import render_decision_log_region
+
+    records = [
+        # Legacy-shaped record after read_actions normalisation.
+        {
+            "action": "triage",
+            "target": {"repo": "galactus", "issue_num": 27},
+            "outcome": "accepted",
+            "reason": "labeled refinement",
+            "ts": "2026-08-16T21:00:00Z",
+            "plane": "work",
+            "effect_measured": None,
+            "proposal_id": "",
+        },
+        {
+            "action": "schedule_job",
+            "target": {"repo": "guacamayo"},
+            "outcome": "acted",
+            "reason": "board tick installed",
+            "ts": "2026-08-17T09:00:00Z",
+            "plane": "control",
+            "effect_measured": None,
+            "proposal_id": "p-1",
+        },
+        # Effect write-back sharing the decision's proposal_id.
+        {
+            "action": "schedule_job",
+            "target": {"repo": "guacamayo"},
+            "outcome": "acted",
+            "reason": "effect measured for decision p-1",
+            "ts": "2026-08-19T09:00:00Z",
+            "plane": "control",
+            "proposal_id": "p-1",
+            "effect_measured": {
+                "metric": "ratio:x below 5%",
+                "verdict": "trending",
+                "checked_at": "2026-08-19T09:00:00Z",
+            },
+        },
+        {
+            "action": "retire_skill",
+            "target": {"repo": "guacamayo"},
+            "outcome": "reverted",
+            "reason": "undone same day",
+            "ts": "2026-08-18T09:00:00Z",
+            "plane": "metacognition",
+            "effect_measured": None,
+            "proposal_id": "",
+        },
+    ]
+    out = render_decision_log_region(records)
+
+    assert "galactus#27" in out
+    assert "1 &middot; work: <b>1</b>" in out
+    assert "2 &middot; metacog: <b>1</b>" in out
+    assert "3 &middot; control: <b>1</b>" in out
+    assert 'class="pill rev">reverted' in out, "the reverted outcome must render"
+    assert "trending" in out and "ratio:x below 5%" in out, "effect folds onto its decision"
+    assert out.count("<tr>") == 4, "3 decisions + header — the write-back is not its own row"
+    assert "not re-read" in out, "unmeasured decisions say so"
+    assert "3 decision records (1 effect write-backs folded in)" in out
+
+
+def test_decision_log_region_empty_is_stated() -> None:
+    from telemetry.dashboard import render_decision_log_region
+
+    assert "No decisions" in render_decision_log_region([])
+
+
+def test_cadence_region_computes_gaps_and_horizon(tmp_path: Path) -> None:
+    from telemetry.dashboard import Experiment, render_cadence_region
+
+    ledger_log = tmp_path / "tooling-ledger-log.md"
+    # Headers deliberately out of order — dates, not file order, decide.
+    ledger_log.write_text(
+        "## R10 (2026-08-10)\nx\n## R7 (2026-07-31)\nx\n## R8 (2026-08-04)\nx\n"
+        "## R9 (2026-08-05)\nx\n",
+        encoding="utf-8",
+    )
+    experiments = [
+        Experiment("a", "ratio:x", "hypothesis — due 08-15", "2026-08-01"),
+        Experiment("b", "ratio:y", "hypothesis — due 08-29", "2026-08-01"),
+        Experiment("c", "watch", "hypothesis", "2026-08-01"),  # undated: excluded
+    ]
+    out = render_cadence_region(ledger_log, experiments)
+
+    assert "R7 &rarr; R8" in out and ">4d</div>" in out
+    assert "R8 &rarr; R9" in out and ">1d</div>" in out
+    assert "R9 &rarr; R10" in out and ">5d</div>" in out
+    assert "every <strong>1&ndash;5 days</strong>" in out
+    assert "median over 2 dated rows" in out
+    assert ">28d</div>" in out, "median horizon of [14, 28] is the upper of the two"
+
+
+def test_cadence_region_no_rounds_is_stated(tmp_path: Path) -> None:
+    from telemetry.dashboard import render_cadence_region
+
+    out = render_cadence_region(tmp_path / "absent.md", None)
+    assert "No dated retro rounds" in out
