@@ -2472,6 +2472,66 @@ def test_insights_region_strips_guest_scripts(tmp_path: Path) -> None:
     assert "<h2>Report</h2>" in out
 
 
+def test_insights_region_drops_non_narrative_sections(tmp_path: Path) -> None:
+    """Retro keeps the narrative four; projects and usage-profile are dropped.
+
+    Both restate what other tabs already own, so the board reads them on the
+    report itself rather than carrying them twice.
+    """
+    from telemetry.dashboard import render_insights_region
+
+    report = tmp_path / "insights-report-2026-08-16.html"
+    report.write_text(
+        "<html><body>"
+        '<section id="section-work"><h2>Projects</h2></section>'
+        '<section id="section-usage"><h2>How You Use</h2></section>'
+        '<section id="section-wins"><h2>Achievements</h2></section>'
+        '<section id="section-features"><h2>Features</h2></section>'
+        '<section id="section-patterns"><h2>Patterns</h2></section>'
+        '<section id="section-horizon"><h2>Horizon</h2></section>'
+        "</body></html>",
+        encoding="utf-8",
+    )
+    out = render_insights_region(report, today="2026-08-16")
+
+    assert "Projects" not in out
+    assert "How You Use" not in out
+    for kept in ("Achievements", "Features", "Patterns", "Horizon"):
+        assert kept in out
+
+
+def test_insights_region_strips_standalone_chrome(tmp_path: Path) -> None:
+    """The board supplies its own header; the KPI cards live on other tabs.
+
+    stat-cards and glance-box nest divs and share one .container, so a
+    non-greedy regex would cut at the first inner </div> and orphan the rest.
+    """
+    from telemetry.dashboard import render_insights_region
+
+    report = tmp_path / "insights-report-2026-08-16.html"
+    report.write_text(
+        "<html><body>"
+        "<header><div class='container'><h1>Usage Report</h1></div></header>"
+        '<div class="container">'
+        '  <div class="stat-cards"><div class="stat-card"><div class="value">673</div></div></div>'
+        '  <div class="glance-box"><h3>At a Glance</h3><ul><li>x</li></ul></div>'
+        "</div>"
+        '<section id="section-wins"><h2>Achievements</h2></section>'
+        '<div class="container"><div class="quote-box">face existence<cite>c</cite></div></div>'
+        "<footer><div class='container'><p>Generated from 673 sessions</p></div></footer>"
+        "</body></html>",
+        encoding="utf-8",
+    )
+    out = render_insights_region(report, today="2026-08-16")
+
+    for gone in ("Usage Report", "At a Glance", "673", "face existence", "<footer"):
+        assert gone not in out, gone
+    assert "Achievements" in out
+    # The wrappers must close cleanly or every card after them nests wrongly.
+    embed = out[out.index('<div class="insights-embed">') :]
+    assert embed.count("<div") == embed.count("</div>")
+
+
 def test_insights_region_flags_a_stale_report(tmp_path: Path) -> None:
     """Age is the first thing to know about a daily read that is not daily."""
     from telemetry.dashboard import render_insights_region
