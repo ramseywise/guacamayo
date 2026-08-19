@@ -1171,6 +1171,7 @@ def _run_facts() -> None:
             render_insights_tab_region,
             render_loop_closure_card,
             render_loop_region,
+            render_pipeline_health_region,
             render_retro_region,
             render_review_findings_region,
             render_session_health_region,
@@ -1210,6 +1211,7 @@ def _run_facts() -> None:
                     if args.ledger_log
                     else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md"
                 ),
+                "PIPELINE-HEALTH": render_pipeline_health_region(store),
                 "INPUT-TOKENS": render_input_tokens_card(store),
                 "SKILL-ECONOMICS": render_skill_economics_card(store),
                 "TOOL-TRENDS": render_tool_trends_card(store),
