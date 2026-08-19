@@ -221,9 +221,91 @@ This repo is one node in a larger loop wired through the global Claude setup:
    concrete test ("friction X absent for N sessions"); the next `/meta-retro` promotes it to
    `verified` or `failed`. A failed row is itself a finding.
 
+**Graduation rate** is the loop's north star: the share of *resolved* experiments that
+graduated. The denominator is `confirmed + failed + inconclusive` — **open hypotheses are
+excluded and reported separately**, because an untested hypothesis has not failed, and
+diluting the ratio with a growing pile of them makes a healthy loop look broken. Rows
+retired without ever being tested (`superseded`, `dropped`, `duplicate`) leave the ratio
+entirely. Statuses matching no known term are counted, sampled, and logged at WARNING
+rather than silently bucketed — a non-zero count means the ledger drifted and the
+vocabulary needs extending (`compute_graduation` in `telemetry/dashboard.py`).
+
+The two ledger files have **different column schemas** — active is
+`Date|Change|Area|Metric|Status`, archive is `Date|Change|Area|Verdict|Evidence`. Reading
+the archive positionally as if it matched the active layout fed evidence prose into the
+status field, which is what produced 40+ apparent "statuses" (`0`, `R3`, `.venv\`) and
+reported 1 confirmed of 108 while 43 already-closed verdicts sat one column over
+(fixed GUA-137).
+
 Global `~/.claude` is canonical for everything generic; this repo keeps only the
 identity-lifecycle skills. Recurring manual audits are hooks that haven't been written
 yet — maintenance-by-ritual retires in favor of maintenance-by-mechanism.
+
+### Write authority — the loop cannot rewrite its own guardrails
+
+The loop proposes config changes; it does not apply them. **Write authority narrows as
+blast radius widens**, enforced at three independent layers rather than by convention:
+
+| Layer | Mechanism | Where |
+|---|---|---|
+| Permission | `git commit` / `git push` denied outright | `.claude/settings.local.json` |
+| Hook | `risky_git_guard.sh` blocks commit, push, `make ship`/`make push` | `~/.claude/hooks/` |
+| Skill contract | `/meta-retro` is propose-only — "Silence is not approval" | `.claude/skills/meta-retro/SKILL.md` |
+
+| Target | Loop may write? |
+|---|---|
+| `.sounding/` memory files | Yes — but clearing `growth.md` is hook-gated (below) |
+| Skill files, tooling ledger | Only after explicit per-diff approval |
+| `~/.claude/hooks/*`, `settings.json` | **Never** — not even for an approved finding, not even `chmod +x` |
+| Commits, pushes | **Never** (sole carve-out: worktree agents on their own branch) |
+
+That categorical exclusion is decision **D1 (2026-08-09)**. It is the answer to the
+standard critique of self-improving agent systems — "self-modifying config on full
+autonomy is a security risk." The mechanism that would make that true is absent by
+construction: the loop cannot reach the files that constrain it. Widening the carve-out
+is a deliberate act, never a side effect — see the D1 note in `meta-retro/SKILL.md`.
+
+There is even a meta-gate on autonomy itself: a proposal kind earning ≥80% acceptance
+over ≥5 logged decisions is promoted to auto-mutation only as a **ledger hypothesis row
+marked `PROPOSED`** — Ramsey decides. The propose→mutate boundary moves on logged
+evidence, never by default.
+
+**Memory pruning is likewise mechanical, not aspirational.** `dream-ledger-gate.sh`
+(PostToolUse on `Write|Edit`) blocks clearing `growth.md` unless `growth-log.md` gained
+rows dated today — every cleared entry leaves an audit row first. The tooling ledger
+splits live hypotheses (`tooling-ledger.md`) from graduated rows
+(`tooling-ledger-log.md`), keeping the loaded file bounded while the archive grows.
+Counter-pressure is explicit: **transform, never truncate** — identity loss is the worst
+failure mode, so seeds are rewritten to 60–80% length, never deleted.
+
+**Knowledge access is retrieval-first.** Accumulated knowledge is queried from librarian
+(`search_wiki` / `read_page` / `get_domain_briefing`) rather than bulk-loaded; refs load
+on demand; continuity files hold pointers, never copies. The always-loaded wake core is
+budgeted (~5.5k tokens, measured).
+
+### Known gaps in the loop
+
+Stated plainly because a loop diagram that shows only the happy path invites the wrong
+conclusions in both directions:
+
+- **No eval gate on config changes.** `com.wiseer.eval-runner` runs weekly and is
+  *observational* — nothing consumes a failing result to block a landing, and
+  `eval-runner.sh` skips behavioral/judgment evals by its own header, so coverage is
+  structural only. A bad rule lands, is caught by a human at review time, and is undone
+  by hand. **Git is the rollback; there is no automated revert.** This is the thinnest
+  mechanism in the system: every other control has hook enforcement or a written
+  contract behind it.
+- **`insights-log.md` has no compaction step.** growth.md drains and the tooling ledger
+  archives, but insights-log only appends. Reflections have a stated compression rule
+  (~100 entries) with no automation behind it.
+- **Proposal recurrence is not tracked.** `board.json` is overwritten every tick and
+  `actions.jsonl` records only *decided* actions, so a proposal re-derived hundreds of
+  times and never acted on is invisible. Closing this needs an append-only sightings
+  sink counting distinct days, not raw sightings — a 10-minute tick would otherwise
+  report ~1000 phantom occurrences per week.
+- **No experiment ↔ friction-signature link.** Ledger rows and `recurrence.py`
+  signatures both exist; no field joins them, so intervention effectiveness cannot be
+  computed even though both halves are present.
 
 ### The review package
 
@@ -343,8 +425,12 @@ Three launchd agents, all loaded manually by Ramsey — never by Claude:
 | `com.wiseer.eval-runner` | Mon 10:00 | `scripts/eval-runner.sh` | `.sounding/eval-results.jsonl`, `logs/eval-runner.log` |
 
 The **facts job** matters most for data durability: session JSONL in `~/.claude/projects/`
-rotates out in ~5 days, so a missed capture window is history lost for good (GUA-93;
-engine migrated from librarian's cartographer).
+rotates out on a platform-managed schedule, so a missed capture window is history lost for
+good (GUA-93; engine migrated from librarian's cartographer). The "~5 days" figure quoted
+here and in `scripts/telemetry-cron.sh` is a **conservative assumption, not a measured
+fact** — no `cleanupPeriodDays` is set and nothing in this repo prunes those files; as of
+2026-08-19 the oldest surviving transcript was ~30 days old. Treat the window as unknown
+and platform-controlled rather than as a 5-day deadline.
 
 The **board job** drives `/meta-wake`'s project board: it derives issue columns from `gh`
 state (open/merged/in-review/in-progress/backlog) and writes `board.json` atomically so
@@ -359,6 +445,13 @@ them as one accept/reject batch; decisions append to `.sounding/telemetry/action
 Exactly two idempotent mutations (auto-close merged-with-`Closes`, unambiguous label
 correction) may run unattended behind an `--act` flag that defaults **off** — the
 propose/mutate boundary moves only on logged acceptance-rate evidence, never by default.
+
+Every `actions.jsonl` row carries `proposal_id` — the `ProposedAction.id` hash over
+*action + target only*, deliberately excluding `reason`/`evidence`/`created_at` so the
+same proposal keeps the same id when the board is re-derived from scratch each tick.
+That stability is what makes the row joinable back to the board: it is the key for asking
+whether the condition an accepted action addressed actually cleared on a later tick
+(added GUA-137 — the id was computed but never written before).
 
 A **GitHub Actions workflow** (`.github/workflows/board-signal.yml`) appends a JSON
 signal line to the orphan `telemetry-state` branch on every PR open/close — self-bootstrapping

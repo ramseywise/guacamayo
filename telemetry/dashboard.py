@@ -1628,17 +1628,20 @@ def _render_subagents(store: Path) -> str:
     )
 
 
-def build_skill_economics(store: Path) -> dict[str, dict[str, float]]:
+def build_skill_economics(store: Path, since: str | None = None) -> dict[str, dict[str, float]]:
     """Aggregate per-skill invocation count and cost from stored skill_costs JSON.
 
     Returns {skill_name: {"cost": float, "n": int}} sorted by cost descending.
     Work sessions only (meta-sessions excluded). July-forward only — skill_costs
-    is null in the note era.
+    is null in the note era. `since` is an inclusive ISO date floor; None means
+    the whole store.
     """
     totals: dict[str, dict[str, float]] = {}
     for row in _work_sessions(read_all(store)):
         raw = row.get("skill_costs")
         if not raw:
+            continue
+        if since and str(row.get("date") or "") < since:
             continue
         try:
             costs: dict[str, float] = json.loads(raw)
@@ -1764,12 +1767,25 @@ def _render_funnel(funnel: Funnel | None) -> str:
 _STATUS_ORDER = {
     "confirmed": 0,
     "verified": 0,
+    "partial-verified": 0,
+    "fixed-pending-commit": 0,
     "failed": 1,
     "trending": 2,
     "hypothesis": 3,
+    "applied": 3,
+    "fixed": 3,
     "inconclusive": 4,
+    "superseded": 5,
+    "dropped": 5,
+    "duplicate": 5,
 }
-_STATUS_CLASS = {"confirmed": "exp-confirmed", "verified": "exp-confirmed", "failed": "exp-failed"}
+_STATUS_CLASS = {
+    "confirmed": "exp-confirmed",
+    "verified": "exp-confirmed",
+    "partial-verified": "exp-confirmed",
+    "fixed-pending-commit": "exp-confirmed",
+    "failed": "exp-failed",
+}
 
 # ---------------------------------------------------------------------------
 # Ledger parsing (Step 7)
@@ -1806,11 +1822,13 @@ def parse_ledger(ledger_path: Path, log_path: Path | None = None) -> list[Experi
             if not m:
                 continue
             cells = [m.group(i).strip() for i in range(1, 6)]
-            date_cell, change_cell, _area_cell, metric_cell, status_cell = cells
+            # 5th cell is Status in the active ledger but Evidence in the log —
+            # named neutrally because its meaning depends on `is_log` below.
+            date_cell, change_cell, _area_cell, metric_cell, evidence_or_status_cell = cells
             # Skip header and separator rows
             if _HEADER_CELL.match(date_cell) or date_cell.lower() in ("date", "---"):
                 continue
-            if _HEADER_CELL.match(status_cell) or status_cell.lower() in (
+            if _HEADER_CELL.match(evidence_or_status_cell) or evidence_or_status_cell.lower() in (
                 "status",
                 "verdict",
                 "---",
@@ -1820,14 +1838,26 @@ def parse_ledger(ledger_path: Path, log_path: Path | None = None) -> list[Experi
             if any(kw in date_cell.lower() for kw in ("rollup", "batch", "2026-07 (rollup)")):
                 skipped += 1
                 continue
-            if not change_cell or not status_cell:
+            # Guard the cell that actually carries the verdict for this file:
+            # metric_cell for the log, the 5th cell for the active ledger.
+            verdict_cell = metric_cell if is_log else evidence_or_status_cell
+            if not change_cell or not verdict_cell:
                 skipped += 1
                 continue
-            # For the log: same positional layout (date|change|area|verdict|evidence)
-            # — verdict is in status_cell position, so no conditional needed.
-            effective_status = status_cell
-            # Strip backticks from metric
-            effective_metric = metric_cell.strip("`") or "—"
+            # The two files do NOT share a positional layout:
+            #   active: | Date | Change | Area | Metric  | Status   |
+            #   log:    | Date | Change | Area | Verdict | Evidence |
+            # So for the log the verdict sits in the 4th cell and free-text
+            # evidence in the 5th. Reading the 5th as status (the pre-GUA-137
+            # behaviour) fed evidence prose into _status_key, which is what
+            # produced 40+ "statuses" like `0`, `R3` and `.venv\` and hid 43
+            # already-closed verdicts one column over.
+            if is_log:
+                effective_status = metric_cell
+                effective_metric = evidence_or_status_cell.strip("`") or "—"
+            else:
+                effective_status = evidence_or_status_cell
+                effective_metric = metric_cell.strip("`") or "—"
             experiments.append(
                 Experiment(
                     name=change_cell,
@@ -1863,8 +1893,120 @@ def parse_ledger(ledger_path: Path, log_path: Path | None = None) -> list[Experi
 
 
 def _status_key(status: str) -> str:
+    """Normalise a ledger status/verdict cell to a comparable vocabulary key.
+
+    Lowercased and stripped of markdown emphasis and trailing punctuation, so
+    `**VERIFIED**`, `Confirmed present at ...` and `verified` all collapse to
+    `verified`/`confirmed`. Every downstream lookup (_STATUS_ORDER, _BADGE,
+    _STATUS_CLASS, _verdict_of) is keyed lowercase; before GUA-137 this returned
+    the raw first token, so capitalised cells silently missed every one of them.
+    """
     parts = status.split()
-    return parts[0] if parts else ""
+    if not parts:
+        return ""
+    return parts[0].strip("*`_,.:;()[]").lower()
+
+
+# Closed verdict vocabulary (GUA-137). RESOLVED_* are the terminal states that
+# count toward the graduation rate; OPEN_STATUSES are live experiments awaiting a
+# verdict, and EXCLUDED_STATUSES are rows retired without ever being tested, which
+# are neither a pass nor a failure and so leave the ratio entirely.
+# `partial-verified` and `fixed-pending-commit` are deliberate ledger verdicts whose
+# rows say "Graduating" in their own evidence — they are graduations with a caveat,
+# not open experiments, so they count as confirmed rather than diluting the backlog.
+CONFIRMED_STATUSES = frozenset(
+    {"confirmed", "verified", "partial-verified", "fixed-pending-commit"}
+)
+FAILED_STATUSES = frozenset({"failed"})
+INCONCLUSIVE_STATUSES = frozenset({"inconclusive"})
+OPEN_STATUSES = frozenset({"hypothesis", "trending", "applied", "fixed"})
+EXCLUDED_STATUSES = frozenset({"superseded", "dropped", "duplicate"})
+RESOLVED_STATUSES = CONFIRMED_STATUSES | FAILED_STATUSES | INCONCLUSIVE_STATUSES
+
+
+@dataclass(frozen=True)
+class GraduationRate:
+    """Graduation rate over *resolved* experiments, plus the open backlog.
+
+    Denominator is `resolved` (confirmed + failed + inconclusive), not the whole
+    ledger: an untested hypothesis has not failed, it simply has not been scored,
+    and diluting the ratio with a growing pile of them makes a healthy loop look
+    broken. `open_count` is therefore reported alongside rather than folded in —
+    it is the retro signal ("we are accruing hypotheses faster than we test
+    them"), which is a different question from "does what we test hold up".
+
+    `unknown` counts rows whose status matched no known vocabulary term; a
+    non-zero value means the ledger drifted and the vocabulary needs extending,
+    so it is surfaced rather than silently bucketed.
+    """
+
+    confirmed: int = 0
+    failed: int = 0
+    inconclusive: int = 0
+    open_count: int = 0
+    excluded: int = 0
+    unknown: int = 0
+    unknown_samples: tuple[str, ...] = ()
+
+    @property
+    def resolved(self) -> int:
+        """Experiments with a terminal verdict — the graduation-rate denominator."""
+        return self.confirmed + self.failed + self.inconclusive
+
+    @property
+    def rate_pct(self) -> float | None:
+        """Percent of resolved experiments that graduated. None when nothing resolved."""
+        if not self.resolved:
+            return None
+        return self.confirmed / self.resolved * 100
+
+    @property
+    def total(self) -> int:
+        return self.resolved + self.open_count + self.excluded + self.unknown
+
+
+def _grad_rate_text(grad: GraduationRate) -> str:
+    """Human-readable graduation rate, explicit about the resolved denominator."""
+    if grad.rate_pct is None:
+        return "no resolved experiments yet"
+    return f"{grad.rate_pct:.0f}% graduation rate ({grad.confirmed}/{grad.resolved} resolved)"
+
+
+def compute_graduation(experiments: list[Experiment]) -> GraduationRate:
+    """Tally ledger rows into the closed verdict vocabulary (GUA-137)."""
+    confirmed = failed = inconclusive = open_count = excluded = unknown = 0
+    unknown_samples: list[str] = []
+    for exp in experiments:
+        key = _status_key(exp.status)
+        if key in CONFIRMED_STATUSES:
+            confirmed += 1
+        elif key in FAILED_STATUSES:
+            failed += 1
+        elif key in INCONCLUSIVE_STATUSES:
+            inconclusive += 1
+        elif key in OPEN_STATUSES:
+            open_count += 1
+        elif key in EXCLUDED_STATUSES:
+            excluded += 1
+        else:
+            unknown += 1
+            if len(unknown_samples) < 5 and key:
+                unknown_samples.append(key)
+    if unknown:
+        log.warning(
+            "dashboard.ledger_unknown_status",
+            count=unknown,
+            samples=unknown_samples,
+        )
+    return GraduationRate(
+        confirmed=confirmed,
+        failed=failed,
+        inconclusive=inconclusive,
+        open_count=open_count,
+        excluded=excluded,
+        unknown=unknown,
+        unknown_samples=tuple(unknown_samples),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -2606,16 +2748,11 @@ def _skill_table(
     )
 
 
-def render_skill_economics_card(store: Path) -> str:
-    """Render the skill economics card, split into skills and agents."""
-    totals = build_skill_economics(store)
+def _skill_economics_tables(store: Path, since: str | None) -> str:
+    """The skill/agent economics tables for one window, or an empty-state note."""
+    totals = build_skill_economics(store, since=since)
     if not totals:
-        return (
-            '<div class="card">\n'
-            '      <div class="card-title">Skill &amp; agent economics</div>\n'
-            '      <p class="card-note">No cost data yet (July+ sessions only).</p>\n'
-            "    </div>"
-        )
+        return '<p class="empty">No skill cost data in this window.</p>'
     grand = sum(e["cost"] for e in totals.values()) or 1.0
     daily = build_skill_daily(store)
 
@@ -2661,13 +2798,50 @@ def render_skill_economics_card(store: Path) -> str:
             f"</span></h4>" + _skill_table(agents, grand, daily)
         )
 
+    return "\n".join(parts)
+
+
+def render_skill_economics_card(store: Path) -> str:
+    """Skill economics, windowed 7d/30d/90d/all like the KPI regions.
+
+    Every window is rendered server-side and toggled client-side, so switching
+    never re-reads the store. The 7d sparkline column is deliberately NOT
+    windowed — it is a fixed-length recency trend, and rescaling it per window
+    would make the same skill's trend mean four different things.
+    """
+    all_rows = _work_sessions(read_all(store))
+    if not all_rows:
+        return (
+            '<div class="card">\n'
+            '      <div class="card-title">Skill &amp; agent economics</div>\n'
+            '      <p class="card-note">No cost data yet (July+ sessions only).</p>\n'
+            "    </div>"
+        )
+
+    newest = max(str(r["date"]) for r in all_rows)
+    panels, buttons = [], []
+    for key, label, days in INSIGHTS_WINDOWS:
+        cutoff = (_date.fromisoformat(newest) - timedelta(days=days)).isoformat() if days else None
+        is_default = key == _INSIGHTS_DEFAULT_WINDOW
+        buttons.append(
+            f'<button type="button" class="win-btn{" active" if is_default else ""}" '
+            f'data-win="{key}">{label}</button>'
+        )
+        hidden = "" if is_default else ' style="display:none"'
+        panels.append(
+            f'<div class="win-panel" data-win="{key}"{hidden}>'
+            f"{_skill_economics_tables(store, cutoff)}</div>"
+        )
+
     return (
         '<div class="card">\n'
         '      <div class="card-title">Skill &amp; agent economics</div>\n'
         '      <p class="card-note">Cost attributed from JSONL output between '
-        "a slash invocation and the next human turn. Work sessions only; July-forward.</p>\n"
-        + "\n".join(parts)
-        + "\n    </div>"
+        "a slash invocation and the next human turn. Work sessions only; July-forward. "
+        "Share is of spend within the selected window; the 7d column is a fixed "
+        "recency trend and does not rewindow.</p>\n"
+        '      <div class="win-toggle" role="group" aria-label="Time window">'
+        f"{''.join(buttons)}</div>\n" + "".join(panels) + "\n    </div>"
     )
 
 
@@ -2691,22 +2865,48 @@ def render_tool_trends_card(store: Path) -> str:
             '      <p class="card-note">No tool-count data yet. July-forward only.</p>\n'
             "    </div>"
         )
-    colors = ["var(--s1)", "var(--s2)", "var(--s3)", "var(--s4)", "var(--text-3)"]
-    charts = "".join(
-        f'<div style="margin-bottom:8px">'
-        f'<div style="font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:4px">'
-        f"{html.escape(tool)}</div>"
-        f"{_svg_line(series[tool], colors[min(i, len(colors) - 1)], unit='count', height=80)}</div>"
-        for i, tool in enumerate(ordered)
-        if tool in series
+    # Ranked bars, not sparklines. Six daily lines answered "is Bash drifting?" — a
+    # question the flat volume already answers better — while burying the comparison
+    # that actually reads at a glance: Bash dwarfs everything else. Totals, ranked.
+    colors = [
+        "var(--ac-rose)",
+        "var(--ac-violet)",
+        "var(--ac-teal)",
+        "var(--ac-blue)",
+        "var(--ac-orange)",
+        "var(--text-3)",
+    ]
+    totals = {tool: sum(p.value for p in series[tool]) for tool in ordered if tool in series}
+    ranked = sorted(totals.items(), key=lambda kv: -kv[1])
+    peak = ranked[0][1] or 1
+    grand = sum(totals.values()) or 1
+    bars = "".join(
+        _hbar(
+            tool,
+            f"{count:,.0f} · {count / grand * 100:.0f}%",
+            count / peak * 100,
+            colors[min(i, len(colors) - 1)],
+        )
+        for i, (tool, count) in enumerate(ranked)
     )
+    # Paired with the error breakdown: volume and failure are the same question asked
+    # twice — which tools are worked hardest, and which of those calls come back wrong.
+    # Both are July-forward store-wide, so the two halves share one frame.
+    july_rows = [
+        r for r in _work_sessions(read_all(store)) if str(r.get("date") or "") >= JULY_BOUNDARY
+    ]
     return (
-        '<div class="card">\n'
-        '      <div class="card-title">Tool call trends (daily)</div>\n'
-        '      <p class="card-note">Daily call count for the top 5 tools by volume, '
-        "plus an 'other' bucket. July-forward only. Bash volume is structural "
-        "(28.7/session median) &mdash; track for antipattern changes, not absolute reduction.</p>\n"
-        f"      {charts}\n"
+        '<div class="card-row">\n'
+        '      <div class="card" style="flex:1">\n'
+        '      <div class="card-title">Tool calls by volume</div>\n'
+        '      <p class="card-note">Total calls for the top 5 tools, plus an '
+        "'other' bucket. July-forward only. Bash volume is structural "
+        "(28.7/session median) &mdash; track for antipattern changes, not absolute "
+        "reduction.</p>\n"
+        f'      <div class="hbars">{bars}</div>\n'
+        f'      <p class="dist-note">{grand:,.0f} calls across {len(ranked)} buckets</p>\n'
+        "      </div>\n"
+        f"      {_error_breakdown_card(july_rows)}\n"
         "    </div>"
     )
 
@@ -2941,14 +3141,24 @@ def render_experiments_card(
             "tooling ledger.</p>\n"
             "    </div>"
         )
-    confirmed = sum(1 for e in experiments if _status_key(e.status) in ("confirmed", "verified"))
-    failed = sum(1 for e in experiments if _status_key(e.status) == "failed")
-    pending = len(experiments) - confirmed - failed
+    grad = compute_graduation(experiments)
+    confirmed, failed = grad.confirmed, grad.failed
+    pending = grad.open_count
 
     _BADGE = {
         "confirmed": ("confirmed", "var(--good)"),
         "verified": ("confirmed", "var(--good)"),
+        "partial-verified": ("partial", "var(--good)"),
+        "fixed-pending-commit": ("fixed", "var(--good)"),
         "failed": ("failed", "var(--bad)"),
+        "inconclusive": ("inconclusive", "var(--warn)"),
+        "hypothesis": ("open", "var(--text-3)"),
+        "trending": ("trending", "var(--text-3)"),
+        "applied": ("applied", "var(--text-3)"),
+        "fixed": ("fixed", "var(--text-3)"),
+        "superseded": ("superseded", "var(--text-3)"),
+        "dropped": ("dropped", "var(--text-3)"),
+        "duplicate": ("duplicate", "var(--text-3)"),
     }
 
     def _badge(status: str) -> str:
@@ -2978,8 +3188,9 @@ def render_experiments_card(
     return (
         '<div class="card">\n'
         '      <div class="card-title">Experiment verdicts</div>\n'
-        f'      <p class="card-note">{confirmed} confirmed, {failed} failed, {pending} pending. '
-        f"Most experiments are &lt;5 days old &mdash; too early to call.</p>\n"
+        f'      <p class="card-note">{confirmed} confirmed, {failed} failed, '
+        f"{grad.inconclusive} inconclusive &mdash; {_grad_rate_text(grad)}. "
+        f"{pending} still open (untested hypotheses, excluded from the rate).</p>\n"
         '      <div class="stat-row" style="margin-bottom:16px">\n'
         f'        <div class="stat"><span class="value" style="color:var(--good)">{confirmed}</span>'
         '<span class="label">confirmed</span></div>\n'
@@ -3390,9 +3601,13 @@ def _render_experiments(experiments: list[Experiment] | None, store: Path | None
         if row:
             return str(row.get("verdict") or "inconclusive")
         key = _status_key(e.status)
-        if key in ("confirmed", "verified"):
+        if key in CONFIRMED_STATUSES:
             return "confirmed"
-        return "failed" if key == "failed" else "unscored"
+        if key in FAILED_STATUSES:
+            return "failed"
+        if key in INCONCLUSIVE_STATUSES:
+            return "inconclusive"
+        return "unscored"
 
     tally = Counter(_verdict_of(e) for e in experiments)
     scored = len(experiments) - tally["unscored"]
@@ -5529,8 +5744,10 @@ def _cost_efficiency_panel(rows: list[dict[str, Any]], store: Path, cutoff: str 
 
     Split from Session Health (2026-08-19): the six token charts answer "where did
     effort go", which is this tab's question. Session Health keeps the behavioural
-    half (profile, parallelism, duration, workspace totals). Both panels still run
-    through `_windowed_region`, so the window toggle drives them independently.
+    half (profile, parallelism, duration, friction). Workspace totals moved here
+    too — what the effort landed against belongs next to the effort. Both panels
+    still run through `_windowed_region`, so the window toggle drives them
+    independently.
     """
     if not rows:
         return '<p class="empty">No sessions in this window.</p>'
@@ -5738,22 +5955,26 @@ def _cost_efficiency_panel(rows: list[dict[str, Any]], store: Path, cutoff: str 
             thresh_label="p90 day",
         )
         + "</div>\n"
+        + _repo_totals_card(store, cutoff)
+        + _repo_effort_card(store, cutoff)
     )
 
 
 def _session_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str | None) -> str:
     """Session Health: how sessions *behaved* — shape, parallelism, duration, friction.
 
-    Deliberately excludes the token/cost/cache grid, which moved to
-    `_cost_efficiency_panel`. What stays answers "how did the session run", not
-    "what did it cost": context distribution, agent concurrency, wall-clock
-    duration, friction signals, and the workspace totals they landed against.
+    Deliberately excludes the token/cost/cache grid and the workspace totals,
+    both of which moved to `_cost_efficiency_panel`. What stays answers "how did
+    the session run", not "what did it cost": context distribution, agent
+    concurrency, wall-clock duration, and friction signals.
+
+    `store` and `cutoff` are unused here but required by the `_windowed_region`
+    panel signature.
     """
     if not rows:
         return '<p class="empty">No sessions in this window.</p>'
 
     n = len(rows)
-    dates = {str(r["date"]) for r in rows}
     turns_total = sum(int(r.get("human_turns") or 0) for r in rows)
     turn_vals = [float(r["human_turns"]) for r in rows if r.get("human_turns") is not None]
     single_turn = sum(1 for v in turn_vals if v <= 1)
@@ -5765,13 +5986,17 @@ def _session_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
     ba_total = sum(int(r["bash_antipatterns"]) for r in ba_rows)
     err_total = sum(int(r.get("tool_error_count") or 0) for r in rows)
 
+    # Four friction boxes directly under the window toggle (2026-08-19): turns,
+    # interruptions, tool failures, bash antipatterns. Sessions moved into the
+    # turns subtitle rather than taking a box of its own — it is the denominator
+    # the other three are read against, not a friction signal.
     headline = "".join(
         [
-            _kpi("Sessions", f"{n:,}", f"{len(dates)} active days", "accent-teal"),
             _kpi(
                 "Turns / session",
                 f"{_percentile(turn_vals, 50):,.0f}" if turn_vals else "—",
-                f"{turns_total:,} total · {single_turn * 100 // n if n else 0}% single-turn",
+                f"{turns_total:,} turns over {n:,} sessions · "
+                f"{single_turn * 100 // n if n else 0}% single-turn",
                 "accent-blue",
             ),
             _kpi(
@@ -5780,45 +6005,141 @@ def _session_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
                 f"{interruptions / n:.2f} per session" if n else "—",
                 "accent-left",
             ),
+            _kpi(
+                "Tool failures",
+                f"{err_total:,}",
+                f"{err_total / n:.1f} per session" if n else "—",
+                "accent-orange",
+            ),
+            _kpi(
+                "Bash antipatterns",
+                f"{ba_total:,}" if ba_rows else "—",
+                (
+                    f"{ba_total / len(ba_rows):.1f} per session · {len(ba_rows):,} of {n:,} scored"
+                    if ba_rows
+                    else "column absent in this window"
+                ),
+                "accent-red",
+            ),
         ]
     )
 
-    friction = (
-        '<div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>\n'
-        '<h3 style="font-size:15px;font-weight:600;margin-bottom:16px">Friction signals</h3>\n'
-        '<div class="card">'
-        '<div class="card-title">What pushed back during the session</div>'
-        '<p class="card-note">User interruptions, tool failures and bash antipatterns are '
-        "properties of how the session <em>ran</em> — they moved here from Context Health, "
-        "which now covers context <em>management</em> only.</p>"
-        '<div class="stat-row" style="margin-top:12px">'
-        f'<div class="stat"><span class="value">{interruptions:,}</span>'
-        '<span class="label">interruptions</span></div>'
-        f'<div class="stat"><span class="value">{err_total:,}</span>'
-        '<span class="label">tool failures</span></div>'
-        f'<div class="stat"><span class="value">{ba_total:,}</span>'
-        f'<span class="label">bash antipatterns</span></div>'
-        f'<div class="stat"><span class="value">{ba_total / len(ba_rows):.1f}</span>'
-        '<span class="label">antipatterns / session</span></div>'
-        if ba_rows
-        else '<div class="stat"><span class="value">—</span>'
-        '<span class="label">antipatterns / session</span></div>'
-    ) + (
-        "</div>"
+    fence = (
         f'<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
         f"Antipattern counts computed over {len(ba_rows):,} of {n:,} sessions that carry the "
-        f"column; tool failures over all {n:,}.</p>"
-        "</div>"
+        f"column; tool failures and interruptions over all {n:,}.</p>"
     )
 
     return (
-        f'<div class="ikpi-grid four" style="grid-template-columns:repeat(3,1fr)">{headline}</div>\n'
+        f'<div class="ikpi-grid four">{headline}</div>\n'
+        f"{fence}"
         '<div style="border-top:1px solid var(--border);margin:28px 0 20px"></div>\n'
         '<h3 style="font-size:15px;font-weight:600;margin-bottom:16px">'
-        "Session Profile</h3>\n"
-        + _session_health_viz(rows, n)
-        + friction
-        + _repo_totals_card(store, cutoff)
+        "Session Profile</h3>\n" + _session_health_viz(rows, n)
+    )
+
+
+def _repo_effort_card(store: Path, cutoff: str | None) -> str:
+    """Session cost and landed commits per repo, windowed to the panel's cutoff.
+
+    Was a hand-written static table frozen at "since Jul 15" (2026-08-19); made
+    windowed so the Cost & Efficiency toggle drives it like every other panel.
+
+    Cost is split across the repos a session worked in, weighted by records under
+    each `cwd` — 22% of sessions touch more than one, so assigning a whole session
+    to a single winner would misattribute real spend.
+
+    The cost column is July-forward regardless of the window: `session_repos` is
+    derived from JSONL `cwd` records the note era never captured, so a 90d or
+    all-time window cannot extend it earlier (JULY_ONLY_METRICS). Commits carry no
+    such fence, so the card states the effective cost floor rather than implying
+    the two columns cover the same span.
+
+    Deliberately NOT divided: Ramsey commits, always, so a cost-per-commit ratio
+    would read as Claude-authored output (see gitstore.ATTRIBUTION).
+    """
+    floor = max(cutoff or JULY_BOUNDARY, JULY_BOUNDARY)
+
+    cost_by_repo: dict[str, float] = {}
+    attributed = 0.0
+    total = 0.0
+    for row in _work_sessions(read_all(store)):
+        day = str(row.get("date") or "")
+        if day < floor:
+            continue
+        cost = float(row.get("cost_units") or 0.0)
+        total += cost
+        try:
+            repos: dict[str, int] = json.loads(row.get("session_repos") or "{}")
+        except (json.JSONDecodeError, TypeError):
+            repos = {}
+        if not repos:
+            continue
+        attributed += cost
+        records = sum(repos.values())
+        for repo, count in repos.items():
+            cost_by_repo[repo] = cost_by_repo.get(repo, 0.0) + cost * count / records
+
+    commits_by_repo: dict[str, int] = {}
+    for row in read_git_activity(store):
+        day = str(row.get("date") or "")
+        if cutoff is not None and day < cutoff:
+            continue
+        human = int(row.get("commits") or 0) - int(row.get("commits_bot") or 0)
+        if human <= 0:
+            continue
+        commits_by_repo[str(row["repo"])] = commits_by_repo.get(str(row["repo"]), 0) + human
+
+    if not cost_by_repo and not commits_by_repo:
+        return ""
+
+    # Repos with 10 or fewer commits in the window are omitted, matching the
+    # static table this replaced: a repo touched once or twice adds a row of
+    # noise without changing the effort picture.
+    repos = sorted(
+        (r for r in set(cost_by_repo) | set(commits_by_repo) if commits_by_repo.get(r, 0) > 10),
+        key=lambda r: -cost_by_repo.get(r, 0.0),
+    )
+    if not repos:
+        return ""
+    top = max((cost_by_repo.get(r, 0.0) for r in repos), default=0.0)
+
+    rows_html = "".join(
+        f"<tr><td>{html.escape(r)}</td>"
+        f"<td>{cost_by_repo.get(r, 0.0) / 1e6:,.1f}M</td>"
+        f'<td class="bar-cell"><div class="repo-bar" style="width:'
+        f'{(cost_by_repo.get(r, 0.0) / top * 100) if top else 0:.0f}%"></div></td>'
+        f"<td>{commits_by_repo.get(r, 0)}</td></tr>"
+        for r in repos
+    )
+
+    unattributed = total - attributed
+    share = (unattributed / total * 100) if total else 0.0
+    fenced = floor != (cutoff or JULY_BOUNDARY) or cutoff is None or cutoff < JULY_BOUNDARY
+    fence_note = (
+        f" Cost is July-forward only (from {html.escape(JULY_BOUNDARY)}) — the note era "
+        f"captured no <code>cwd</code> records — while commits span the full window, so "
+        f"the two columns do not cover the same span."
+        if fenced
+        else ""
+    )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Repo effort &amp; outcome</div>'
+        '<p class="card-note">Session cost and landed commits per repo. These are '
+        "<strong>deliberately not divided</strong> — Ramsey commits, so a cost-per-commit "
+        "ratio would read as Claude-authored output.</p>"
+        '<div class="overflow-x"><table class="repo-table">'
+        '<thead><tr><th>Repo</th><th>Cost</th><th class="bar-cell"></th><th>Commits</th></tr></thead>'
+        f"<tbody>{rows_html}</tbody></table></div>"
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
+        f"Repos with 10 or fewer commits in this window are omitted. "
+        f"Cost split across repos by session cwd records. "
+        f"{unattributed / 1e6:,.1f}M cost units ({share:.0f}%) ran at the workspace root and "
+        f"name no repo — excluded rather than assigned to one. A repo with cost and zero "
+        f"commits means spend without landed work, not a missing join.{fence_note}</p>"
+        "</div>"
     )
 
 
@@ -5883,11 +6204,14 @@ def _repo_totals_card(store: Path, cutoff: str | None) -> str:
 def _session_health_viz(rows: list[dict[str, Any]], n: int) -> str:
     """Context dist, session parallelism, response time — gradient viz cards."""
     # Context usage distribution
+    # Vertical columns, mirroring Session Duration (2026-08-19): both are
+    # bucketed distributions over the same sessions, so they read as one pair
+    # only if they share an orientation.
     ctx_buckets = [
-        ("<50k", 0, 50_000, "linear-gradient(90deg,#4ade80,#22d3a0)"),
-        ("50\u2013100k", 50_000, 100_000, "linear-gradient(90deg,#6ab8f7,#7c6af7)"),
-        ("100\u2013150k", 100_000, 150_000, "linear-gradient(90deg,#fbbf24,#f7936a)"),
-        (">150k", 150_000, float("inf"), "linear-gradient(90deg,#f76a8a,#f7406a)"),
+        ("<50k", 0, 50_000, "linear-gradient(180deg,#4ade80,#22d3a0)"),
+        ("50\u2013100k", 50_000, 100_000, "linear-gradient(180deg,#6ab8f7,#7c6af7)"),
+        ("100\u2013150k", 100_000, 150_000, "linear-gradient(180deg,#fbbf24,#f7936a)"),
+        (">150k", 150_000, float("inf"), "linear-gradient(180deg,#f76a8a,#f7406a)"),
     ]
     ctx_counts = []
     for label, lo, hi, grad in ctx_buckets:
@@ -5895,10 +6219,13 @@ def _session_health_viz(rows: list[dict[str, Any]], n: int) -> str:
         ctx_counts.append((label, cnt, grad))
     peak_ctx = max((c for _, c, _ in ctx_counts), default=1) or 1
     ctx_bars = "".join(
-        f'<div class="hb-row"><div class="hb-label">{lbl}</div>'
-        f'<div class="hb-track"><div class="hb-fill" style="width:{cnt / peak_ctx * 100:.0f}%;'
-        f'background:{grad}"><span>{cnt}</span></div></div>'
-        f'<div class="hb-val">{cnt * 100 // n if n else 0}%</div></div>'
+        f'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">'
+        f'<div style="font-size:10px;color:var(--text-1);font-weight:600">{cnt}</div>'
+        f'<div style="width:100%;height:{max(cnt / peak_ctx * 80, 2):.0f}px;'
+        f'border-radius:4px 4px 0 0;background:{grad}"></div>'
+        f'<div style="font-size:10px;color:var(--text-3)">{html.escape(lbl)}</div>'
+        f'<div style="font-size:10px;color:var(--text-2)">{cnt * 100 // n if n else 0}%</div>'
+        f"</div>"
         for lbl, cnt, grad in ctx_counts
     )
     heavy = sum(1 for r in rows if (r.get("max_context") or 0) >= 150_000)
@@ -5955,16 +6282,44 @@ def _session_health_viz(rows: list[dict[str, Any]], n: int) -> str:
         f'<div style="font-size:10px;color:var(--text-1);font-weight:600">{cnt}</div>'
         f'<div style="width:100%;height:{max(cnt / dur_peak * 80, 2):.0f}px;'
         f'border-radius:4px 4px 0 0;background:{grad}"></div>'
-        f'<div style="font-size:10px;color:var(--text-3)">{lbl}</div></div>'
+        f'<div style="font-size:10px;color:var(--text-3)">{html.escape(lbl)}</div></div>'
         for lbl, cnt, grad in dur_counts
     )
 
+    # Main-loop model mix — the fourth quadrant. Source is sessions.models, which
+    # is populated on every row, so it needs no window fence. Turns, not cost:
+    # subagent spend is a different unit and lives on Context Health.
+    palette = ("var(--ac-violet)", "var(--ac-teal)", "var(--ac-orange)", "var(--s2)", "var(--s5)")
+    models: dict[str, int] = {}
+    for r in rows:
+        try:
+            for model, turns in json.loads(r.get("models") or "{}").items():
+                models[model] = models.get(model, 0) + int(turns)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+    model_turns = sum(models.values())
+    top_models = sorted(models.items(), key=lambda kv: -kv[1])[:5]
+    model_bars = (
+        "".join(
+            _hbar(
+                _short_model(name),
+                f"{cnt / model_turns * 100:.0f}%",
+                cnt / top_models[0][1] * 100,
+                palette[i % len(palette)],
+            )
+            for i, (name, cnt) in enumerate(top_models)
+        )
+        if model_turns
+        else '<p class="empty">No model data in this window.</p>'
+    )
+
     return (
-        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">'
+        '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">'
         '<div class="card">'
         '<div class="card-title">Context Window</div>'
         f'<p class="card-note">{n:,} sessions by peak context.</p>'
-        f'<div class="hbars" style="margin-top:12px">{ctx_bars}</div>{ctx_flag}</div>'
+        f'<div style="display:flex;gap:6px;align-items:flex-end;height:90px;margin-top:12px">'
+        f"{ctx_bars}</div>{ctx_flag}</div>"
         '<div class="card">'
         '<div class="card-title">Session Parallelism</div>'
         f'<p class="card-note">{n:,} sessions \u2014 agent concurrency.</p>'
@@ -5975,7 +6330,158 @@ def _session_health_viz(rows: list[dict[str, Any]], n: int) -> str:
         f"Median {_fmt_duration(med_dur)}, avg {_fmt_duration(avg_dur)}.</p>"
         f'<div style="display:flex;gap:6px;align-items:flex-end;height:90px;margin-top:12px">'
         f"{rt_bars}</div></div>"
+        '<div class="card">'
+        '<div class="card-title">Model Usage</div>'
+        f'<p class="card-note">Assistant turns by model. Policy: opus-5 is the session '
+        f"default; fable is verdict-only.</p>"
+        f'<div class="hbars model-usage" style="margin-top:12px">{model_bars}</div>'
+        f'<p class="dist-note">{model_turns:,} turns · {len(models)} models</p></div>'
         "</div>"
+    )
+
+
+_ERROR_KIND_COLORS = {
+    "command_failed": "var(--ac-rose)",
+    "file_not_found": "var(--ac-orange)",
+    "read_before_write": "var(--ac-teal)",
+    "blocked_by_hook": "var(--ac-violet)",
+}
+
+
+_DISPATCH_TIERS = ("haiku", "sonnet", "fable", "opus")
+
+
+def _routing_gap_card(rows: list[dict[str, Any]], by_model: dict[str, dict[str, float]]) -> str:
+    """What the dispatch asked for vs what the spend says actually ran.
+
+    `agent_spawns[].model` is the tier named on the Agent call; `subagent_costs.
+    by_model` is where the money went. They are different units — a dispatch count
+    and a cost — so they are shown as two shares of their own totals, never
+    subtracted. The gap that matters is a spawn with no model at all: it inherits
+    the session model (opus by default), so an unspecified dispatch is a routing
+    decision made by omission rather than by policy.
+    """
+    requested: dict[str, int] = {}
+    unspecified = 0
+    for row in rows:
+        for rec in _spawn_records(row):
+            tier = str(rec.get("model") or "")
+            if not tier:
+                unspecified += 1
+                continue
+            requested[tier] = requested.get(tier, 0) + 1
+    total_spawns = sum(requested.values()) + unspecified
+
+    spend: dict[str, float] = {}
+    for name, stats in by_model.items():
+        short = _short_model(name)
+        tier = next((t for t in _DISPATCH_TIERS if t in short), short)
+        spend[tier] = spend.get(tier, 0.0) + stats["cost"]
+    total_spend = sum(spend.values())
+
+    if not total_spawns and not total_spend:
+        return (
+            '<div class="card">'
+            '<div class="card-title">Model routing gap</div>'
+            '<p class="empty">No dispatch or subagent-spend data in this window.</p></div>'
+        )
+
+    tiers = [t for t in _DISPATCH_TIERS if requested.get(t) or spend.get(t)]
+    rows_html = "".join(
+        f'<div class="hb-row"><div class="hb-label">{tier}</div>'
+        f'<div class="hb-track">'
+        f'<div class="hb-fill" style="width:{requested.get(tier, 0) / total_spawns * 100 if total_spawns else 0:.0f}%;'
+        f'background:var(--ac-teal)"></div></div>'
+        f'<div class="hb-val">{requested.get(tier, 0) / total_spawns * 100 if total_spawns else 0:.0f}%</div>'
+        f'<div class="hb-track">'
+        f'<div class="hb-fill" style="width:{spend.get(tier, 0.0) / total_spend * 100 if total_spend else 0:.0f}%;'
+        f'background:var(--ac-rose)"></div></div>'
+        f'<div class="hb-val">{spend.get(tier, 0.0) / total_spend * 100 if total_spend else 0:.0f}%</div>'
+        f"</div>"
+        for tier in tiers
+    )
+
+    unspec_share = unspecified / total_spawns * 100 if total_spawns else 0.0
+    flag = ""
+    if unspec_share > 20:
+        flag = (
+            f'<p class="dist-note" style="color:var(--warn)">&#9888; '
+            f"{unspec_share:.0f}% of dispatches name no model — those inherit the session "
+            f"model rather than the policy tier.</p>"
+        )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Model routing gap</div>'
+        '<p class="card-note">Share of <span style="color:var(--ac-teal);font-weight:600">'
+        'dispatches</span> vs share of <span style="color:var(--ac-rose);font-weight:600">'
+        "subagent spend</span>, by tier. Policy: haiku for fan-out, sonnet for bounded "
+        "execution. A tier that takes far more spend than dispatches is doing work it "
+        "was not asked to do.</p>"
+        # Column header: two tracks share one .hb-row, so the reader needs to know
+        # which half is which before the bars mean anything.
+        '<div class="hb-row" style="margin-bottom:6px">'
+        '<div class="hb-label"></div>'
+        '<div class="hb-track" style="background:none;height:auto">'
+        '<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;'
+        'color:var(--ac-teal);font-weight:600">dispatches</span></div>'
+        '<div class="hb-val"></div>'
+        '<div class="hb-track" style="background:none;height:auto">'
+        '<span style="font-size:10px;text-transform:uppercase;letter-spacing:0.04em;'
+        'color:var(--ac-rose);font-weight:600">spend</span></div>'
+        '<div class="hb-val"></div></div>'
+        f'<div class="hbars">{rows_html}</div>'
+        f'<p class="dist-note">{total_spawns:,} dispatches · '
+        f"{_fmt_value(total_spend, 'cost')} subagent spend</p>{flag}</div>"
+    )
+
+
+def _error_breakdown_card(rows: list[dict[str, Any]]) -> str:
+    """Tool failures ranked by kind, windowed with the rest of the panel.
+
+    Shares the `tool_errors` column with the full failure-kinds region, but that
+    one groups by *who* the failure implicates; this is the flat ranked view the
+    2x2 needs. Kinds, not tools — the two columns cannot be joined.
+    """
+    kinds: dict[str, int] = {}
+    calls = 0
+    for row in rows:
+        raw = row.get("tool_errors")
+        if not raw:
+            continue
+        try:
+            parsed: dict[str, int] = json.loads(raw)
+        except (TypeError, json.JSONDecodeError):
+            continue
+        for kind, n in parsed.items():
+            kinds[kind] = kinds.get(kind, 0) + int(n)
+        calls += _tool_call_total(row)
+
+    body = '<p class="empty">No tool-error data in this window.</p>'
+    if kinds:
+        top = sorted(kinds.items(), key=lambda kv: -kv[1])[:6]
+        peak = top[0][1] or 1
+        total = sum(kinds.values())
+        body = "".join(
+            _hbar(
+                name.replace("_", " "),
+                f"{cnt:,}",
+                cnt / peak * 100,
+                _ERROR_KIND_COLORS.get(name, "var(--ac-blue)"),
+            )
+            for name, cnt in top
+        )
+        rate = f"{total / calls * 100:.2f} per 100 calls" if calls else "rate unavailable"
+        body = (
+            f'<div class="hbars">{body}</div><p class="dist-note">{total:,} failures · {rate}</p>'
+        )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Error Type Breakdown</div>'
+        '<p class="card-note">Tool failures by kind. <code>blocked_by_hook</code> is a '
+        "guard working, not a defect — read it against the others, not with them.</p>"
+        f"{body}</div>"
     )
 
 
@@ -6024,11 +6530,6 @@ def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
         "var(--ac-green)",
     ]
 
-    spawn_counts = [float(len(_spawn_records(r))) for r in rows]
-    conc_bars, _conc_n = _bucket_bars(
-        [{"spawns": c} for c in spawn_counts], "spawns", _SPAWN_BUCKETS
-    )
-
     type_counts: dict[str, int] = {}
     for r in rows:
         for rec in _spawn_records(r):
@@ -6062,33 +6563,8 @@ def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
             for i, (name, st) in enumerate(top)
         )
 
-    # --- model usage: main loop vs subagents --------------------------------
-    # Two independent frames. Main-loop turns come from sessions.models (populated
-    # on every row); subagent spend comes from subagent_costs.by_model (populated
-    # only on parent sessions that spawned). Never summed together — a turn and a
-    # spawned agent are different units.
-    main_models: dict[str, int] = {}
-    for r in rows:
-        try:
-            for model, turns in json.loads(r.get("models") or "{}").items():
-                main_models[model] = main_models.get(model, 0) + int(turns)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            continue
-    main_turns = sum(main_models.values())
-    main_model_bars = (
-        "".join(
-            _hbar(
-                _short_model(name),
-                f"{cnt / main_turns * 100:.0f}%",
-                cnt / max(main_models.values()) * 100,
-                palette[i % len(palette)],
-            )
-            for i, (name, cnt) in enumerate(sorted(main_models.items(), key=lambda kv: -kv[1])[:6])
-        )
-        if main_turns
-        else '<p class="empty">No model data in this window.</p>'
-    )
-
+    # Subagent spend by model. Main-loop model share lives on Session Health — it is a
+    # property of how the session itself ran, not of the work that fanned out.
     sub_model_cost = sum(s["cost"] for s in _bm.values())
     sub_model_n = sum(int(s["n"]) for s in _bm.values())
     sub_model_bars = (
@@ -6103,17 +6579,6 @@ def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
         )
         if sub_model_cost
         else '<p class="empty">No subagent model data in this window.</p>'
-    )
-
-    # Parallelism headline: how much work actually fans out.
-    spawned = [c for c in spawn_counts if c > 0]
-    parallel_note = (
-        f"{len(spawned)} of {len(rows):,} sessions spawned agents · "
-        f"{sum(spawn_counts):,.0f} total · "
-        f"{sum(spawned) / len(spawned):.1f} avg when spawning · "
-        f"peak {max(spawn_counts):.0f}"
-        if spawned
-        else "No agent spawns in this window."
     )
 
     quality = "".join(
@@ -6154,14 +6619,11 @@ def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
     return (
         # KPI row
         f'<div class="ikpi-grid four" style="grid-template-columns:repeat(3,1fr)">{quality}</div>\n'
-        # Row 1: subagent concurrency + activity
-        '<div class="card-row">'
-        '<div class="card" style="flex:1">'
-        '<div class="card-title">Subagent Concurrency</div>'
-        '<p class="card-note">Agents spawned per session \u2014 the shape of parallel work.</p>'
-        f'<div class="dist">{conc_bars}</div>'
-        f'<p class="dist-note">{parallel_note}</p></div>'
-        '<div class="card" style="flex:1">'
+        # 2x2: the four subagent/error frames. Concurrency and Main-loop model were
+        # dropped from this tab 2026-08-19 \u2014 they describe session shape, not the
+        # economics of spawned work, and Session Health already carries that frame.
+        '<div class="grid-2x2">'
+        '<div class="card">'
         '<div class="card-title">Subagent Activity</div>'
         f'<div class="mini-stats">'
         f"<div><b>{sub_n:,}</b><span>Transcripts</span></div>"
@@ -6170,31 +6632,23 @@ def _context_health_panel(rows: list[dict[str, Any]], store: Path, cutoff: str |
         f'<div><b style="color:var(--ac-rose)">{heavy_share:.0f}%</b>'
         f"<span>Heavy usage</span></div></div>"
         f'<p class="card-note" style="margin-top:8px">Agents by type</p>'
-        f'<div class="hbars">{type_bars}</div></div></div>\n'
-        # Row 2: model usage \u2014 main loop vs subagents
-        '<div class="card-row">'
-        '<div class="card" style="flex:1">'
-        '<div class="card-title">Main-loop model</div>'
-        '<p class="card-note">Assistant turns by model in the session itself. '
-        "Policy: opus-5 is the session default; fable is verdict-only.</p>"
-        f'<div class="hbars">{main_model_bars}</div>'
-        f'<p class="dist-note">{main_turns:,} turns \u00b7 {len(main_models)} models</p></div>'
-        '<div class="card" style="flex:1">'
+        f'<div class="hbars">{type_bars}</div></div>'
+        '<div class="card">'
         '<div class="card-title">Subagent model</div>'
         '<p class="card-note">Spawned-agent spend by model. '
         "Policy: haiku for fan-out, sonnet for bounded execution.</p>"
         f'<div class="hbars">{sub_model_bars}</div>'
         f'<p class="dist-note">{sub_model_n:,} agents \u00b7 '
-        f"{_fmt_value(sub_model_cost, 'cost')} attributed</p></div></div>\n"
-        # Row 3: attribution
-        '<div class="card-row">'
-        '<div class="card" style="flex:1">'
+        f"{_fmt_value(sub_model_cost, 'cost')} attributed</p></div>"
+        '<div class="card">'
         '<div class="card-title">Subagent Attribution</div>'
         '<p class="card-note">Share of subagent spend by type. '
         "<em>unattributed</em> = coverage gap.</p>"
         f'<div class="hbars">{attr_bars or "<p class=empty>No subagent spend.</p>"}</div>'
         f'<p class="dist-note">{sub_n:,} transcripts \u00b7 {sum(spawns.values()):,} agents \u00b7 '
-        f"{sub_share:.0f}% of usage</p></div></div>"
+        f"{sub_share:.0f}% of usage</p></div>"
+        f"{_routing_gap_card(rows, _bm)}"
+        "</div>"
     )
 
 

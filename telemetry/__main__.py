@@ -46,6 +46,24 @@ def main() -> None:
         raise SystemExit(2)
 
 
+# Regions the v2 board declares but no longer displays. Context Health ends at tool
+# failures there, and the windowed COST-EFFICIENCY region absorbed the token/KPI cards.
+# v1 still renders all six, so the renderers stay wired; only the v2 injection skips
+# them. The markers stay declared on v2 (parked in the hidden block) so the
+# board-completeness test still passes, but nothing is ever written into them.
+_V2_RETIRED_REGIONS: frozenset[str] = frozenset(
+    {
+        "CONTEXT-ORCHESTRATION",
+        "SUBAGENT-WINDOWS",
+        "INSIGHTS-CONTEXT",
+        "INPUT-TOKENS",
+        "TOKEN-GRID",
+        "INSIGHTS-KPI",
+        "INSIGHTS-COST",
+    }
+)
+
+
 # The ten repos wake's Phase 5 loop already walks (wake/SKILL.md:97). Reused rather
 # than maintained separately — a second list would drift from the first, and a repo
 # missing from the checker's copy would be silently unchecked.
@@ -1113,6 +1131,13 @@ def _run_facts() -> None:
                 ),
                 "VERDICT-TRAJECTORIES": render_verdict_trajectories_region(read_verdicts(store)),
             }
+            # The v2 board retired these three from Context Health (which now ends at
+            # tool failures), but v1 still renders them, so the renderers stay wired.
+            # Their markers remain declared on v2 — parked in the hidden block so the
+            # board-completeness test still passes — and are left empty here rather
+            # than refilled on every run.
+            if ctx_path.name == "context-dashboard-v2.html":
+                regions = {k: v for k, v in regions.items() if k not in _V2_RETIRED_REGIONS}
             injected = inject_regions(ctx_path, regions)
             print(f"Region injection: {injected}")
         else:

@@ -737,3 +737,43 @@ class TestActionsLog:
         assert len(lines) == 2, f"Expected 2 log lines, got {len(lines)}"
         for line in lines:
             json.loads(line)  # each line must be valid JSON
+
+
+# ---------------------------------------------------------------------------
+# GUA-137: proposal_id join key
+# ---------------------------------------------------------------------------
+
+
+def test_action_log_carries_proposal_id(tmp_path: Path) -> None:
+    """Every logged action records the proposal id it came from.
+
+    Without this the log cannot be joined back to the board, so triage
+    verification ("did the condition this action addressed actually clear?")
+    has no key to join on.
+    """
+    log_path = tmp_path / "actions.jsonl"
+    proposal = _proposal(issue_num=137)
+
+    auto_close_merged(proposal, branch_facts=[], prs=[], actions_log=log_path)
+
+    rec = json.loads(log_path.read_text().strip())
+    assert rec["proposal_id"] == proposal.id
+    assert rec["proposal_id"], "proposal id must be non-empty"
+
+
+def test_proposal_id_is_stable_across_ticks() -> None:
+    """The join key depends only on action + target, so it survives re-derivation.
+
+    The board is recomputed from scratch every tick; an id that moved when
+    `reason`/`created_at` changed would make the same proposal look new each time.
+    """
+    first = _proposal(issue_num=137)
+    second = ProposedAction(
+        action="close_issue",
+        target={"issue_num": 137, "repo": "guacamayo"},  # reordered keys
+        reason="a completely different reason",
+        evidence="different evidence",
+        confidence="low",
+        created_at="2026-09-01T00:00:00+00:00",
+    )
+    assert second.id == first.id

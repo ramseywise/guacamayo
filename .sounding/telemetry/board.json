@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-19T08:53:50.798594+00:00",
+  "collected_at": "2026-08-19T12:01:11.829753+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,26 +15,13 @@
   "skipped_repos": [],
   "total_issues": 8,
   "heartbeat": {
-    "started_at": "2026-08-19T08:53:27.813773+00:00",
-    "finished_at": "2026-08-19T08:53:50.828389+00:00",
+    "started_at": "2026-08-19T12:00:50.941620+00:00",
+    "finished_at": "2026-08-19T12:01:11.843857+00:00",
     "exit": 0,
-    "duration_s": 23.01,
+    "duration_s": 20.9,
     "error": null
   },
   "proposed_actions": [
-    {
-      "id": "f82303c288da",
-      "action": "close_issue",
-      "target": {
-        "repo": "guacamayo",
-        "issue_num": 137
-      },
-      "reason": "branch merged to main but issue #137 is still open",
-      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-137-dashboard-facelift` is an ancestor of origin/main'; evidence='guacamayo#137 is still OPEN after branch merged'",
-      "confidence": "medium",
-      "auto_eligible": false,
-      "created_at": "2026-08-19T08:53:50.827674+00:00"
-    },
     {
       "id": "379752492c21",
       "action": "close_issue",
@@ -46,7 +33,7 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T08:53:50.827674+00:00"
+      "created_at": "2026-08-19T12:01:11.843639+00:00"
     }
   ],
   "records": [
@@ -55,10 +42,10 @@
       "issue_num": 137,
       "title": "context-dashboard facelift: component drift metrics + salvage from dashboards/ experiments",
       "raw_label": "ready",
-      "column": "backlog",
-      "backlog_stage": "ready",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-137-dashboard-facelift' exists, is_ancestor=False",
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "guacamayo",
@@ -68,7 +55,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "playground",
@@ -78,7 +65,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "galactus",
@@ -88,7 +75,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "galactus",
@@ -98,7 +85,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "galactus",
@@ -108,7 +95,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "galactus",
@@ -118,7 +105,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     },
     {
       "repo": "galactus",
@@ -128,7 +115,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T08:53:50.798594+00:00"
+      "collected_at": "2026-08-19T12:01:11.829753+00:00"
     }
   ]
 }

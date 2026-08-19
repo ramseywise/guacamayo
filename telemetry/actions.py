@@ -79,8 +79,18 @@ def _log_record(
     outcome: str,
     reason: str,
     evidence: str,
+    proposal_id: str = "",
 ) -> dict[str, Any]:
-    return {
+    """Build one actions.jsonl record.
+
+    `proposal_id` is `ProposedAction.id` (`board._stable_id`, a hash over action +
+    target only). It is the join key that lets a later tick re-derive the board and
+    ask whether the condition this action addressed actually cleared — without it a
+    decision cannot be tied back to the proposal that produced it, since `target`
+    alone is not unique across action kinds. Defaults to "" so callers that have no
+    proposal in hand still write a well-formed row.
+    """
+    record = {
         "ts": datetime.now(UTC).isoformat(),
         "action": action,
         "target": target,
@@ -88,6 +98,9 @@ def _log_record(
         "reason": reason,
         "evidence": evidence,
     }
+    if proposal_id:
+        record["proposal_id"] = proposal_id
+    return record
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +144,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason="no BranchFact found for this (repo, issue_num)",
             evidence=f"branch_facts checked: {len(branch_facts)}",
@@ -144,6 +158,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason="is_ancestor=None for this branch — ancestry undetermined, not a safe auto-close",
             evidence=f"matching branch facts: {[bf.branch for bf in matching_facts]}",
@@ -156,6 +171,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason="is_ancestor=False — branch not yet merged to origin/main",
             evidence=f"matching branch facts: {[bf.branch for bf in matching_facts]}",
@@ -181,6 +197,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason=f"no PR body found with 'Closes #{issue_num}' — cannot confirm PR→issue link",
             evidence=f"PRs checked for repo {repo!r}: {len([p for p in prs if p.get('repo') == repo])}",
@@ -202,6 +219,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="acted",
             reason=f"branch merged and PR #{pr_num} references Closes #{issue_num} [dry-run]",
             evidence=evidence_str,
@@ -231,6 +249,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason=f"gh issue close failed with exception: {exc}",
             evidence=evidence_str,
@@ -243,6 +262,7 @@ def auto_close_merged(
         rec = _log_record(
             action="auto_close_merged",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason=f"gh issue close returned exit {result.returncode}: {result.stderr.strip()!r}",
             evidence=evidence_str,
@@ -260,6 +280,7 @@ def auto_close_merged(
     rec = _log_record(
         action="auto_close_merged",
         target=proposal.target,
+        proposal_id=proposal.id,
         outcome="acted",
         reason=f"branch merged and PR #{pr_num} references Closes #{issue_num}",
         evidence=evidence_str,
@@ -305,6 +326,7 @@ def auto_fix_label(
         rec = _log_record(
             action="auto_fix_label",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason="column=undetermined — derivation could not complete; cannot know which label is right",
             evidence=f"column={column!r}; labels={current_labels!r}",
@@ -319,6 +341,7 @@ def auto_fix_label(
         rec = _log_record(
             action="auto_fix_label",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason=f"no unambiguous label contradiction for column={column!r}",
             evidence=f"column={column!r}; labels={current_labels!r}",
@@ -333,6 +356,7 @@ def auto_fix_label(
         rec = _log_record(
             action="auto_fix_label",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="acted",
             reason=f"removing labels {sorted(bad_labels)!r} contradicting column={column!r} [dry-run]",
             evidence=evidence_str,
@@ -373,6 +397,7 @@ def auto_fix_label(
         rec = _log_record(
             action="auto_fix_label",
             target=proposal.target,
+            proposal_id=proposal.id,
             outcome="declined",
             reason=f"gh issue edit failed for labels: {failed_labels}",
             evidence=evidence_str,
@@ -384,6 +409,7 @@ def auto_fix_label(
     rec = _log_record(
         action="auto_fix_label",
         target=proposal.target,
+        proposal_id=proposal.id,
         outcome="acted",
         reason=f"removed labels {sorted(bad_labels)!r} contradicting column={column!r}",
         evidence=evidence_str,
@@ -490,6 +516,7 @@ def run_eligible_actions(
             rec = _log_record(
                 action=proposal.action,
                 target=proposal.target,
+                proposal_id=proposal.id,
                 outcome="declined",
                 reason=f"no auto-mutation handler for action={proposal.action!r}",
                 evidence="auto_eligible=True but action not in [close_issue, fix_label]",
