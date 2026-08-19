@@ -118,7 +118,7 @@ def test_render_tool_trends_card_with_data(tmp_path: Path) -> None:
     )
     result = render_tool_trends_card(store)
     assert result
-    assert "Tool call trends" in result
+    assert "Tool calls by volume" in result
     assert "Bash" in result
 
 

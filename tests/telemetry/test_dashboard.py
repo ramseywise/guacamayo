@@ -904,6 +904,96 @@ def test_parse_ledger_with_log(tmp_path: Path) -> None:
     names = {e.name for e in exps}
     assert "active-exp" in names
     assert "old-exp" in names
+    # The log's Verdict column must land in `status`, not its Evidence column.
+    old = next(e for e in exps if e.name == "old-exp")
+    assert old.status == "failed"
+    assert old.metric == "no signal"
+
+
+# ---------------------------------------------------------------------------
+# GUA-137: ledger column offset + closed status vocabulary
+# ---------------------------------------------------------------------------
+
+
+def test_parse_ledger_log_reads_verdict_not_evidence(tmp_path: Path) -> None:
+    """Log rows are Date|Change|Area|Verdict|Evidence — verdict is the 4th cell.
+
+    Regression guard for the offset that fed evidence prose into _status_key and
+    reported 1 confirmed of 108 while 43 closed verdicts sat one column over.
+    """
+    from telemetry.dashboard import _status_key, parse_ledger
+
+    log_path = tmp_path / "tooling-ledger-log.md"
+    log_path.write_text(
+        "| Date | Change | Area | Verdict | Evidence |\n"
+        "|---|---|---|---|---|\n"
+        "| 2026-07-20 | exp-a | workflow | verified | 0 regressions in R3 window |\n",
+        encoding="utf-8",
+    )
+    ledger = tmp_path / "tooling-ledger.md"
+    ledger.write_text(
+        "| Date | Change | Area | Metric | Status |\n|---|---|---|---|---|\n", "utf-8"
+    )
+
+    exp = parse_ledger(ledger, log_path)[0]
+    assert exp.status == "verified"
+    # The evidence prose must NOT become the status key (this yielded "0" before).
+    assert _status_key(exp.status) == "verified"
+
+
+def test_status_key_normalises_case_and_markdown() -> None:
+    """_status_key folds case and strips markdown so real verdicts are not missed."""
+    from telemetry.dashboard import _status_key
+
+    assert _status_key("**VERIFIED**") == "verified"
+    assert _status_key("Confirmed present at `~/.claude/CLAUDE.md:176`") == "confirmed"
+    assert _status_key("failed") == "failed"
+    assert _status_key("") == ""
+
+
+def test_graduation_denominator_excludes_open_hypotheses() -> None:
+    """Rate is over resolved rows only; open hypotheses are reported separately."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    exps = [
+        Experiment(name="a", metric="m", status="verified", date="2026-08-01"),
+        Experiment(name="b", metric="m", status="**VERIFIED**", date="2026-08-02"),
+        Experiment(name="c", metric="m", status="failed", date="2026-08-03"),
+        Experiment(name="d", metric="m", status="inconclusive", date="2026-08-04"),
+        Experiment(name="e", metric="m", status="hypothesis", date="2026-08-05"),
+        Experiment(name="f", metric="m", status="superseded", date="2026-08-06"),
+    ]
+    grad = compute_graduation(exps)
+    assert (grad.confirmed, grad.failed, grad.inconclusive) == (2, 1, 1)
+    assert grad.resolved == 4  # open + excluded are NOT in the denominator
+    assert grad.open_count == 1
+    assert grad.excluded == 1
+    assert grad.rate_pct == 50.0
+    # Buckets must partition the input — no row silently vanishes.
+    assert grad.total == len(exps)
+
+
+def test_graduation_rate_is_none_when_nothing_resolved() -> None:
+    """An all-hypothesis ledger has no rate rather than a divide-by-zero or 0%."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    grad = compute_graduation(
+        [Experiment(name="a", metric="m", status="hypothesis", date="2026-08-01")]
+    )
+    assert grad.rate_pct is None
+    assert grad.open_count == 1
+
+
+def test_graduation_surfaces_unknown_statuses() -> None:
+    """Unrecognised statuses are counted and sampled, never folded into a bucket."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    grad = compute_graduation(
+        [Experiment(name="a", metric="m", status=".venv\\ junk", date="2026-08-01")]
+    )
+    assert grad.unknown == 1
+    assert grad.resolved == 0
+    assert "venv\\" in grad.unknown_samples[0]
 
 
 # ---------------------------------------------------------------------------
