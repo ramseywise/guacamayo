@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# End-to-end tests for proposed/review-verdict-gate.sh — the real hook, real JSON
+# End-to-end tests for review-verdict-gate.sh — the real hook, real JSON
 # payloads on stdin, real git repo in a temp dir.
+#
+# Tests the INSTALLED hook (~/.claude/hooks/review-verdict-gate.sh) by default —
+# the proposal in ../proposed/ was applied globally before 2026-08-19 and is kept
+# only as a record. Override with HOOK_UNDER_TEST=/path/to/hook.sh, or the suite
+# falls back to ../proposed/review-verdict-gate.sh if the installed copy is absent.
 #
 # Two directions are proven (the minimum meaningful pair):
 #   BLOCK: a branch with no review report is blocked when "gh pr merge" is invoked.
@@ -16,7 +21,16 @@
 
 set -euo pipefail
 
-HOOK="$(cd "$(dirname "$0")/../proposed" && pwd)/review-verdict-gate.sh"
+INSTALLED_HOOK="$HOME/.claude/hooks/review-verdict-gate.sh"
+PROPOSED_HOOK="$(cd "$(dirname "$0")/../proposed" && pwd)/review-verdict-gate.sh"
+
+if [ -n "${HOOK_UNDER_TEST:-}" ]; then
+  HOOK="$HOOK_UNDER_TEST"
+elif [ -f "$INSTALLED_HOOK" ]; then
+  HOOK="$INSTALLED_HOOK"
+else
+  HOOK="$PROPOSED_HOOK"
+fi
 
 PASS=0
 FAIL=0
@@ -30,15 +44,16 @@ TMP=$(mktemp -d)
 export TMP
 trap 'rm -rf "$TMP"' EXIT
 
-# Stitch lib.sh into the proposed hook's directory so source "$(dirname "$0")/lib.sh"
-# resolves correctly. When applied, the hook lives next to ~/.claude/hooks/lib.sh.
+# Stitch lib.sh into the hook-under-test's directory so source "$(dirname "$0")/lib.sh"
+# resolves correctly. The installed hook already lives next to ~/.claude/hooks/lib.sh,
+# so this is a no-op there; it only does real work when HOOK points at ../proposed/.
 # The symlink is a test artifact — an absolute path into $HOME that must never be
 # committed — so remove it on exit rather than leaving it in the working tree.
-PROPOSED_DIR="$(dirname "$HOOK")"
+HOOK_DIR="$(dirname "$HOOK")"
 GLOBAL_LIB="$HOME/.claude/hooks/lib.sh"
-if [ -f "$GLOBAL_LIB" ] && [ ! -e "$PROPOSED_DIR/lib.sh" ]; then
-  ln -s "$GLOBAL_LIB" "$PROPOSED_DIR/lib.sh"
-  trap 'rm -rf "$TMP"; rm -f "$PROPOSED_DIR/lib.sh"' EXIT
+if [ -f "$GLOBAL_LIB" ] && [ ! -e "$HOOK_DIR/lib.sh" ]; then
+  ln -s "$GLOBAL_LIB" "$HOOK_DIR/lib.sh"
+  trap 'rm -rf "$TMP"; rm -f "$HOOK_DIR/lib.sh"' EXIT
 fi
 
 # Build a minimal git repo via Python (bypasses the session's git-commit Bash guard).

@@ -1,3 +1,10 @@
+APPLIED — this change is live globally as of before 2026-08-19.
+review-verdict-gate.sh is registered as PreToolUse in ~/.claude/settings.json
+(bash ~/.claude/hooks/review-verdict-gate.sh) and the installed copy exists at
+~/.claude/hooks/review-verdict-gate.sh. This proposed/ directory is kept only
+as a record of the change that was applied — do not re-apply it.
+==============================================
+
 settings.json change required — apply by hand
 ==============================================
 
