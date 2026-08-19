@@ -21,12 +21,14 @@ from __future__ import annotations
 import html
 import json
 import re
+import sqlite3
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, timedelta
 from datetime import date as _date
 from datetime import datetime as _datetime
+from itertools import pairwise
 from pathlib import Path
 from typing import Any
 
@@ -44,7 +46,7 @@ from telemetry.factstore import (
     read_all,
     read_verdicts,
 )
-from telemetry.gitstore import read_git_activity, read_prs
+from telemetry.gitstore import read_git_activity, read_issues, read_prs
 from telemetry.loop import (
     PlanDoc,
     detect_drift,
@@ -7149,3 +7151,956 @@ def _scope_color(entry_point: str) -> str:
         "plan": "var(--s3)",
         "refine": "var(--s4)",
     }.get(entry_point, "var(--text-3)")
+
+
+# ---------------------------------------------------------------------------
+# Static-card conversions (GUA-151) — telemetry-fed marker regions replacing
+# the hand-maintained cards of the 2026-08-19 board restructure. Every value a
+# region renders is recomputed from its source at render time; the only
+# hand-set content left on Loop Health / Experiments is architectural
+# judgement (plane-strip verdicts and break sentences).
+# ---------------------------------------------------------------------------
+
+
+def _fmt_tokens_k(value: float) -> str:
+    """Format a token count as the board's whole-k convention (102k)."""
+    return f"{value / 1000:.0f}k"
+
+
+def render_session_context_region(store: Path) -> str:
+    """SESSION-CONTEXT region: live peak-context and over-150k tiles.
+
+    Replaces the hand-set "0% today / 117k p90" tiles that reported success
+    while the live 7-day figure was 23% over 150k (the pre-existing Tier 1
+    case). Windowed to the 7 days ending at the newest observation, same
+    anchoring as `_window_cutoff` — wall-clock anchoring would empty the
+    window whenever the batch job has not run yet.
+    """
+    rows = _work_sessions(read_all(store))
+    if not rows:
+        return '<p class="empty">No session data yet.</p>'
+
+    newest = max(str(r["date"]) for r in rows)
+    cutoff = (_date.fromisoformat(newest) - timedelta(days=7)).isoformat()
+    window = [r for r in rows if str(r["date"]) >= cutoff]
+    scored = [float(r["max_context"]) for r in window if r.get("max_context")]
+
+    if not scored:
+        return (
+            '<div class="card"><div class="card-title">Peak context per session</div>'
+            f'<p class="card-note">No max_context observations in the 7 days ending '
+            f"{html.escape(newest)}.</p></div>"
+        )
+
+    p50 = _percentile(scored, 50)
+    p90 = _percentile(scored, 90)
+    over_pct = 100 * sum(1 for v in scored if v >= _CONTEXT_LIMIT) / len(scored)
+    over_color = "var(--good)" if over_pct < 30 else "var(--bad)"
+    fence = (
+        f"Computed from {len(scored)} of {len(window)} sessions carrying "
+        f"<code>max_context</code>, 7 days ending {html.escape(newest)}."
+    )
+
+    return (
+        '<div class="card-row">'
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">Peak context per session (7-day window)</div>'
+        '<p class="card-note"><span class="direction good">&darr; Lower is better.</span> '
+        "Staying below 150k avoids the 5&times; cost cliff.</p>"
+        '<div class="stat-row">'
+        f'<div class="stat"><span class="value" style="color:var(--s1)">{_fmt_tokens_k(p50)}</span>'
+        '<span class="label">p50 (7d)</span></div>'
+        f'<div class="stat"><span class="value" style="color:var(--s2)">{_fmt_tokens_k(p90)}</span>'
+        '<span class="label">p90 (7d)</span></div>'
+        "</div>"
+        f'<div class="trend-cell">{trend_7d("max_context_p50", store, unit="tokens")}</div>'
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px">{fence}</p>'
+        "</div>"
+        '<div class="card" style="flex:1">'
+        '<div class="card-title">% sessions over 150k (7-day window)</div>'
+        '<p class="card-note"><span class="direction good">&darr; Lower is better.</span> '
+        "Target &lt;30%.</p>"
+        '<div class="stat-row">'
+        f'<div class="stat"><span class="value" style="color:{over_color}">{over_pct:.0f}%</span>'
+        '<span class="label">over 150k (7d)</span></div>'
+        "</div>"
+        f'<div class="trend-cell">{trend_7d("pct_over_150k", store, unit="%")}</div>'
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px">{fence}</p>'
+        "</div>"
+        "</div>"
+    )
+
+
+# The four-way split the signal registry made possible (GUA-151 step 2). A
+# verdict row lands in exactly one bucket; the two residual buckets exist so a
+# row the patterns do not recognise is *shown*, never silently dropped.
+_DECISIVE_VERDICTS = frozenset({"confirmed", "failed", "trending"})
+_GAP_BUCKETS: list[tuple[str, str, str]] = [
+    ("decisive", "decisive", "var(--good)"),
+    ("needs-collection", "needs a collection", "var(--warn)"),
+    ("unobservable", "unobservable by design", "var(--text-3)"),
+    ("no-typed-metric", "no typed metric", "var(--stale)"),
+    ("unregistered", "unregistered signal", "var(--bad)"),
+    ("other", "other inconclusive", "var(--s4)"),
+]
+
+
+def _gap_bucket(row: dict[str, Any]) -> str:
+    """Classify one verdict row by the typed reason its evidence carries.
+
+    The patterns mirror the evidence strings `verdicts._measure` and
+    `score_metric` emit — the registry states are not stored as a column, so
+    the evidence line is the join key.
+    """
+    if str(row.get("verdict") or "") in _DECISIVE_VERDICTS:
+        return "decisive"
+    evidence = str(row.get("evidence") or "")
+    if "needs a collection change" in evidence:
+        return "needs-collection"
+    if "unobservable by design" in evidence:
+        return "unobservable"
+    if "no typed metric" in evidence:
+        return "no-typed-metric"
+    if "unregistered signal" in evidence:
+        return "unregistered"
+    return "other"
+
+
+def _metric_prefix(metric: str) -> str:
+    """The typed-metric prefix of a ledger metric string, or "no-typed"."""
+    m = re.match(r"\s*`?(absence|presence|ratio|count-drop):", str(metric or ""))
+    return m.group(1) if m else "no-typed"
+
+
+def render_measurement_gap_region(verdict_rows: list[dict[str, Any]] | None) -> str:
+    """MEASUREMENT-GAP region: four-way split of the newest scoring run.
+
+    Replaces the hand-set measurable-vs-blind binary (49 "no factstore
+    signal") with the typed reasons the registry now emits. Only the newest
+    `run_at` is counted — earlier runs are trajectory, not current state.
+    """
+    if not verdict_rows:
+        return (
+            '<div class="card"><div class="card-title">The measurement gap</div>'
+            '<p class="card-note">No verdict rows in <code>experiment_verdicts</code> yet. '
+            "Run <code>uv run telemetry --facts</code> to score the ledger.</p></div>"
+        )
+
+    newest_run = max(str(r.get("run_at") or "") for r in verdict_rows)
+    rows = [r for r in verdict_rows if str(r.get("run_at") or "") == newest_run]
+    total = len(rows)
+    counts = Counter(_gap_bucket(r) for r in rows)
+
+    # Stat row + mix bar over the four-way split (plus residuals when present).
+    stats, segments = [], []
+    for key, label, color in _GAP_BUCKETS:
+        n = counts.get(key, 0)
+        if n == 0 and key in {"unregistered", "other"}:
+            continue
+        stats.append(
+            f'<div class="stat"><span class="value" style="color:{color}">{n}</span>'
+            f'<span class="label">{label}</span></div>'
+        )
+        if n:
+            segments.append(
+                f'<div class="mix-seg" style="width:{100 * n / total:.1f}%;background:{color}" '
+                f'title="{label}: {n} of {total}"></div>'
+            )
+
+    # Scorable-per-prefix bars: decisive / total per typed-metric prefix,
+    # recomputed from the same run rather than hand-tallied.
+    prefix_total = Counter(_metric_prefix(r.get("metric", "")) for r in rows)
+    prefix_decisive = Counter(
+        _metric_prefix(r.get("metric", "")) for r in rows if _gap_bucket(r) == "decisive"
+    )
+    prefix_rows = ""
+    widest = max(prefix_total.values(), default=1)
+    for prefix in ("absence", "presence", "ratio", "count-drop", "no-typed"):
+        n_total = prefix_total.get(prefix, 0)
+        if not n_total:
+            continue
+        n_dec = prefix_decisive.get(prefix, 0)
+        color = "var(--s1)" if n_dec else "var(--bad)"
+        prefix_rows += (
+            f'<div class="rec-row"><div class="rec-name">{prefix}:</div>'
+            f'<div class="rec-track"><div class="rec-fill" '
+            f'style="width:{100 * n_total / widest:.0f}%;background:{color};opacity:.6"></div></div>'
+            f'<div class="rec-n">{n_dec}/{n_total}</div></div>'
+        )
+
+    run_day = html.escape(newest_run[:10])
+    return (
+        '<div class="card">'
+        '<div class="card-title">The measurement gap</div>'
+        f'<p class="card-note">Latest scoring run ({run_day}): <strong>{total} hypotheses '
+        f"scored, {counts.get('decisive', 0)} decisive</strong>. The rest carry a typed "
+        "reason — a claim awaiting a collection change, a claim no telemetry could ever "
+        "see, and a claim with no countable metric are different problems with different "
+        "fixes.</p>"
+        f'<div class="mix-bar">{"".join(segments)}</div>'
+        f'<div class="stat-row">{"".join(stats)}</div>'
+        f'<div class="rec">{prefix_rows}</div>'
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:10px">Computed from the '
+        f"{total} <code>experiment_verdicts</code> rows of run {html.escape(newest_run)}; "
+        f"decisive = confirmed / failed / trending. Bars show decisive/total per "
+        f"typed-metric prefix.</p>"
+        "</div>"
+    )
+
+
+# GUA-151 step 3: the harness card. The rule the static card stated becomes
+# the assertion — a cell's state derives from *recency* (gap since the last
+# successful run vs the job's cadence) and *breadth* (unique hooks in the pass
+# log vs threshold), never from exit codes: every stalled job also exits 0.
+_JOB_FINISHED = re.compile(
+    r"^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2}:\d{2}) --- run finished \(exit (\d+)\)$", re.MULTILINE
+)
+_HARNESS_HOOK_THRESHOLD = 5
+_HARNESS_WINDOW_DAYS = 14
+
+
+def _job_runs(log_path: Path) -> list[_datetime]:
+    """Timestamps of successful (exit 0) run completions in a telemetry log.
+
+    Timestamps are naive local time as the cron wrapper writes them; callers
+    compare against a naive `now` in the same clock.
+    """
+    if not log_path.exists():
+        return []
+    runs: list[_datetime] = []
+    for day, clock, exit_code in _JOB_FINISHED.findall(
+        log_path.read_text(encoding="utf-8", errors="replace")
+    ):
+        if exit_code != "0":
+            continue
+        try:
+            runs.append(_datetime.fromisoformat(f"{day}T{clock}"))
+        except ValueError:
+            continue
+    return sorted(runs)
+
+
+def _gap_days_label(delta_days: float) -> str:
+    if delta_days < 1:
+        hours = delta_days * 24
+        return f"{hours:.0f}h" if hours >= 1 else f"{hours * 60:.0f}m"
+    return f"{delta_days:.0f}d"
+
+
+def _harness_cell(
+    name: str,
+    cadence: str,
+    runs: list[_datetime],
+    *,
+    now: _datetime,
+    warn_after_h: float,
+    bad_after_h: float,
+    detail_extra: str = "",
+) -> str:
+    """One hz-cell: state from the gap since the last successful run."""
+    if not runs:
+        state, color, bg = "&#10007; never ran", "var(--bad)", "var(--bad-bg)"
+        detail = "No successful run in the log window."
+        day_bar = ""
+    else:
+        last = runs[-1]
+        gap_h = (now - last).total_seconds() / 3600
+        if gap_h <= warn_after_h:
+            state, color, bg = "&#10003; healthy", "var(--good)", "var(--good-bg)"
+        elif gap_h <= bad_after_h:
+            state, color, bg = (
+                f"~ {_gap_days_label(gap_h / 24)} since last",
+                "var(--warn)",
+                "var(--warn-bg)",
+            )
+        else:
+            state, color, bg = (
+                f"&#10007; {_gap_days_label(gap_h / 24)} gap",
+                "var(--bad)",
+                "var(--bad-bg)",
+            )
+
+        # Longest silence between consecutive runs (and trailing silence to now)
+        # over the whole log — how the 08-04 -> 08-17 facts gap stays visible
+        # even after the job recovers.
+        gaps = [(runs[i + 1] - runs[i], runs[i], runs[i + 1]) for i in range(len(runs) - 1)]
+        longest = max(gaps, default=None, key=lambda g: g[0])
+        detail = f"Last successful run <b>{last.strftime('%m-%d %H:%M')}</b>."
+        if longest and longest[0].days >= 2:
+            detail += (
+                f" Longest gap <b>{longest[0].days}d</b> "
+                f"({longest[1].strftime('%m-%d')} &rarr; {longest[2].strftime('%m-%d')})."
+            )
+        if detail_extra:
+            detail += f" {detail_extra}"
+
+        # One block per day, newest right: filled when >=1 successful run.
+        days = [
+            (now - timedelta(days=offset)).date()
+            for offset in range(_HARNESS_WINDOW_DAYS - 1, -1, -1)
+        ]
+        ran = {r.date() for r in runs}
+        day_bar = (
+            '<div style="display:flex;gap:2px;margin-top:6px" title="one block per day, '
+            f'oldest left, {_HARNESS_WINDOW_DAYS} days">'
+            + "".join(
+                f'<span style="flex:1;height:8px;border-radius:2px;'
+                f"background:{'var(--good)' if d in ran else 'var(--bad)'};"
+                f'opacity:{"0.8" if d in ran else "0.35"}" title="{d.isoformat()}: '
+                f'{"ran" if d in ran else "no successful run"}"></span>'
+                for d in days
+            )
+            + "</div>"
+        )
+
+    return (
+        f'<div class="hz-cell" style="--hc:{color}">'
+        f'<div class="hz-name">{html.escape(name)}</div><div class="hz-sub">{html.escape(cadence)}</div>'
+        f'<span class="hz-state" style="background:{bg};color:{color}">{state}</span>'
+        f'<div class="hz-detail">{detail}</div>{day_bar}'
+        "</div>"
+    )
+
+
+def render_harness_region(
+    logs_dir: Path,
+    pass_log: Path,
+    store: Path,
+    *,
+    now: _datetime | None = None,
+    hook_threshold: int = _HARNESS_HOOK_THRESHOLD,
+) -> str:
+    """HARNESS region: collection-job liveness from the logs themselves.
+
+    Cells: board (10-min tick), facts (daily), verdict scoring (newest
+    `run_at` in the store), hook pass-log breadth (unique hooks vs threshold).
+    """
+    # Naive *local* wall-clock, to match the clock the cron wrapper stamps the
+    # logs with (structlog lines in the same files are UTC; those are not the
+    # lines parsed here).
+    now = now or _datetime.now(UTC).astimezone().replace(tzinfo=None)
+
+    board_cell = _harness_cell(
+        "board",
+        "every 10 min",
+        _job_runs(logs_dir / "telemetry-board.log"),
+        now=now,
+        warn_after_h=1,
+        bad_after_h=6,
+    )
+    facts_cell = _harness_cell(
+        "facts",
+        "daily 09:00",
+        _job_runs(logs_dir / "telemetry-facts.log"),
+        now=now,
+        warn_after_h=36,
+        bad_after_h=72,
+        detail_extra="Local JSONL rotates in ~5 days; a multi-day gap loses sessions.",
+    )
+
+    # Verdict scoring: recency of the newest run_at, not a log file — the
+    # store is the artifact the job exists to write.
+    verdict_rows = read_verdicts(store)
+    if verdict_rows:
+        newest_run = max(str(r.get("run_at") or "") for r in verdict_rows)
+        run_count = len({str(r.get("run_at") or "") for r in verdict_rows})
+        scored = sum(1 for r in verdict_rows if str(r.get("run_at") or "") == newest_run)
+        try:
+            newest_dt = _datetime.fromisoformat(newest_run).replace(tzinfo=None)
+            gap_h = (now - newest_dt).total_seconds() / 3600
+        except ValueError:
+            gap_h = float("inf")
+        if gap_h <= 36:
+            v_state, v_color, v_bg = "&#10003; healthy", "var(--good)", "var(--good-bg)"
+        elif gap_h <= 72:
+            v_state, v_color, v_bg = "~ aging", "var(--warn)", "var(--warn-bg)"
+        else:
+            v_state, v_color, v_bg = "&#10007; stale", "var(--bad)", "var(--bad-bg)"
+        v_detail = (
+            f"Scored <b>{scored}</b> hypotheses in the newest run "
+            f"({html.escape(newest_run[:16])}) across <b>{run_count}</b> recorded runs."
+        )
+    else:
+        v_state, v_color, v_bg = "&#10007; no runs", "var(--bad)", "var(--bad-bg)"
+        v_detail = "No rows in <code>experiment_verdicts</code>."
+    verdict_cell = (
+        f'<div class="hz-cell" style="--hc:{v_color}">'
+        '<div class="hz-name">verdict scoring</div><div class="hz-sub">per insights run</div>'
+        f'<span class="hz-state" style="background:{v_bg};color:{v_color}">{v_state}</span>'
+        f'<div class="hz-detail">{v_detail}</div></div>'
+    )
+
+    # Hook breadth: unique hooks writing the pass log vs the threshold. Full
+    # log + narrow breadth means most hooks exit 0 without calling log_pass —
+    # unobservable, not absent.
+    hook_events = parse_hook_log(pass_log)
+    hook_counts = Counter(str(e.get("hook") or "") for e in hook_events if e.get("hook"))
+    breadth = len(hook_counts)
+    if breadth >= hook_threshold:
+        h_state, h_color, h_bg = "&#10003; healthy", "var(--good)", "var(--good-bg)"
+    elif hook_events:
+        h_state, h_color, h_bg = (
+            f"~ {breadth} of {hook_threshold} hooks",
+            "var(--warn)",
+            "var(--warn-bg)",
+        )
+    else:
+        h_state, h_color, h_bg = "&#10007; empty log", "var(--bad)", "var(--bad-bg)"
+    top = ", ".join(f"<code>{html.escape(k)}</code> {v}" for k, v in hook_counts.most_common(3))
+    h_detail = (
+        f"<b>{breadth}</b> unique hooks across {len(hook_events)} pass events"
+        f"{' (' + top + ')' if top else ''}. Breadth below {hook_threshold} means "
+        "hooks exit 0 without logging — unobservable, not absent."
+    )
+    hooks_cell = (
+        f'<div class="hz-cell" style="--hc:{h_color}">'
+        '<div class="hz-name">hook pass-log</div><div class="hz-sub">per tool call</div>'
+        f'<span class="hz-state" style="background:{h_bg};color:{h_color}">{h_state}</span>'
+        f'<div class="hz-detail">{h_detail}</div></div>'
+    )
+
+    return (
+        f'<div class="hz">{board_cell}{facts_cell}{verdict_cell}{hooks_cell}</div>'
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:10px">Derived from '
+        f"<code>logs/telemetry-*.log</code> (exit-0 completions only), "
+        f"<code>experiment_verdicts</code>, and the hook pass log at render time. "
+        f"Cell state asserts on recency and breadth, never exit code.</p>"
+    )
+
+
+# GUA-151 step 4: plane-strip body counts. Only the stat line under each
+# plane is derived; stage verdicts and break sentences are architectural
+# judgements and stay hand-set (a partial `promote` stage is a judgement no
+# query returns). Three marker pairs, one per plane, because the stat lines
+# are not contiguous in the markup.
+
+
+def _findings_totals(store: Path) -> tuple[int, int]:
+    """(total findings, blocker findings) from the store's findings table.
+
+    factstore exposes only the writer for this table; the count query lives
+    here rather than widening factstore's API for one caller.
+    """
+    if not store.exists():
+        return 0, 0
+    conn = sqlite3.connect(store)
+    try:
+        total = conn.execute("SELECT COUNT(*) FROM findings").fetchone()[0]
+        blockers = conn.execute(
+            "SELECT COUNT(*) FROM findings WHERE merge_impact = 'blocker'"
+        ).fetchone()[0]
+    except sqlite3.OperationalError:
+        return 0, 0
+    finally:
+        conn.close()
+    return int(total), int(blockers)
+
+
+def _retro_rounds(ledger_log_path: Path | None) -> list[tuple[int, str]]:
+    """(round number, date) per retro round in tooling-ledger-log.md.
+
+    Headers are not chronological in the file, so every header is scanned and
+    dated from the 120 chars that follow it (same approach as the
+    pipeline-health retro cell). Rounds without a parseable date carry "".
+    """
+    if not ledger_log_path or not ledger_log_path.exists():
+        return []
+    text = ledger_log_path.read_text(encoding="utf-8", errors="replace")
+    rounds: dict[int, str] = {}
+    for match in _RETRO_HEADER.finditer(text):
+        num_match = re.search(r"\d+", match.group())
+        if not num_match:
+            continue
+        num = int(num_match.group())
+        snippet = text[match.start() : match.start() + 120]
+        date_match = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
+        rounds.setdefault(num, date_match.group() if date_match else "")
+    return sorted(rounds.items())
+
+
+def _consistency_counts(consistency_path: Path | None) -> tuple[int | None, int | None]:
+    """(open inconsistencies, unmatchable plans) from consistency.json."""
+    if not consistency_path or not consistency_path.exists():
+        return None, None
+    try:
+        data = json.loads(consistency_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return None, None
+    total = data.get("total")
+    unmatchable = data.get("unmatchable_plans")
+    return (
+        int(total) if isinstance(total, int) else None,
+        int(unmatchable) if isinstance(unmatchable, int) else None,
+    )
+
+
+def render_plane_counts_regions(
+    store: Path,
+    *,
+    consistency_path: Path | None,
+    experiments: list[Experiment] | None,
+    ledger_log_path: Path | None,
+    reflections_dir: Path | None,
+    pass_log: Path,
+    hook_threshold: int = _HARNESS_HOOK_THRESHOLD,
+) -> dict[str, str]:
+    """The three PLANE-COUNTS-* regions, keyed ready for the injection dict."""
+    missing = '<span style="color:var(--text-3)">?</span>'
+
+    findings_total, blockers = _findings_totals(store)
+    issues = len(read_issues(store))
+    inconsistencies, unmatchable = _consistency_counts(consistency_path)
+    work = (
+        f"<b>{findings_total:,}</b> findings &middot; <b>{blockers}</b> blockers &middot; "
+        f"<b>{issues}</b> issues &middot; "
+        f"<b>{inconsistencies if inconsistencies is not None else missing}</b> open inconsistencies &middot; "
+        f"<b>{unmatchable if unmatchable is not None else missing}</b> plans unmatchable to an issue"
+    )
+
+    sessions = len(read_all(store))
+    reflections = (
+        len(list(reflections_dir.glob("[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]*.md")))
+        if reflections_dir and reflections_dir.is_dir()
+        else None
+    )
+    rounds = _retro_rounds(ledger_log_path)
+    verdict_rows = read_verdicts(store)
+    decisive = 0
+    live = len(experiments) if experiments else 0
+    if verdict_rows:
+        newest_run = max(str(r.get("run_at") or "") for r in verdict_rows)
+        decisive = sum(
+            1
+            for r in verdict_rows
+            if str(r.get("run_at") or "") == newest_run and _gap_bucket(r) == "decisive"
+        )
+    meta = (
+        f"<b>{sessions:,}</b> sessions &middot; "
+        f"<b>{reflections if reflections is not None else missing}</b> reflections &middot; "
+        f"<b>{len(rounds)}</b> retro rounds &middot; <b>{live}</b> live hypotheses &middot; "
+        f"<b>{decisive}</b> decisive in the latest run"
+    )
+
+    hook_events = parse_hook_log(pass_log)
+    breadth = len({str(e.get("hook") or "") for e in hook_events if e.get("hook")})
+    control = (
+        f"<b>{breadth}</b> unique hooks in the pass log (threshold <b>{hook_threshold}</b>) "
+        f"&middot; <b>{len(hook_events)}</b> pass events recorded"
+    )
+
+    return {
+        "PLANE-COUNTS-WORK": work,
+        "PLANE-COUNTS-META": meta,
+        "PLANE-COUNTS-CONTROL": control,
+    }
+
+
+# GUA-151 step 5: the runway. Dot position from the row's due date, fill from
+# its newest verdict, clusters when rows share a deadline. Rows with no due
+# date cannot age, so they are counted out loud rather than dropped.
+
+
+def _runway_dot_class(verdict: str) -> tuple[str, str]:
+    """(css background, legend bucket) for a ledger row's newest verdict."""
+    return {
+        "confirmed": ("var(--good)", "confirmed"),
+        "failed": ("var(--bad)", "failed"),
+        "trending": ("var(--s1)", "trending"),
+    }.get(verdict, ("var(--stale)", "inconclusive"))
+
+
+def render_runway_region(
+    experiments: list[Experiment] | None,
+    store: Path | None = None,
+    *,
+    today: str | None = None,
+) -> str:
+    """RUNWAY region: every live ledger row on a due-date axis."""
+    if not experiments:
+        return (
+            '<div class="card"><div class="card-title">The runway</div>'
+            '<p class="card-note">No live rows in <code>tooling-ledger.md</code>.</p></div>'
+        )
+    today = today or _datetime.now(UTC).astimezone().date().isoformat()
+    latest = _latest_verdicts(store)
+
+    dated: dict[str, list[tuple[Experiment, str]]] = {}
+    undated: list[Experiment] = []
+    for exp in experiments:
+        due = _experiment_due(exp)
+        if due is None:
+            undated.append(exp)
+        else:
+            dated.setdefault(due, []).append((exp, due))
+
+    if not dated:
+        return (
+            '<div class="card"><div class="card-title">The runway</div>'
+            f'<p class="card-note"><b>{len(undated)}</b> live rows, none carrying a '
+            "due date — nothing can age, so nothing can surface as late.</p></div>"
+        )
+
+    axis_min = min(min(dated), today)
+    axis_max = max(max(dated), today)
+    span = max((_date.fromisoformat(axis_max) - _date.fromisoformat(axis_min)).days, 1)
+
+    def pos(day: str) -> float:
+        return 100 * (_date.fromisoformat(day) - _date.fromisoformat(axis_min)).days / span
+
+    today_pos = pos(today)
+    overdue_total = 0
+    marks = ""
+    for due in sorted(dated):
+        rows = dated[due]
+        is_over = due < today
+        if is_over:
+            overdue_total += len(rows)
+        verdicts = [str((latest.get(exp.name) or {}).get("verdict") or "") for exp, _ in rows]
+        if len(rows) > 1:
+            names = "; ".join(_truncate(exp.name, 60) for exp, _ in rows[:6])
+            more = f" (+{len(rows) - 6} more)" if len(rows) > 6 else ""
+            title = (
+                f"{len(rows)} hypotheses due {due}"
+                f"{' — overdue' if is_over else ''}. {html.escape(names)}{more}"
+            )
+            marks += (
+                f'<div class="rw-cluster" style="left:{pos(due):.1f}%'
+                f'{";border-color:var(--bad)" if is_over else ""}" '
+                f'title="{title}">{len(rows)}{" &#9873;" if is_over else ""}</div>'
+            )
+        else:
+            exp, _ = rows[0]
+            color, bucket = _runway_dot_class(verdicts[0])
+            title = html.escape(
+                f"{_truncate(exp.name, 80)} — {_truncate(exp.metric, 60)}. "
+                f"{bucket}{', overdue' if is_over else ''}. Due {due}."
+            )
+            marks += (
+                f'<div class="rw-dot" style="left:{pos(due):.1f}%;background:{color}'
+                f'{";outline:1.5px solid var(--bad)" if is_over else ""}" title="{title}"></div>'
+            )
+
+    # Verdict mix over the dated rows, for the legend counts.
+    buckets = Counter(
+        _runway_dot_class(str((latest.get(exp.name) or {}).get("verdict") or ""))[1]
+        for rows in dated.values()
+        for exp, _ in rows
+    )
+    dated_total = sum(len(rows) for rows in dated.values())
+    legend = "".join(
+        f'<span><i class="rw-sw" style="background:{color}"></i> {bucket} ({buckets[bucket]})</span>'
+        for bucket, color in (
+            ("confirmed", "var(--good)"),
+            ("trending", "var(--s1)"),
+            ("failed", "var(--bad)"),
+            ("inconclusive", "var(--stale)"),
+        )
+        if buckets.get(bucket)
+    )
+
+    # Quarter-point axis ticks keep the scale readable at any span.
+    ticks = "".join(
+        f"<span>{(_date.fromisoformat(axis_min) + timedelta(days=round(span * f))).strftime('%b %d')}</span>"
+        for f in (0, 0.25, 0.5, 0.75, 1)
+    )
+
+    return (
+        '<div class="card">'
+        f'<div class="card-title">The runway &mdash; {len(experiments)} hypotheses by due date</div>'
+        f'<p class="card-note">Each mark is one live ledger row at its due date; clusters '
+        f"share a deadline. Fill is the row's newest verdict. "
+        f"<strong>{overdue_total} of {dated_total} dated rows are overdue</strong> as of {today}.</p>"
+        '<div class="runway">'
+        f'<div class="rw-scale"><span></span><div class="rw-ticks">{ticks}</div></div>'
+        '<div class="rw-band first"><div class="rw-label">all rows</div>'
+        f'<div class="rw-track"><div class="rw-past" style="width:{today_pos:.1f}%"></div>'
+        f'<div class="rw-today" style="left:{today_pos:.1f}%"></div>{marks}</div></div>'
+        f'<div class="rw-legend">{legend}</div>'
+        "</div>"
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:10px">'
+        f"<b>{len(undated)}</b> rows carry no due date — they cannot age and will never "
+        f"surface as late. Derived from <code>tooling-ledger.md</code> + "
+        f"<code>experiment_verdicts</code> at render time.</p>"
+        "</div>"
+    )
+
+
+# GUA-151 step 6: the decision log. Render-only — telemetry/actions.py already
+# carries planes, `reverted`, and `effect_measured` (merged to main the same
+# day); this region just reads the normalised records.
+
+_PLANE_ORDER = ("work", "metacognition", "control")
+_PLANE_LABEL = {
+    "work": "1 &middot; work",
+    "metacognition": "2 &middot; metacog",
+    "control": "3 &middot; control",
+}
+_OUTCOME_PILL = {
+    "acted": "acc",
+    "accepted": "acc",
+    "proposed": "pend",
+    "deferred": "pend",
+    "reverted": "rev",
+    "declined": "dec",
+    "rejected": "dec",
+}
+
+
+def _decision_target(rec: dict[str, Any]) -> str:
+    """Compact human-readable target: repo#issue, repo:branch, or the raw str."""
+    target = rec.get("target")
+    if isinstance(target, dict):
+        repo = str(target.get("repo") or "")
+        if target.get("issue_num") is not None:
+            return f"{repo}#{target.get('issue_num')}"
+        if target.get("branch"):
+            return f"{repo}:{target.get('branch')}"
+        return repo or "&mdash;"
+    return html.escape(str(target)) if target else "&mdash;"
+
+
+def _effect_cell(rec: dict[str, Any]) -> str:
+    effect = rec.get("effect_measured")
+    if not effect:
+        return '<span style="color:var(--text-3)">not re-read</span>'
+    if isinstance(effect, dict):
+        verdict = html.escape(str(effect.get("verdict") or ""))
+        metric = html.escape(_truncate(str(effect.get("metric") or ""), 40))
+        color = {
+            "confirmed": "var(--good)",
+            "trending": "var(--warn)",
+            "failed": "var(--bad)",
+        }.get(str(effect.get("verdict") or ""), "var(--text-2)")
+        return (
+            f'<span style="color:{color}">{verdict}{" &mdash; " + metric if metric else ""}</span>'
+        )
+    return html.escape(_truncate(str(effect), 60))
+
+
+def render_decision_log_region(records: list[dict[str, Any]] | None) -> str:
+    """DECISION-LOG region: one row per decision, grouped by plane."""
+    if not records:
+        return (
+            '<div class="card"><div class="card-title">What the loops decided</div>'
+            '<p class="card-note">No decisions in '
+            "<code>.sounding/telemetry/actions.jsonl</code> yet.</p></div>"
+        )
+
+    # Effect write-backs share their origin's proposal_id; fold each onto the
+    # newest decision row so the effect shows on the decision, not as a
+    # duplicate line.
+    effects: dict[str, dict[str, Any]] = {}
+    decisions: list[dict[str, Any]] = []
+    for rec in records:
+        pid = str(rec.get("proposal_id") or "")
+        if rec.get("effect_measured") and pid:
+            effects[pid] = rec
+        else:
+            decisions.append(rec)
+    rows_html = ""
+    plane_counts: Counter[str] = Counter()
+    ordered = sorted(
+        decisions,
+        key=lambda r: (
+            _PLANE_ORDER.index(str(r.get("plane")))
+            if str(r.get("plane")) in _PLANE_ORDER
+            else len(_PLANE_ORDER),
+            str(r.get("ts") or ""),
+        ),
+    )
+    for rec in ordered:
+        plane = str(rec.get("plane") or "work")
+        plane_counts[plane] += 1
+        outcome = str(rec.get("outcome") or "unknown")
+        pill = _OUTCOME_PILL.get(outcome, "pend")
+        reason = _truncate(str(rec.get("reason") or ""), 90)
+        pid = str(rec.get("proposal_id") or "")
+        effect_rec = rec if rec.get("effect_measured") else effects.get(pid, rec)
+        rows_html += (
+            "<tr>"
+            f"<td>{html.escape(str(rec.get('action') or ''))} &mdash; "
+            f"{_decision_target(rec)}"
+            f'<div style="font-size:11px;color:var(--text-3)">{html.escape(reason)}</div></td>'
+            f"<td>{_PLANE_LABEL.get(plane, html.escape(plane))}</td>"
+            f'<td><span class="pill {pill}">{html.escape(outcome)}</span></td>'
+            f"<td>{_effect_cell(effect_rec)}</td>"
+            "</tr>"
+        )
+
+    plane_note = " &middot; ".join(
+        f"{_PLANE_LABEL[p]}: <b>{plane_counts[p]}</b>" for p in _PLANE_ORDER if plane_counts[p]
+    )
+    return (
+        '<div class="card">'
+        '<div class="card-title">What the loops decided &mdash; and what got measured</div>'
+        f'<p class="card-note">One row per decision in '
+        f"<code>actions.jsonl</code>, grouped by plane ({plane_note}). "
+        f'"Effect measured" distinguishes a decision that was re-read from one that '
+        f"was never looked at again.</p>"
+        '<div class="overflow-x"><table class="dl">'
+        "<thead><tr><th>Decision</th><th>Plane</th><th>Disposition</th>"
+        "<th>Effect measured?</th></tr></thead>"
+        f"<tbody>{rows_html}</tbody>"
+        "</table></div>"
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px">Computed from '
+        f"{len(decisions)} decision records ({len(effects)} effect write-backs folded in) "
+        f"at render time.</p>"
+        "</div>"
+    )
+
+
+# GUA-151: cadence. In the plan's inventory (Tier 2) and required by its
+# verification clause (no hand-maintained numbers left on Experiments): the
+# retro gaps and the due horizon drift as rounds land, so they are derived
+# from the same sources every render.
+
+
+def render_cadence_region(
+    ledger_log_path: Path | None,
+    experiments: list[Experiment] | None,
+) -> str:
+    """CADENCE region: actual retro cadence vs the due horizon rows are given."""
+    rounds = [(num, day) for num, day in _retro_rounds(ledger_log_path) if day]
+    rounds.sort(key=lambda r: r[1])
+
+    gap_rows = ""
+    gaps: list[int] = []
+    if len(rounds) >= 2:
+        pairs = list(pairwise(rounds))[-6:]
+        widest = max(
+            ((_date.fromisoformat(b[1]) - _date.fromisoformat(a[1])).days for a, b in pairs),
+            default=1,
+        )
+        for (num_a, day_a), (num_b, day_b) in pairs:
+            gap = (_date.fromisoformat(day_b) - _date.fromisoformat(day_a)).days
+            gaps.append(gap)
+            width = 100 * gap / max(widest, 1)
+            gap_rows += (
+                f'<div class="rec-row"><div class="rec-name">R{num_a} &rarr; R{num_b} '
+                f"<small>{day_a[5:]} &rarr; {day_b[5:]}</small></div>"
+                f'<div class="rec-track"><div class="rec-fill" '
+                f'style="width:{width:.0f}%;background:var(--s3)"></div></div>'
+                f'<div class="rec-n">{gap}d</div></div>'
+            )
+
+    horizons = [
+        (_date.fromisoformat(due) - _date.fromisoformat(exp.date)).days
+        for exp in experiments or []
+        if (due := _experiment_due(exp)) and re.match(r"\d{4}-\d{2}-\d{2}$", exp.date or "")
+    ]
+    horizon_row = ""
+    if horizons:
+        horizons.sort()
+        typical = horizons[len(horizons) // 2]
+        horizon_row = (
+            f'<div class="rec-row"><div class="rec-name">typical due horizon '
+            f"<small>median over {len(horizons)} dated rows</small></div>"
+            f'<div class="rec-track"><div class="rec-fill" '
+            f'style="width:100%;background:var(--s4)"></div></div>'
+            f'<div class="rec-n">{typical}d</div></div>'
+        )
+
+    if not gap_rows and not horizon_row:
+        return (
+            '<div class="card"><div class="card-title">Cadence &mdash; the due-date question</div>'
+            '<p class="card-note">No dated retro rounds in the ledger log yet.</p></div>'
+        )
+
+    typical_gap = sorted(gaps)[len(gaps) // 2] if gaps else None
+    note = (
+        f"Retro actually fires every <strong>{min(gaps)}&ndash;{max(gaps)} days</strong> "
+        f"(median {typical_gap}d over the last {len(gaps)} intervals)."
+        if gaps
+        else ""
+    )
+    return (
+        '<div class="card">'
+        '<div class="card-title">Cadence &mdash; the due-date question</div>'
+        f'<p class="card-note">Due dates written far beyond the actual retro cadence pile '
+        f"up unaudited. {note} <code>/hypothesis</code> computes new due dates at 2 retro "
+        f"rounds from creation; rows predating it keep their hand-typed horizon.</p>"
+        f'<div class="rec">{gap_rows}{horizon_row}</div>'
+        f'<p style="font-size:11px;color:var(--text-3);margin-top:8px">Derived from '
+        f"retro-round dates in <code>tooling-ledger-log.md</code> and due dates in "
+        f"<code>tooling-ledger.md</code> at render time.</p>"
+        "</div>"
+    )
+
+
+# GUA-151 step: DATA-BLOCK region. The `const DATA` JS block in the dashboard
+# powers legacy line charts (context p50/p90, over-150k, session shape,
+# compaction, skill usage, sessions/week). Values were frozen 2026-07-28 and
+# reported "0% today" while the live figure was 23% over 150k. This renderer
+# recomputes the same series from the factstore at render time so every run
+# extends the charts rather than replaying the same flat tail.
+#
+# Unit conventions (must match the JS fmtVal function):
+#   context_p50 / context_p90 : stored in k-tokens (value=100 means 100k),
+#       because the JS drawLine call uses unit='tokens' and fmtVal interprets
+#       values < 1000 as "Nk" — divide raw max_context by 1000.
+#   over150k, single_turn, compaction, skills : raw percentage (0–100).
+#   turns_p50 : raw integer count.
+#   sessions_week : raw integer count per week bucket.
+#   compaction and sessions_week have a regime facet (r field).
+
+_DATA_BLOCK_SERIES: list[tuple[str, str, str]] = [
+    # (js_key, metric_name, unit_hint)
+    ("context_p50", "max_context_p50", "ktokens"),
+    ("context_p90", "max_context_p90", "ktokens"),
+    ("over150k", "cost_bucket_pct_over150k", "pct"),
+    ("turns_p50", "turns_per_session_p50", "count"),
+    ("single_turn", "single_turn_pct", "pct"),
+    ("skills", "execution_skill_compliance_pct", "pct"),
+    ("compaction", "compaction_pct", "faceted"),
+    ("sessions_week", "sessions_per_week", "faceted"),
+]
+
+
+def _series_to_js_points(series: Series, unit_hint: str) -> str:
+    """Convert a Series to a compact JS array literal matching the DATA format.
+
+    Faceted series (compaction_pct / sessions_per_week) flatten all panels
+    into a single list with an `r` field so the JS drawLine / drawBar
+    functions receive a single heterogeneous dataset — the same shape the
+    hand-written arrays had.  Continuous series omit the `r` field.
+    """
+
+    def _fmt(v: float) -> str:
+        # Round to at most 2 decimal places; strip trailing zeros.
+        return f"{v:.2f}".rstrip("0").rstrip(".")
+
+    points_js: list[str] = []
+
+    if series.faceted:
+        for panel in series.panels:
+            for p in panel.points:
+                v = p.value / 1000 if unit_hint == "ktokens" else p.value
+                r_field = f",r:{json.dumps(panel.regime)}" if panel.regime else ""
+                points_js.append(f"{{d:{json.dumps(p.date)},v:{_fmt(v)}{r_field}}}")
+    else:
+        for p in series.points:
+            v = p.value / 1000 if unit_hint == "ktokens" else p.value
+            points_js.append(f"{{d:{json.dumps(p.date)},v:{_fmt(v)}}}")
+
+    # Compact: one array per line with no trailing whitespace.
+    inner = ",".join(points_js)
+    return f"[\n    {inner}\n  ]"
+
+
+def render_data_block_region(store: Path) -> str:
+    """DATA-BLOCK region: regenerated `const DATA` for the dashboard charts.
+
+    Replaces the hand-written series frozen at 2026-07-28 with values recomputed
+    from the factstore at render time. The output is a complete `const DATA = {
+    ... };` block — the marker region wraps only this block, so the surrounding
+    `<script>` tags and chart-rendering code are untouched.
+    """
+    parts: list[str] = []
+    for js_key, metric, unit_hint in _DATA_BLOCK_SERIES:
+        period = "week" if metric == "sessions_per_week" else "day"
+        series = build_series(metric, store, period)
+        js_points = _series_to_js_points(series, unit_hint)
+        parts.append(f"  {js_key}: {js_points}")
+
+    data_body = "const DATA = {\n" + ",\n".join(parts) + "\n};"
+    return "<script>\n// \u2500\u2500\u2500 Data \u2500\u2500\u2500\n" + data_body + "\n</script>"
