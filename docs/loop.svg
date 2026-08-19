@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 400"  role="img" aria-label="Guacamayo feedback loop">
+<style>
+svg{--surface:#ffffff;--text-1:#1a1917;--text-2:#6b6a65;--text-3:#9c9b95;
+--border:rgba(11,11,11,0.08);--accent:#2a78d6;--accent-muted:rgba(42,120,214,0.08);
+--s1:#2a78d6;--s4:#eb6834;--good:#1a8a5a;--good-bg:rgba(26,138,90,0.09);
+--warn:#b5760a;--warn-bg:rgba(181,118,10,0.09);--bad:#c93d3d;--bad-bg:rgba(201,61,61,0.09);
+--ac-violet:#6a54e0;--violet-bg:rgba(106,84,224,0.07);}
+@media (prefers-color-scheme:dark){svg{--surface:#1a1a19;--text-1:#eeedea;--text-2:#a8a7a2;
+--text-3:#8a8984;--border:rgba(255,255,255,0.12);--accent:#5a9ee6;
+--accent-muted:rgba(90,158,230,0.14);--s1:#5a9ee6;--s4:#f08a5c;--good:#2cb882;
+--good-bg:rgba(44,184,130,0.15);--warn:#d4960a;--warn-bg:rgba(212,150,10,0.15);
+--bad:#e06060;--bad-bg:rgba(224,96,96,0.15);--ac-violet:#8b7cf6;
+--violet-bg:rgba(139,124,246,0.14);}}
+</style>
+        <defs>
+          <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--text-3)"/></marker>
+          <marker id="arr-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="var(--good)"/></marker>
+        </defs>
+
+        <!-- ═══ NODE 1: SESSION (top center) ═══ -->
+        <rect x="310" y="10" width="240" height="70" rx="12" fill="var(--accent-muted)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="430" y="38" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">SESSION</text>
+        <text x="430" y="56" text-anchor="middle" font-size="10" fill="var(--text-2)">work happens here · hooks enforce guardrails</text>
+        <text x="430" y="68" text-anchor="middle" font-size="9" fill="var(--text-3)">risky_git · destructive · closes_link · plan_status · branch_guard</text>
+
+        <!-- ═══ NODE 2: TELEMETRY (right) ═══ -->
+        <rect x="620" y="120" width="220" height="70" rx="12" fill="var(--accent-muted)" stroke="var(--accent)" stroke-width="2"/>
+        <text x="730" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="var(--accent)">TELEMETRY</text>
+        <text x="730" y="166" text-anchor="middle" font-size="10" fill="var(--text-2)">sessions.db · board.json · hook logs</text>
+        <text x="730" y="178" text-anchor="middle" font-size="9" fill="var(--text-3)">uv run telemetry --facts (daily) · --board (10min)</text>
+
+        <!-- ═══ NODE 3: INSIGHTS (bottom right) ═══ -->
+        <rect x="560" y="250" width="220" height="70" rx="12" fill="var(--good-bg)" stroke="var(--good)" stroke-width="2"/>
+        <text x="670" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="var(--good)">INSIGHTS</text>
+        <text x="670" y="296" text-anchor="middle" font-size="10" fill="var(--text-2)">/meta-insights reads facts → insights-log.md</text>
+        <text x="670" y="308" text-anchor="middle" font-size="9" fill="var(--text-3)">auto-spawned by /meta-grow at each session</text>
+
+        <!-- ═══ NODE 4: RETRO (bottom left) ═══ -->
+        <rect x="80" y="250" width="220" height="70" rx="12" fill="var(--warn-bg)" stroke="var(--warn)" stroke-width="2"/>
+        <text x="190" y="278" text-anchor="middle" font-size="14" font-weight="700" fill="var(--warn)">RETRO</text>
+        <text x="190" y="296" text-anchor="middle" font-size="10" fill="var(--text-2)">/meta-retro proposes → tooling-ledger.md</text>
+        <text x="190" y="308" text-anchor="middle" font-size="9" fill="var(--text-3)">auto-spawned when cascade counts reach threshold</text>
+
+        <!-- ═══ NODE 5: CONFIG (left) ═══ -->
+        <rect x="20" y="120" width="220" height="70" rx="12" fill="var(--bad-bg)" stroke="var(--bad)" stroke-width="2"/>
+        <text x="130" y="148" text-anchor="middle" font-size="14" font-weight="700" fill="var(--bad)">CONFIG</text>
+        <text x="130" y="166" text-anchor="middle" font-size="10" fill="var(--text-2)">hooks · skills · rules · settings.json</text>
+        <text x="130" y="178" text-anchor="middle" font-size="9" fill="var(--text-3)">graduated hypotheses become permanent</text>
+
+        <!-- ═══ EDGES (clockwise loop) ═══ -->
+        <!-- 1→2: session produces telemetry -->
+        <path d="M550,55 Q620,55 630,120" fill="none" stroke="var(--text-3)" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="600" y="80" text-anchor="middle" font-size="9" fill="var(--text-3)" font-style="italic">records to</text>
+
+        <!-- 2→3: telemetry feeds insights -->
+        <path d="M730,190 Q730,230 700,250" fill="none" stroke="var(--text-3)" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="748" y="225" text-anchor="start" font-size="9" fill="var(--text-3)" font-style="italic">reads from</text>
+
+        <!-- 3→4: insights feed retro -->
+        <path d="M560,285 L300,285" fill="none" stroke="var(--text-3)" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="430" y="278" text-anchor="middle" font-size="9" fill="var(--text-3)" font-style="italic">proposes changes</text>
+
+        <!-- 4→5: retro graduates to config -->
+        <path d="M160,250 Q130,210 130,190" fill="none" stroke="var(--text-3)" stroke-width="2" marker-end="url(#arr)"/>
+        <text x="108" y="225" text-anchor="end" font-size="9" fill="var(--text-3)" font-style="italic">graduates</text>
+
+        <!-- 5→1: config shapes next session (THE LOOP) -->
+        <path d="M200,120 Q280,60 310,40" fill="none" stroke="var(--good)" stroke-width="2.5" marker-end="url(#arr-green)"/>
+        <text x="235" y="72" text-anchor="middle" font-size="9" fill="var(--good)" font-weight="600">improves next session</text>
+
+        <!-- ═══ WORKFLOW PIPELINE (inside the loop, center) ═══ -->
+        <text x="430" y="140" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-3)" letter-spacing="1">WORKFLOW PIPELINE</text>
+        <rect x="270" y="150" width="70" height="30" rx="6" fill="var(--accent-muted)" stroke="var(--s1)" stroke-width="1"/><text x="305" y="169" text-anchor="middle" font-size="9" font-weight="600" fill="var(--s1)">research</text>
+        <rect x="348" y="150" width="55" height="30" rx="6" fill="var(--accent-muted)" stroke="var(--s1)" stroke-width="1"/><text x="375" y="169" text-anchor="middle" font-size="9" font-weight="600" fill="var(--s1)">plan</text>
+        <rect x="411" y="150" width="55" height="30" rx="6" fill="var(--accent-muted)" stroke="var(--s1)" stroke-width="1"/><text x="438" y="169" text-anchor="middle" font-size="9" font-weight="600" fill="var(--s1)">refine</text>
+        <rect x="474" y="150" width="60" height="30" rx="6" fill="var(--accent-muted)" stroke="var(--s4)" stroke-width="1"/><text x="504" y="169" text-anchor="middle" font-size="9" font-weight="600" fill="var(--s4)">execute</text>
+        <rect x="542" y="150" width="60" height="30" rx="6" fill="var(--good-bg)" stroke="var(--good)" stroke-width="1.5"/><text x="572" y="169" text-anchor="middle" font-size="9" font-weight="600" fill="var(--good)">review</text>
+        <line x1="340" y1="165" x2="346" y2="165" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="403" y1="165" x2="409" y2="165" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="466" y1="165" x2="472" y2="165" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="534" y1="165" x2="540" y2="165" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- review fan-out annotation -->
+        <text x="572" y="195" text-anchor="middle" font-size="8" fill="var(--good)">12 dimension agents ↓</text>
+
+        <!-- Identity lifecycle (inside loop, below pipeline) -->
+        <text x="430" y="215" text-anchor="middle" font-size="10" font-weight="600" fill="var(--text-3)" letter-spacing="1">IDENTITY LIFECYCLE</text>
+        <rect x="290" y="222" width="70" height="28" rx="6" fill="var(--good-bg)" stroke="var(--good)" stroke-width="1"/><text x="325" y="240" text-anchor="middle" font-size="9" font-weight="600" fill="var(--good)">wake</text>
+        <rect x="380" y="222" width="65" height="28" rx="6" fill="var(--good-bg)" stroke="var(--good)" stroke-width="1"/><text x="412" y="240" text-anchor="middle" font-size="9" font-weight="600" fill="var(--good)">grow</text>
+        <rect x="465" y="222" width="70" height="28" rx="6" fill="var(--good-bg)" stroke="var(--good)" stroke-width="1"/><text x="500" y="240" text-anchor="middle" font-size="9" font-weight="600" fill="var(--good)">dream</text>
+        <line x1="360" y1="236" x2="378" y2="236" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+        <line x1="445" y1="236" x2="463" y2="236" stroke="var(--text-3)" stroke-width="1" marker-end="url(#arr)"/>
+
+        <!-- Loop label -->
+        <text x="430" y="370" text-anchor="middle" font-size="11" fill="var(--text-3)" font-style="italic">The loop closes when a retro finding graduates to config and the next session benefits.</text>
+        <text x="430" y="390" text-anchor="middle" font-size="11" fill="var(--text-3)" font-style="italic">This dashboard tracks each stage: Session Health → Context Health → Loop Health → Retro.</text>
+      </svg>

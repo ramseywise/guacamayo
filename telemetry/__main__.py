@@ -1174,6 +1174,7 @@ def _run_facts() -> None:
             render_pipeline_health_region,
             render_retro_region,
             render_review_findings_region,
+            render_scope_decisions_region,
             render_session_health_region,
             render_skill_economics_card,
             render_subagent_windows_card,
@@ -1212,6 +1213,9 @@ def _run_facts() -> None:
                     else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md"
                 ),
                 "PIPELINE-HEALTH": render_pipeline_health_region(store),
+                "SCOPE-DECISIONS": render_scope_decisions_region(
+                    Path(args.actions_log).expanduser().parent / "scope-decisions.jsonl"
+                ),
                 "INPUT-TOKENS": render_input_tokens_card(store),
                 "SKILL-ECONOMICS": render_skill_economics_card(store),
                 "TOOL-TRENDS": render_tool_trends_card(store),
