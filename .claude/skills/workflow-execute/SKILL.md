@@ -81,8 +81,9 @@ Any departure from the plan — even small — should be recorded in CHANGELOG.m
 **Phase checkpoint**: when all steps are done, call `/compact "phase: execute → review"` before switching.
 The PreCompact hook writes a final execute-phase snapshot and compacts so review starts with clean context.
 
-**Next step**: `/workflow-review` after all steps are complete — run BEFORE committing so
-findings can be fixed without amend/fixup commits. User commits after review passes.
+**Next step**: `/workflow-review` auto-dispatches after DoD gate passes — run BEFORE
+committing so findings can be fixed without amend/fixup commits. User commits after
+review passes.
 
 ## Exit
 
@@ -95,19 +96,38 @@ When all plan steps are done and tests pass:
 
 2. **Compact** — `/compact "phase: execute → review"` (already called in phase checkpoint above; if not yet called, call now).
 
-3. **Print exit block**:
+3. **DoD gate** — verify before dispatching review:
+   - All plan steps checked off (or deviations recorded)
+   - `uv run pytest` green (or no test suite)
+   - `uv run ruff check` clean (or no Python)
+   - No unstaged deletions of tracked files
 
-```
-──────────────────────────────────────
-✅ Execution complete.
-👉 Next: /workflow-review <slug>
-🧠 Model: fable
+4. **Auto-dispatch review** — spawn `/workflow-review` directly. Do NOT print a prompt
+   and wait — the review is the next step, not an option.
 
-Spawn prompt:
-┌─────────────────────────────────────
-│ cd <repo-path>
-│ Read <plan-doc-path>
-│ /workflow-review <slug>
-└─────────────────────────────────────
-──────────────────────────────────────
+   ```
+   Agent(model: "sonnet", run_in_background: false)
+   prompt: |
+     Repo: <repo-path>
+     Plan: <plan-doc-path>
+     Branch: <branch-name>
+     Task: Run /workflow-review. Check plan fidelity, run the 12-dimension code review
+     against the diff, assess DoD, and emit a merge verdict.
+     Constraint: Read the plan doc first. Review the diff against origin/main.
+     Do not commit or push. Report findings and verdict.
+   ```
+
+   If the review verdict is `approve` or `comment`, print:
+   ```
+   ✅ Review passed (verdict: <verdict>). Ready for commit.
+   ```
+
+   If the review verdict is `request_changes`, print the findings and:
+   ```
+   ⚠ Review: request_changes — fix findings above, then re-run /workflow-review.
+   ```
+
+   The execute skill does NOT exit until review completes. Execute → review is one
+   continuous flow, not two separate sessions. This is the automation that replaces
+   the manual spawn prompt.
 ```

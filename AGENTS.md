@@ -78,7 +78,7 @@ The metacognition loop runs mostly automatically. One human gate: `/meta-feedbac
 | `/meta-wake` | Session entry point — loads seeds, reads dashboard, orients on plan state | (reads only at start) |
 | `/meta-grow` | Mid-session capture — tags growth entries, refreshes dashboard, overwrites handover | `growth/growth.md`, `notes/handover.md` |
 | `/meta-insights` | Auto-spawned — mines sessions.db + hook logs for friction patterns | `.sounding/insights/insights-log.md` |
-| `/meta-feedback` | **Human gate** — verifies insight claims against raw corpus, routes findings | `feedback-log.md` |
+| `/meta-feedback` | **Human gate** — verifies insight claims against raw corpus, routes findings | `.sounding/telemetry/feedback-log.md` |
 | `/meta-retro` | Auto after feedback — proposes config diffs; propose-only, never auto-applies | `tooling-ledger.md` |
 | `/meta-dream` | Session close — writes reflection, conditionally synthesizes seeds, tidies indexes | `.sounding/` seeds + logs |
 | `/hypothesis` | Any session — adds typed verification row to ledger | `tooling-ledger.md` |

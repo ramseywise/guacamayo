@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 import pytest
@@ -366,6 +367,80 @@ def test_render_pipeline_health_region_with_insights_log(tmp_path: Path) -> None
     assert result
     assert "Pipeline health" in result
     assert "Insights" in result
+
+
+def _utc_today() -> date:
+    """UTC today, matching the renderer's clock (DTZ011: no naive date.today())."""
+    return datetime.now(UTC).date()
+
+
+def _write_feedback_log(tmp_path: Path, body: str) -> None:
+    """Write a feedback-log.md under the fake sounding root (store is …/data/…)."""
+    log_dir = tmp_path / ".sounding" / "telemetry"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    (log_dir / "feedback-log.md").write_text(body, encoding="utf-8")
+
+
+def _pipeline_store(tmp_path: Path) -> Path:
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True, exist_ok=True)
+    return store
+
+
+def _feedback_cell(fragment: str) -> str:
+    """Isolate the Feedback cell so other stages' glyphs cannot satisfy an assert."""
+    cells = fragment.split('<div class="ph-cell"')
+    matches = [c for c in cells if ">Feedback<" in c]
+    assert len(matches) == 1, "expected exactly one Feedback cell"
+    return matches[0]
+
+
+def test_pipeline_health_feedback_never_run_is_grey_not_red(tmp_path: Path) -> None:
+    """No feedback-log.md: the gate reads as awaiting its first run, not as failing.
+
+    This is the GUA-144 defect — the stage used to be a hardcoded literal that
+    could never change, so a skipped verification gate looked healthy.
+    """
+    fragment = render_pipeline_health_region(_pipeline_store(tmp_path))
+
+    cell = _feedback_cell(fragment)
+    assert "never run" in cell
+    assert "manual gate — not yet run" in cell
+    assert "var(--text-3)" in cell
+    assert "✗" not in cell
+
+
+def test_pipeline_health_feedback_fresh_run_is_green(tmp_path: Path) -> None:
+    """A run dated today ages green through the shared ladder."""
+    _write_feedback_log(tmp_path, f"# Feedback Run — {_utc_today().isoformat()}\n")
+
+    cell = _feedback_cell(render_pipeline_health_region(_pipeline_store(tmp_path)))
+    assert "✓" in cell
+    assert "manual gate" in cell
+    assert "never run" not in cell
+
+
+def test_pipeline_health_feedback_stale_run_is_red(tmp_path: Path) -> None:
+    """A run ten days back is past the 7 d threshold — red, and aged in the label."""
+    stale = _utc_today() - timedelta(days=10)
+    _write_feedback_log(tmp_path, f"# Feedback Run — {stale.isoformat()}\n")
+
+    cell = _feedback_cell(render_pipeline_health_region(_pipeline_store(tmp_path)))
+    assert "✗" in cell
+    assert "10d ago" in cell
+    assert "never run" not in cell
+
+
+def test_pipeline_health_feedback_newest_header_wins(tmp_path: Path) -> None:
+    """Multiple runs age from the newest, regardless of position in the file."""
+    _write_feedback_log(
+        tmp_path,
+        f"# Feedback Run — {(_utc_today() - timedelta(days=40)).isoformat()}\n\n"
+        f"# Feedback Run — {_utc_today().isoformat()}\n",
+    )
+
+    cell = _feedback_cell(render_pipeline_health_region(_pipeline_store(tmp_path)))
+    assert "✓" in cell
 
 
 def test_render_pipeline_health_region_roundtrip(tmp_path: Path) -> None:
