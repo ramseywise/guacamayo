@@ -8025,3 +8025,81 @@ def render_cadence_region(
         f"<code>tooling-ledger.md</code> at render time.</p>"
         "</div>"
     )
+
+
+# GUA-151 step: DATA-BLOCK region. The `const DATA` JS block in the dashboard
+# powers legacy line charts (context p50/p90, over-150k, session shape,
+# compaction, skill usage, sessions/week). Values were frozen 2026-07-28 and
+# reported "0% today" while the live figure was 23% over 150k. This renderer
+# recomputes the same series from the factstore at render time so every run
+# extends the charts rather than replaying the same flat tail.
+#
+# Unit conventions (must match the JS fmtVal function):
+#   context_p50 / context_p90 : stored in k-tokens (value=100 means 100k),
+#       because the JS drawLine call uses unit='tokens' and fmtVal interprets
+#       values < 1000 as "Nk" — divide raw max_context by 1000.
+#   over150k, single_turn, compaction, skills : raw percentage (0–100).
+#   turns_p50 : raw integer count.
+#   sessions_week : raw integer count per week bucket.
+#   compaction and sessions_week have a regime facet (r field).
+
+_DATA_BLOCK_SERIES: list[tuple[str, str, str]] = [
+    # (js_key, metric_name, unit_hint)
+    ("context_p50", "max_context_p50", "ktokens"),
+    ("context_p90", "max_context_p90", "ktokens"),
+    ("over150k", "cost_bucket_pct_over150k", "pct"),
+    ("turns_p50", "turns_per_session_p50", "count"),
+    ("single_turn", "single_turn_pct", "pct"),
+    ("skills", "execution_skill_compliance_pct", "pct"),
+    ("compaction", "compaction_pct", "faceted"),
+    ("sessions_week", "sessions_per_week", "faceted"),
+]
+
+
+def _series_to_js_points(series: Series, unit_hint: str) -> str:
+    """Convert a Series to a compact JS array literal matching the DATA format.
+
+    Faceted series (compaction_pct / sessions_per_week) flatten all panels
+    into a single list with an `r` field so the JS drawLine / drawBar
+    functions receive a single heterogeneous dataset — the same shape the
+    hand-written arrays had.  Continuous series omit the `r` field.
+    """
+
+    def _fmt(v: float) -> str:
+        # Round to at most 2 decimal places; strip trailing zeros.
+        return f"{v:.2f}".rstrip("0").rstrip(".")
+
+    points_js: list[str] = []
+
+    if series.faceted:
+        for panel in series.panels:
+            for p in panel.points:
+                v = p.value / 1000 if unit_hint == "ktokens" else p.value
+                r_field = f",r:{json.dumps(panel.regime)}" if panel.regime else ""
+                points_js.append(f"{{d:{json.dumps(p.date)},v:{_fmt(v)}{r_field}}}")
+    else:
+        for p in series.points:
+            v = p.value / 1000 if unit_hint == "ktokens" else p.value
+            points_js.append(f"{{d:{json.dumps(p.date)},v:{_fmt(v)}}}")
+
+    # Compact: one array per line with no trailing whitespace.
+    inner = ",".join(points_js)
+    return f"[\n    {inner}\n  ]"
+
+
+def render_data_block_region(store: Path) -> str:
+    """DATA-BLOCK region: regenerated `const DATA` for the dashboard charts.
+
+    Replaces the hand-written series frozen at 2026-07-28 with values recomputed
+    from the factstore at render time. The output is a complete `const DATA = {
+    ... };` block — the marker region wraps only this block, so the surrounding
+    `<script>` tags and chart-rendering code are untouched.
+    """
+    parts: list[str] = []
+    for js_key, metric, unit_hint in _DATA_BLOCK_SERIES:
+        period = "week" if metric == "sessions_per_week" else "day"
+        series = build_series(metric, store, period)
+        js_points = _series_to_js_points(series, unit_hint)
+        parts.append(f"  {js_key}: {js_points}")
+
+    return "const DATA = {\n" + ",\n".join(parts) + "\n};"
