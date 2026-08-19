@@ -123,6 +123,19 @@ PATTERNS: dict[str, str] = {
     "doc-implementation-mismatch": (
         r"does not match implementation|in code vs\.|docstring claims|plan documentation says"
     ),
+    # Added 2026-08-19 (GUA-145): cross-repo prefix on a branch mismatches the repo
+    # being changed. Source: 2026-07-31 ledger row, three named instances.
+    "branch-prefix-mismatch": r"cross-repo prefix|prefix.*mismatch|branch.*wrong repo|wrong.*prefix",
+    # Added 2026-08-19 (GUA-145): Bash used where a native tool applies (Read/Grep/
+    # Glob/Edit). Source: R7 F5, Bash antipatterns at 49% of all tool calls.
+    "substitutable-bash-call": (
+        r"bash antipattern|substitutable.*(command|tool)"
+        r"|cat.*instead of Read|grep.*instead of Grep"
+        r"|find.*instead of Glob"
+    ),
+    # Added 2026-08-19 (GUA-145): code or config assumes a path that no longer exists
+    # after rename/move. Source: R10 F8, file-not-found at +43% in 3 days.
+    "stale-path-assumption": (r"file[- ]not[- ]found|stale.*path|path.*removed|no longer exists"),
 }
 
 _COMPILED_PATTERNS: dict[str, re.Pattern[str]] = {
