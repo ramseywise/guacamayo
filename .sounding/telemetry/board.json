@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-19T14:38:25.736159+00:00",
+  "collected_at": "2026-08-19T18:39:30.198481+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,13 +15,52 @@
   "skipped_repos": [],
   "total_issues": 10,
   "heartbeat": {
-    "started_at": "2026-08-19T14:37:55.017069+00:00",
-    "finished_at": "2026-08-19T14:38:25.764726+00:00",
+    "started_at": "2026-08-19T18:39:03.820776+00:00",
+    "finished_at": "2026-08-19T18:39:30.221163+00:00",
     "exit": 0,
-    "duration_s": 30.75,
+    "duration_s": 26.4,
     "error": null
   },
   "proposed_actions": [
+    {
+      "id": "1e7ab0d1e2e6",
+      "action": "triage",
+      "target": {
+        "repo": "guacamayo",
+        "issue_num": 152
+      },
+      "reason": "open issue carries no workflow label \u2014 invisible to any label filter",
+      "evidence": "raw_label=''; column='backlog'",
+      "confidence": "high",
+      "auto_eligible": false,
+      "created_at": "2026-08-19T18:39:30.219891+00:00"
+    },
+    {
+      "id": "18855c5810ee",
+      "action": "triage",
+      "target": {
+        "repo": "guacamayo",
+        "issue_num": 149
+      },
+      "reason": "open issue carries no workflow label \u2014 invisible to any label filter",
+      "evidence": "raw_label=''; column='backlog'",
+      "confidence": "high",
+      "auto_eligible": false,
+      "created_at": "2026-08-19T18:39:30.219891+00:00"
+    },
+    {
+      "id": "200ce4c18e8f",
+      "action": "close_issue",
+      "target": {
+        "repo": "guacamayo",
+        "issue_num": 149
+      },
+      "reason": "branch merged to main but issue #149 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-149-telemetry-truth-pass` is an ancestor of origin/main'; evidence='guacamayo#149 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-19T18:39:30.220081+00:00"
+    },
     {
       "id": "379752492c21",
       "action": "close_issue",
@@ -33,49 +72,49 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T14:38:25.764456+00:00"
+      "created_at": "2026-08-19T18:39:30.220081+00:00"
     }
   ],
   "records": [
     {
       "repo": "guacamayo",
-      "issue_num": 145,
-      "title": "GUA: experiment \u2194 friction-signature link \u2014 pattern_key on all ledger rows",
-      "raw_label": "backlog",
+      "issue_num": 152,
+      "title": "workflow-scope: classify job type and record triage decisions to scope-decisions.jsonl",
+      "raw_label": "",
       "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "backlog_stage": "refine",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
-      "issue_num": 143,
-      "title": "GUA: proposal recurrence tracking \u2014 count sightings across board ticks",
-      "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "issue_num": 151,
+      "title": "Dashboard static\u2192telemetry: implement renderers for the hand-maintained cards",
+      "raw_label": "in-review",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-151-dashboard-static-to-telemetry' exists, is_ancestor=False",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
-      "issue_num": 142,
-      "title": "GUA: insights-log.md compaction \u2014 drain mechanism for 2k+ line append-only file",
-      "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "issue_num": 150,
+      "title": "Metacognition automation: close the prose edges of the loop",
+      "raw_label": "in-progress",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-150-metacognition-automation' exists, is_ancestor=False",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
-      "issue_num": 136,
-      "title": "review/driver.py: retry parse_error dimensions with a narrowed fileset",
-      "raw_label": "backlog",
+      "issue_num": 149,
+      "title": "Telemetry truth pass: pipeline-health retro parse, CLAUDE.md drift, proposed/ residue",
+      "raw_label": "",
       "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "backlog_stage": "refine",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "playground",
@@ -85,7 +124,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -95,7 +134,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -105,7 +144,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -115,7 +154,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -125,7 +164,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -135,7 +174,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T14:38:25.736159+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     }
   ]
 }
