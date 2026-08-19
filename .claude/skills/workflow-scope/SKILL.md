@@ -20,6 +20,11 @@ executes each stage.
 If given an issue number, reads the issue body via `gh`. If given inline text, treats it
 as the problem statement directly (no issue lookup).
 
+**Dispatch rule**: a "triage spawn" means spawning an agent that executes THIS skill —
+never the bare `triage` subagent directly. The triage agent is one-stage-per-invocation
+by design; without this orchestrator loop it stops after a single stage and the issue
+stalls short of READY (observed 2026-08-19: #149 and #152 each stopped at `plan`).
+
 ## Step 1 — Assess current state
 
 Read what already exists for this work item:
