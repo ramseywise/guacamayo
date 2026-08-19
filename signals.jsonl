@@ -16,3 +16,4 @@
 {"event":"issues","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":144,"issue_title":"GUA: feedback liveness signal in pipeline health dashboard","collected_at":"2026-08-19T14:27:23Z"}
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":146,"pr_title":"Gua 144 meta feedback liveness","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T14:45:04Z"}
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":147,"pr_title":"Gua 136 parse error retry","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T14:45:19Z"}
+{"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":146,"pr_title":"Gua 144 meta feedback liveness","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T14:45:36Z"}
