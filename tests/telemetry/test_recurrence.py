@@ -726,6 +726,66 @@ def test_live_corpus_gua115_signatures_clear_threshold() -> None:
         assert groups[key].promotable is True
 
 
+# --- GUA-145 signatures -------------------------------------------------------
+
+
+def test_branch_prefix_mismatch_positive() -> None:
+    findings = [
+        _finding(title="cross-repo prefix on librarian branch"),
+        _finding(title="prefix mismatch: GUA branch targets librarian"),
+        _finding(title="branch in wrong repo due to wrong prefix"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "branch-prefix-mismatch")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_branch_prefix_mismatch_does_not_match_slug_inconsistency() -> None:
+    findings = [_finding(title="slug is de-hyphenated PR title")]
+    groups = compute_recurrence(findings)
+    keys = {g.pattern_key for g in groups}
+    assert "branch-prefix-mismatch" not in keys
+
+
+def test_substitutable_bash_call_positive() -> None:
+    findings = [
+        _finding(title="bash antipattern: cat instead of Read"),
+        _finding(title="substitutable command: grep instead of Grep"),
+        _finding(title="substitutable tool: find instead of Glob"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "substitutable-bash-call")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_substitutable_bash_call_generic_bash_use_does_not_match() -> None:
+    findings = [_finding(title="bash hook fires on git push")]
+    groups = compute_recurrence(findings)
+    keys = {g.pattern_key for g in groups}
+    assert "substitutable-bash-call" not in keys
+
+
+def test_stale_path_assumption_positive() -> None:
+    findings = [
+        _finding(title="file-not-found: path removed after rename"),
+        _finding(title="stale path assumption in config"),
+        _finding(title="referenced path no longer exists"),
+    ]
+    groups = compute_recurrence(findings)
+    matched = next(g for g in groups if g.pattern_key == "stale-path-assumption")
+    assert matched.count == 3
+    assert matched.promotable is True
+
+
+def test_stale_path_assumption_does_not_match_resource_leak() -> None:
+    findings = [_finding(title="connection not closed after use")]
+    groups = compute_recurrence(findings)
+    keys = {g.pattern_key for g in groups}
+    assert "stale-path-assumption" not in keys
+
+
 @pytest.mark.skipif(not _LIVE_CORPUS.exists(), reason="live review-findings.jsonl not present")
 def test_live_corpus_unmatched_share_drops() -> None:
     """The point of the change: fewer findings sitting in `unmatched:` fallbacks.
