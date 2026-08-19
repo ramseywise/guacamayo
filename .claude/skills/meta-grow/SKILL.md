@@ -120,26 +120,16 @@ Whether or not the marker is present, always spawn insights below.
 Always spawn `/meta-insights` as a background agent. This keeps `insights-log.md` fresh so signals below and `/meta-wake` reads are never stale.
 
 ```
-Agent(model: "haiku", run_in_background: true)
+Agent(agentType: "persistence", model: "haiku", run_in_background: true)
 prompt: |
   Repo: ~/workspace/guacamayo
   Task: Run /meta-insights. Append a new dated section to .sounding/insights/insights-log.md.
-  Constraints:
-  - Read the file first. Append only — never overwrite, delete, or restore existing sections.
-  - Use the Edit tool to append. NEVER shell redirection, cat, heredoc, or `git restore`
-    (a quoting bug in `cat "$(cat ...)"` destroyed this file once; `git restore` destroyed
-    it a second time).
-  - Date the new section header from `date +%F` (the system clock), not the conversation.
-  - Header MUST match exactly `## YYYY-MM-DD (N sessions, START to END)` — readers grep this
-    shape by max date. A free-form header (e.g. `## 2026-08-11 Insights Run`) is invisible to
-    every consumer and the run will read as missing.
-  - Append at EOF. Do NOT attempt to prepend or re-sort to maintain newest-first order —
-    readers sort by date, so file order is intentionally irrelevant. Re-sorting a 100KB+
-    file that has twice been destroyed is not worth the risk.
-  - Before finishing, verify by content invariants: the file must be strictly LONGER than
-    when first read, and every pre-existing `## ` header must still be present. Report
-    before/after line counts.
 ```
+
+The append-only constraints (Edit tool only, exact header shape, EOF append, longer-file
+invariant) live in `.claude/agents/persistence.md` — the agentType loads them; do not
+re-inline them here. (The history that earned them: a quoting bug in `cat "$(cat ...)"`
+destroyed insights-log.md once; `git restore` destroyed it a second time.)
 
 **Dispatcher verification (non-negotiable):** when the agent completes, do not trust its
 report — run `git diff --stat` AND `git diff --cached --stat` on insights-log.md and
@@ -198,16 +188,16 @@ Don't wait for it — continue with signal reads below using existing data. The 
   precisely because /meta-grow spawns it *itself* (Step 4a). Do the same for the retro.
 
   ```
-  Agent(model: "sonnet", run_in_background: false)
+  Agent(agentType: "persistence", model: "sonnet", run_in_background: false)
   prompt: |
     Repo: ~/workspace/guacamayo
     Task: Run /meta-retro. Read .sounding/insights/insights-log.md for latest insights
-    data, then propose config changes. Update .sounding/tooling-ledger.md (active
-    hypotheses) and .sounding/tooling-ledger-log.md (graduated experiments). Increment
-    retro number from the latest R# header in tooling-ledger-log.md.
-    Constraint: Read files before editing. Propose changes — do not auto-apply to
-    ~/.claude/ config. Stage results only — never commit or push; Ramsey reviews and commits.
+    data, then propose config changes.
+    Constraint: Read files before editing.
   ```
+
+  The retro contract (ledger targets, R# increment, propose-only, never commit) lives in
+  `.claude/agents/persistence.md` — the agentType loads it.
 
   **Then verify it landed before acking — the agent's success report is not evidence.**
 

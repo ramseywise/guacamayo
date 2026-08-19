@@ -110,12 +110,16 @@ propose/mutate boundary moves only on logged acceptance-rate evidence.
 `telemetry/signals.py` — signal registry (56 declared, 18 with resolvers). Signals feed
 dashboard tiles and the insights engine.
 
-`telemetry/dashboard.py` — renders the 5-tab HTML dashboard:
+`telemetry/dashboard.py` — renders the 7-tab HTML dashboard:
 - **Overview**: system architecture, three-layer diagram
+- **Cost & Efficiency**: cost trends, cache hit rate, repo effort vs outcome
 - **Session Health**: token economics, session frequency, compaction rate
 - **Context Health**: context pressure, compact timing
-- **Loop Health**: pipeline stage liveness (capture/insights/feedback/retro/config)
+- **Loop Health**: pipeline stage liveness — five stage cells (Capture/Insights/Feedback/Retro/Config) with age colors, populated by `render_pipeline_health_region()`
+- **Experiments**: hypothesis lifecycle, graduation rate, cascade state
 - **Retro**: hypothesis graduation rate, open vs. resolved experiments
+
+Full tab descriptions in `README.md §The Dashboard`.
 
 `telemetry/__main__.py` entry points: `--facts` (sync sessions.db), `--board` (update board.json + run evaluator), `--dashboard` (re-render HTML).
 
