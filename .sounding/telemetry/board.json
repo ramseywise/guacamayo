@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-19T18:29:03.556585+00:00",
+  "collected_at": "2026-08-19T18:39:30.198481+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,10 +15,10 @@
   "skipped_repos": [],
   "total_issues": 10,
   "heartbeat": {
-    "started_at": "2026-08-19T18:28:31.387069+00:00",
-    "finished_at": "2026-08-19T18:29:03.585358+00:00",
+    "started_at": "2026-08-19T18:39:03.820776+00:00",
+    "finished_at": "2026-08-19T18:39:30.221163+00:00",
     "exit": 0,
-    "duration_s": 32.2,
+    "duration_s": 26.4,
     "error": null
   },
   "proposed_actions": [
@@ -33,7 +33,7 @@
       "evidence": "raw_label=''; column='backlog'",
       "confidence": "high",
       "auto_eligible": false,
-      "created_at": "2026-08-19T18:29:03.583443+00:00"
+      "created_at": "2026-08-19T18:39:30.219891+00:00"
     },
     {
       "id": "18855c5810ee",
@@ -46,7 +46,7 @@
       "evidence": "raw_label=''; column='backlog'",
       "confidence": "high",
       "auto_eligible": false,
-      "created_at": "2026-08-19T18:29:03.583443+00:00"
+      "created_at": "2026-08-19T18:39:30.219891+00:00"
     },
     {
       "id": "200ce4c18e8f",
@@ -59,20 +59,7 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-149-telemetry-truth-pass` is an ancestor of origin/main'; evidence='guacamayo#149 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T18:29:03.583694+00:00"
-    },
-    {
-      "id": "3d0df30d025e",
-      "action": "close_issue",
-      "target": {
-        "repo": "guacamayo",
-        "issue_num": 150
-      },
-      "reason": "branch merged to main but issue #150 is still open",
-      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-150-metacognition-automation` is an ancestor of origin/main'; evidence='guacamayo#150 is still OPEN after branch merged'",
-      "confidence": "medium",
-      "auto_eligible": false,
-      "created_at": "2026-08-19T18:29:03.583694+00:00"
+      "created_at": "2026-08-19T18:39:30.220081+00:00"
     },
     {
       "id": "379752492c21",
@@ -85,7 +72,7 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T18:29:03.583694+00:00"
+      "created_at": "2026-08-19T18:39:30.220081+00:00"
     }
   ],
   "records": [
@@ -97,7 +84,7 @@
       "column": "backlog",
       "backlog_stage": "refine",
       "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
@@ -107,17 +94,17 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GUA-151-dashboard-static-to-telemetry' exists, is_ancestor=False",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
       "issue_num": 150,
       "title": "Metacognition automation: close the prose edges of the loop",
       "raw_label": "in-progress",
-      "column": "backlog",
-      "backlog_stage": "refine",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-150-metacognition-automation' exists, is_ancestor=False",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "guacamayo",
@@ -125,9 +112,9 @@
       "title": "Telemetry truth pass: pipeline-health retro parse, CLAUDE.md drift, proposed/ residue",
       "raw_label": "",
       "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "backlog_stage": "refine",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "playground",
@@ -137,7 +124,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -147,7 +134,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -157,7 +144,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -167,7 +154,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -177,7 +164,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     },
     {
       "repo": "galactus",
@@ -187,7 +174,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T18:29:03.556585+00:00"
+      "collected_at": "2026-08-19T18:39:30.198481+00:00"
     }
   ]
 }

@@ -8102,4 +8102,5 @@ def render_data_block_region(store: Path) -> str:
         js_points = _series_to_js_points(series, unit_hint)
         parts.append(f"  {js_key}: {js_points}")
 
-    return "const DATA = {\n" + ",\n".join(parts) + "\n};"
+    data_body = "const DATA = {\n" + ",\n".join(parts) + "\n};"
+    return "<script>\n// \u2500\u2500\u2500 Data \u2500\u2500\u2500\n" + data_body + "\n</script>"
