@@ -102,6 +102,21 @@ If `gh` fails, skip gracefully.
 
 ### 4a. Spawn insights (background)
 
+**Check for cron-written marker first.** The daily `telemetry-cron.sh` (facts mode) writes
+`.sounding/telemetry/insights-due.marker` when it detects growth accumulation or staleness.
+If the marker exists:
+
+```bash
+MARKER=".sounding/telemetry/insights-due.marker"
+if [ -f "${MARKER}" ]; then
+    cat "${MARKER}"   # logs the reason + timestamp for the signal summary
+    rm "${MARKER}"    # consumed — cron will re-create on next trigger
+fi
+```
+
+Include the marker reason in the signal summary (e.g. `Insights: cron-triggered — growth_count=5`).
+Whether or not the marker is present, always spawn insights below.
+
 Always spawn `/meta-insights` as a background agent. This keeps `insights-log.md` fresh so signals below and `/meta-wake` reads are never stale.
 
 ```
