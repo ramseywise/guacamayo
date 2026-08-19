@@ -4,3 +4,4 @@
 {"event":"issues","action":"labeled","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":138,"issue_title":"GUA-138 Metacognition automation + docs rewrite","collected_at":"2026-08-19T13:42:31Z"}
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":139,"pr_title":"Gua 137 dashboard facelift","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:43:29Z"}
 {"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":139,"pr_title":"Gua 137 dashboard facelift","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:44:04Z"}
+{"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":140,"pr_title":"Refactor telemetry verdicts and signals handling","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:44:47Z"}
