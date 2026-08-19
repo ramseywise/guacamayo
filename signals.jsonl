@@ -5,3 +5,4 @@
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":139,"pr_title":"Gua 137 dashboard facelift","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:43:29Z"}
 {"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":139,"pr_title":"Gua 137 dashboard facelift","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:44:04Z"}
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":140,"pr_title":"Refactor telemetry verdicts and signals handling","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:44:47Z"}
+{"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":140,"pr_title":"Refactor telemetry verdicts and signals handling","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T13:50:56Z"}
