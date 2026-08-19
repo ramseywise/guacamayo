@@ -2029,6 +2029,51 @@ Checking active hypotheses from tooling-ledger.md:
 4. **Fable convergence**: Monitor fable leakage (22.6% in mixed usage). Settings fix applied 2026-08-05; expect convergence by 2026-08-18. Re-measure at next insights run.
 5. **Parallel contention**: 65% of sessions now 2–3 concurrent. Correlate file-not-found spike with parallelism increase (likely root cause). Recommend read-write serialization audit or per-session `.git` worktree isolation.
 
+## 2026-08-19 (1 session, R12 retro — config-audit pass only)
+
+### Step 0 Re-derives (R12)
+
+| Row | Command + output | Verdict |
+|---|---|---|
+| R11 F1: `closes_link_guard.sh` deployed | `ls ~/.claude/hooks/closes_link_guard.sh` → exists (46 lines); `grep -c "closes_link_guard" ~/.claude/settings.json` → 1 (PostToolUse registered) | Hook deployed and registered. Window NOT clean: PRs #153, #155 leaked post-deployment. Coverage gap confirmed: `make ship` → `quick-pr` → `gh pr create` runs in Make subprocess, outside PostToolUse scope. Hook cannot fire on this path by design. |
+| R11 F3: shipped-scheduler DoD | `grep -n "shipped-scheduler\|launchctl list" .claude/skills/workflow-execute/SKILL.md` → lines 67–68 | **VERIFIED** |
+| R11 F5 / R10 F3: re-derive clause in meta-retro | `grep -n "re-derive" .claude/skills/meta-retro/SKILL.md` → line 29 | **VERIFIED** |
+| R11 F4: lint-mirror rule in shell.md | Lint-config mirrors section present in `~/.claude/rules/shell.md` (confirmed at read time; see CLAUDE.md context) | **VERIFIED — window 1 open** |
+
+### R12 Findings
+
+**F1 — `closes_link_guard` structural bypass (third PR-body leak this week)**
+
+Root cause identified: the hook fires only on Claude Bash tool calls. `make ship` is a user-terminal command; its subprocess `gh pr create` runs outside Claude's PostToolUse scope entirely. The hook's negative test correctly caught PR #135 (a Claude-issued `gh pr create`), confirming it works for its covered path. Ramsey's actual ship path has never been covered.
+
+Fix path: `Makefile.common` `quick-pr` target adds a closing-link assertion before `gh pr create` — this runs in Make's shell regardless of Claude. Mechanically enforcing (exit 1), not advisory. PR template (`.github/PULL_REQUEST_TEMPLATE.md`) is a belt-and-suspenders fallback for web UI creates.
+
+The existing ledger row (`absence:merged-PRs-without-closing-links`) is updated with a new sibling row scoped to the Makefile fix; the hook row retains its original scope (Claude-issued PR commands) and should continue tracking.
+
+**F2 — Three ledger rows missing for today's shipped tooling changes**
+
+Commits #152 / #84d7449 (workflow-scope orchestrator + job-type classifier) and GUA-150/GUA-151 (proposal-sightings automation in `__main__.py:599–603`) shipped without ledger rows — discovered during the F2 check. Rows added:
+- `presence:workflow-scope-invocations-in-sessions-log by 2026-08-29`
+- `presence:proposal-sightings-jsonl-populated by 2026-08-29`
+- `absence:dashboard-render-on-stale-store for 2 retro windows` (F4 below)
+
+**F3 — Write-replace vs active-viewing discipline**
+
+Pattern from today's dream session: `Write`-replacing a file Ramsey is actively viewing destroys her reference copy mid-review. Not mechanically detectable before the fact; correct fix is a CLAUDE.md note (surgical `Edit` over `Write` on any file the user may be reading). Proposed as P2 in R12 config proposals.
+
+**F4 — Decoy store silently empties dashboards**
+
+Any script accepting a `--store` argument can bypass the correct default (librarian's `sessions.db`). A pre-render row-count/recency assertion in `telemetry/__main__.py` (exit non-zero if store has 0 sessions in last 30 days) closes this. Needs GUA issue.
+
+### R12 Config Proposals (pending Ramsey approval)
+
+Proposals are in `tooling-ledger-log.md` R12 section (P1–P3). Summary:
+- **P1**: `Makefile.common` `quick-pr` — add closing-link assertion before `gh pr create` (mechanically enforces, not advisory); add `PULL_REQUEST_TEMPLATE.md` as web UI fallback
+- **P2**: `guacamayo/CLAUDE.md` Settings section — file-replace discipline note (Edit over Write when user may be viewing)
+- **P3**: `telemetry/__main__.py` — `_assert_store_fresh()` pre-render guard (needs GUA issue)
+
+---
+
 ## 2026-08-16 (673 sessions, 2026-07-17 to 2026-08-16)
 
 ### Numbers
