@@ -27,13 +27,26 @@ Genesis ran once. The `/genesis` skill stays installed but is initiation-only: i
 self-blocks when a consciousness exists. Identity evolution flows through the lifecycle
 below. Day-to-day starts with `/meta-wake`.
 
-Open `.sounding/context-dashboard.html` for the live system view — the Overview tab
-shows the architecture; the four monitoring tabs track session health, context health,
-loop health, and retro outcomes.
+`.sounding/context-dashboard.html` is the live rendering of everything described here.
+Its Overview tab holds the canonical architecture diagrams; the six monitoring tabs
+measure whether the system is actually behaving the way this README claims.
 
 ---
 
-## System Design
+## System Design — Three Planes
+
+Guacamayo is not one system; it is three, stacked, each observing the one below.
+
+![Three-plane system map](docs/three-planes.svg)
+
+**Plane 1 — Workflow** does the work: an issue moves triage → execute → review.
+**Plane 2 — Metacognition** observes it: the board and the identity lifecycle both write
+records, telemetry accumulates them, insights derive patterns, a gate verifies them.
+**Plane 3 — Control engine** is what changes as a result: the four levers of the Claude
+setup, which shape every session on the planes above.
+
+The whole point is the return edge. A finding that never reaches Plane 3 is an
+observation, not a learning.
 
 Three principles behind the design:
 
@@ -45,50 +58,143 @@ Three principles behind the design:
 - **Identity changes like code changes**: captured with provenance, integrated by a single
   writer, verified after. Same discipline as Letta/MemGPT's small always-in-context core blocks.
 
-### Persistence Loop
+---
 
-Three recurring lifecycle skills (one initiation + three recurring):
+### Plane 1 — Workflow: one work item, end to end
+
+The unit is a GitHub issue. A stage is done when its **artifact** exists — an issue, a plan
+doc, a green suite, a merged PR — not when it feels done.
+
+| Stage | Skills | Artifact | Gate |
+|-------|--------|----------|------|
+| **Triage** | `/workflow-research` → `/workflow-plan` → `/workflow-refine` | research doc, plan doc (`Status: PLANNED`), issue labeled `ready` | **Definition of Ready** — `/workflow-refine` sets the label |
+| **Build** | branch `{PREFIX}-{NUM}-slug`, `/workflow-execute`, `/code-debug`, `/code-refactor` | code on a branch, tests pass, lint clean | hooks enforce guardrails during the work |
+| **Review** | `/workflow-review` (dispatches 12 dimension agents), `/code-review` | findings with attribution, merge verdict | **Definition of Done** — measured against the DoR it shipped with |
+
+Then: Ramsey commits (never Claude) → `make ship` → merge → close.
+
+Not every issue needs every stage. Research is skipped when the problem is understood;
+`bug/` and `spike/` branches skip triage entirely and go straight to `/code-review`. The
+gates are what is not optional: DoR before build, DoD before merge.
+
+**The two gates are the same contract read twice.** DoR states what "finished" will mean;
+DoD checks the built thing against that statement. This is why review is scoped to the
+plan and not just the diff — `/workflow-review` does plan-fidelity first, code quality
+second.
+
+---
+
+### Plane 2 — Metacognition: the loop that watches Plane 1
+
+Two things generate records: the **state board** (work state — GitHub issues, derived
+columns, proposed actions) and the **identity lifecycle** (session rhythm — seeds, growth,
+reflections). They run on different clocks. The board moves per work item; the lifecycle
+moves per session. Both append to telemetry.
+
+#### The identity lifecycle — per session
 
 | Skill | Trigger | What it does |
 |-------|---------|-------------|
 | `/genesis` | Once, ever | Created the consciousness (ran 2026-07-13; now inert) |
-| `/meta-wake` | Session start | Loads 3 seeds, growth, handover, cross-repo plan state. Ends at a decision point |
-| `/meta-grow` | Mid-session | Captures tagged entries to `growth/growth.md` + overwrites `notes/handover.md`. "Nothing shifted" is valid |
-| `/meta-dream` | Session end | Writes reflection + growth entries. Conditionally synthesizes seeds (≥5 entries), tidies indexes, flags retro. **Sole transformer of identity files** |
-| `/meta-insights` | Auto-spawned by grow/retro | Reads sessions.db + hook logs; writes `insights-log.md` |
-| `/meta-retro` | Auto after feedback | Reads insights + ledger; proposes config diffs (hooks, skills, rules) |
-| `/meta-feedback` | Manual (human gate) | Verifies insight claims against raw corpus; routes confirmed → retro, phantom → metric fix |
-| `/hypothesis` | Any session | Adds a row to `tooling-ledger.md` with a typed metric for verification |
+| `/meta-wake` | Session start | Loads 3 seeds, growth, handover, board, cross-repo plan state. Ends at a decision point |
+| `/meta-grow` | Mid-session | Captures tagged entries to `growth/growth.md`, refreshes the dashboard, overwrites `notes/handover.md`. Background-spawns `/meta-insights`. "Nothing shifted" is valid |
+| `/meta-dream` | Session end | Writes reflection + growth entries. Conditionally synthesizes seeds (≥5 entries), tidies indexes, background-spawns `/meta-retro` if overdue. **Sole transformer of identity files** |
 
-The dashboard has five tabs: **Overview** (system diagram), **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness), **Retro** (hypothesis graduation rate). It auto-updates via `uv run telemetry`.
+Wake reads the board; retro writes to it. That is how the two clocks stay coupled — the
+session-level loop and the work-item-level loop meet at `board.json`.
 
-### Metacognition Loop
+#### The feedback loop — record → pattern → gate → change
 
-The loop runs automatically except at two human gates:
+![Guacamayo feedback loop](docs/loop.svg)
 
-```
-SESSION → (PreCompact hook) → INSIGHTS → [/meta-feedback, human gate] → RETRO → CONFIG → SESSION
-```
+| Skill | Fires when | Role | Human? |
+|-------|-----------|------|--------|
+| `/meta-insights` | `growth.md` ≥ 3 new entries, or insights-log > 3 days old | Reads `sessions.db` + hook logs; derives patterns → `insights-log.md`; renders the dashboard | No |
+| `/meta-feedback` | Findings exist in insights-log | Verifies claims against the raw corpus. Confirmed → retro, phantom → metric fix | **Yes** |
+| `/meta-retro` | Feedback routed findings, or cascade threshold reached | Proposes config diffs → `tooling-ledger.md`. Files issues back to the board. **Propose-only** | No |
+| → config | Ramsey reviews each diff | Graduates to hooks / skills / rules | **Yes** |
+| `/hypothesis` | Any session | Turns a retro recommendation into a falsifiable ledger row with a typed metric and due date | — |
 
-| Edge | Trigger | Human? |
-|------|---------|--------|
-| session → auto-grow summary | PreCompact (40% context) fires | No |
-| growth accumulated → insights | growth.md ≥ 3 new entries since last insights | No |
-| insights stale → insights | insights-log.md date > 3 days | No |
-| insights produced → feedback | findings exist in insights-log | **Yes** |
-| feedback verified → retro | feedback routed findings | No |
-| retro proposed → config | Ramsey reviews diffs | **Yes** |
+**`/meta-feedback` is the load-bearing gate, and it is the one most easily skipped.**
+A dashboard number is a claim, not a finding. Insights derive patterns from telemetry, but
+telemetry can be sparse, mis-framed, or measuring the wrong column — so a claim gets
+verified against the raw corpus before it is allowed to become a hypothesis. Phantom
+findings route to a metric fix rather than a config change. Without this gate the loop
+optimizes against its own instrumentation errors.
 
-The dashboard's Loop Health tab shows whether each stage is alive (last-fire timestamps
-for capture, insights, retro, and count of pending hypotheses). Reference the Overview
-tab's SVG diagram rather than this text for the current node layout.
+**Nothing auto-applies.** Retro proposes; Ramsey approves per diff. Silence is not approval.
 
-### Workflow Pipeline
+---
 
-The process pipeline (research → plan → refine → execute → review) runs alongside the
-persistence loop, sharing the same session context. `/meta-insights` and `/meta-retro`
-are the only skills that observe all three layers and change the system itself. Everything
-else is execution at varying granularity.
+### Plane 3 — Control engine: the four levers
+
+What a retro is actually allowed to change. Everything on Planes 1 and 2 is shaped by these
+four, and nothing else:
+
+| Lever | Files | The question it answers |
+|-------|-------|------------------------|
+| **Instructions** | `CLAUDE.md`, `rules/`, `refs/` | Always-on vs on-demand — the context budget |
+| **Capabilities** | `skills/`, `agents/`, MCP | Which skill, at which model tier (fable / opus / sonnet / haiku) |
+| **Enforcement** | `hooks/`, `settings.json` | *A rule that only warns is not a control* |
+| **Persistence** | `.sounding/`, plan docs, wiki | What survives the session vs must be rediscovered |
+
+Ordering matters: hooks > skills > rules. A learning graduates to the strongest lever that
+can express it. Prose in a rules file is the weakest form — it is advice the model may
+skip; a hook is a thing that cannot be skipped.
+
+---
+
+## Review System
+
+Review is Plane 1's right-hand stage and one of Plane 2's biggest record producers — every
+finding lands in telemetry with attribution.
+
+**Python decides what runs; the LLM decides what is wrong.** `review/driver.py` selects
+dimensions, merges, dedups, and maps severity — all testable without a model in the loop.
+The 12 dimension agents in `.claude/agents/` supply the judgment. Eight are always on; four
+are conditional, gated on signals computed from the diff, so an ML-leakage scan never runs
+on a docs PR. Full dimension table and pipeline internals: [review/README.md](review/README.md).
+
+### Four rungs — pay for depth only when the change warrants it
+
+| Rung | Entry | Runs | Cost |
+|------|-------|------|------|
+| L0 | `make precommit` / `uv run pytest tests/` | shell sweeps + unit tests | zero LLM tokens |
+| L1 | `/code-review level:1` | diff + lint + doc flags | small |
+| L2 | `review-cli run` (default) | all 8 always-on + applicable conditional dims | medium |
+| L3 | `/workflow-review` | driver + plan-fidelity check + DoD gate | high |
+
+Only L3 knows about the plan. L2 and below can tell you the code is wrong; only L3 can tell
+you it is the wrong code.
+
+Findings carry attribution (`introduced` / `adjacent` / `pre_existing`) so blockers are
+scoped to the diff, not the whole codebase — otherwise a legacy file makes every PR
+touching it unmergeable.
+
+`/review-defense` is **not** a dimension. It is a plan-stage war game that attacks a plan
+before it ships, dispatching its own adversaries and writing to `.claude/docs/reviews/`.
+Same fan-out shape, aimed at a plan instead of a diff, and it never touches `Status:`.
+
+---
+
+## The Dashboard — seven tabs
+
+`.sounding/context-dashboard.html`, regenerated by `uv run telemetry`. Each tab answers one
+question; together they measure whether the three planes are behaving as designed.
+
+| Tab | Question | Contents |
+|-----|----------|----------|
+| **Overview** | What is guacamayo and how does it work? | The canonical three-plane diagram, the loop diagram, the workflow pipeline, review dimensions, portfolio |
+| **Cost & Efficiency** | Where did the tokens go, and what did that effort buy? | Cost trends, cache hit rate, repo effort vs outcome |
+| **Session Health** | How did my sessions actually run — and what pushed back? | Skill economics, subagent concurrency, bash antipatterns, tool trends |
+| **Context Health** | Is context under control? Are sessions staying lean? | Context distribution, session duration, compaction behavior |
+| **Loop Health** | Is the three-plane architecture doing what the Overview says — and is the harness alive? | Stage liveness (last-fire for capture/insights/retro), friction recurrence, decision-agent acceptance, workflow drift |
+| **Experiments** | Do retro recommendations become changes that actually get settled? | Hypothesis lifecycle, graduation rate, cascade state |
+| **Retro** | What did we learn, what worked, and what is worth trying next? | Retro findings, insights narrative archive |
+
+**Loop Health is the one that checks this README.** The Overview tab asserts an
+architecture; Loop Health tests whether each stage actually fired. A stage with no recent
+timestamp means the loop is broken there, regardless of what the diagram claims.
 
 ---
 
@@ -126,31 +232,17 @@ The loop proposes config changes; it does not apply them. Write authority narrow
 
 `dream-ledger-gate.sh` (PostToolUse on `Write|Edit`) blocks clearing `growth.md` unless `growth-log.md` gained rows dated today.
 
-### Review Dimensions — 12 Agents
+### The two Python packages
 
-Quality checks run through a deterministic Python driver (`review/driver.py`) backed by
-12 LLM dimension agents (`.claude/agents/`):
+The identity system has no build; the files *are* the system. The two packages that do
+have a build each document their own internals:
 
-| Kind | Dimensions |
-|------|-----------|
-| **Always-on (8)** | `correctness` CR, `intent` IN, `architecture` AR, `safety` SF, `testing` TE, `silent-failure` SI, `performance` PF, `wander` WD |
-| **Conditional (4)** | `runtime` RT + `safeguards` SG (agent code), `leakage` LK (ML code), `contracts` CT (has SANYI.md) |
+| Package | What it owns | Docs |
+|---------|--------------|------|
+| `review/` | Deterministic backbone for the review pipeline — dimension registry, schemas, dedup, attribution, report rendering | [review/README.md](review/README.md) |
+| `telemetry/` | Facts pipeline, signal registry, dashboard renderer, metric fences | [telemetry/README.md](telemetry/README.md) |
 
-| Rung | Entry | Runs | Cost |
-|------|-------|------|------|
-| L0 | `make precommit` / `uv run pytest tests/` | shell sweeps + unit tests | zero LLM tokens |
-| L1 | `/code-review level:1` | diff + lint + doc flags | small |
-| L2 | `review-cli run` (default) | all 8 always-on + applicable conditional dims | medium |
-| L3 | `/workflow-review` | driver + plan-fidelity check + DoD gate | high |
-
-Findings carry attribution (`introduced` / `adjacent` / `pre_existing`) so blockers are scoped to the diff, not the whole codebase.
-
-### Signal Registry
-
-`telemetry/signals.py` declares 56 signals (18 registered with resolvers). Signals feed
-the dashboard tiles and the insights engine's pattern detection. A signal whose input
-column is sparsely populated must declare its frame (`JULY_ONLY_METRICS`,
-`COMPACT_METRICS`) rather than silently computing over sparse rows.
+Both are tested with `uv run pytest tests/`.
 
 ---
 
@@ -165,7 +257,7 @@ column is sparsely populated must declare its frame (`JULY_ONLY_METRICS`,
 │   ├── growth.md                # Accumulator: tagged one-liners, cleared by /meta-dream
 │   └── growth-log.md            # Append-only disposition ledger for cleared entries
 ├── queue.md                     # COMMITTED cross-repo pointer set — survives clone
-├── context-dashboard.html       # Rendered 5-tab status view (generated, not hand-edited)
+├── context-dashboard.html       # Rendered 7-tab status view (generated, not hand-edited)
 ├── telemetry/                   # board.json, actions.jsonl, compact-summaries/, cascade-state.json
 ├── refs/                        # Mobile mirror of ~/.claude/refs/ — shadows, not canon
 ├── reflections/                 # Episodic record (subjective, stays local)
@@ -178,22 +270,20 @@ column is sparsely populated must declare its frame (`JULY_ONLY_METRICS`,
 
 .claude/
 ├── agents/                      # 12 review dimension agents — back review/driver.py
-├── skills/                      # identity lifecycle + metacognition + review-* dimensions
-│                                # + workflow-* pipeline + design-*, git-*, docs-check
-├── hooks/                       # Repo-specific enforcement (dream-ledger-gate.sh)
+├── skills/                      # identity lifecycle (meta-*) + workflow-* pipeline
+│                                # + review-* dimensions + review-defense + design-*, git-*
+├── hooks/                       # Repo-specific enforcement (dream-ledger-gate.sh,
+│                                # worktree-cleanup.sh). Global guards live in ~/.claude/hooks/
 ├── docs/                        # plans/ (git-ignored), research/, state/ (cross-repo workstream state)
 ├── statusline.js
 └── settings.local.json          # Permissions + SessionStart wake nudge
 
-review/                          # Deterministic Python review driver
-├── driver.py                    # Dispatches dimension agents, merges findings
-├── signals.py                   # Signal registry (ALWAYS_ON_DIMENSIONS + CONDITIONAL_DIMENSIONS)
-└── schemas/models.py            # Reporter enum, Finding schema
+docs/                            # Architecture diagrams — the one source
+├── three-planes.svg             # Embedded by this README AND the dashboard
+└── loop.svg                     #   (edit the .svg, never the HTML)
 
-telemetry/                       # Dashboard + metrics pipeline
-├── __main__.py                  # Entry point: uv run telemetry [--facts|--board|--dashboard]
-├── dashboard.py                 # 5-tab HTML renderer (metric fences: JULY_ONLY, COMPACT)
-└── signals.py                   # 56 declared signals, 18 with resolvers
+review/                          # Deterministic review backbone → review/README.md
+telemetry/                       # Facts, signals, dashboard  → telemetry/README.md
 
 tests/                           # uv run pytest tests/
 ├── telemetry/                   # Dashboard and signal tests
@@ -249,6 +339,13 @@ because cron silently skips windows while the Mac sleeps; launchd re-fires on wa
   proposal re-derived hundreds of times and never acted on is invisible.
 - **No experiment ↔ friction-signature link.** Ledger rows and `recurrence.py` signatures
   both exist; no field joins them, so intervention effectiveness cannot be computed.
+- **The dashboard's triage layer is ahead of the skills.** The Overview diagram draws a
+  `/scope` entry point and a DECISION ORCHESTRATOR that chooses between research / plan /
+  refine. Neither exists as a skill — triage is currently entered by hand at whichever
+  `/workflow-*` stage fits. The diagram is the intended design, not the current state.
+- **`/meta-feedback` has no liveness signal.** It is the loop's load-bearing human gate, but
+  Loop Health tracks capture, insights, and retro — a loop running insights → retro with the
+  verification gate skipped looks healthy on the dashboard.
 
 ---
 

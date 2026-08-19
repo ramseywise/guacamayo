@@ -11,7 +11,7 @@ without a model call lives here.
 | Part | Where | Role |
 |------|-------|------|
 | Deterministic backbone | `review/` (this package) | Schemas, validation, dedup, fingerprints, trends, routing signals, report rendering |
-| Dimension agents | `.claude/agents/` | LLM judgment — 11 dimensions, see the table below |
+| Dimension agents | `.claude/agents/` | LLM judgment — 12 dimensions, see the table below |
 | Checklists | `.claude/skills/` | Per-dimension checklists + `shared` scan rules, read by the agents; not invoked directly |
 
 Orchestration: `review-cli run` is the single entry point — it owns the full pipeline
@@ -22,8 +22,8 @@ CLI subcommands. Agents preload the global `review-shared` skill via frontmatter
 ## Dimensions
 
 The dimension vocabulary mirrors the `review-*` skill family in galactus, which is
-canonical (reconciled 2026-08-11, 5 → 11). Conditional dimensions dispatch only when
-`signals.py` detects the matching signal.
+canonical (reconciled 2026-08-11, 5 → 11; `performance` added 2026-08-14, → 12).
+Conditional dimensions dispatch only when `signals.py` detects the matching signal.
 
 | Dimension | Prefix | Dispatch |
 |-----------|--------|----------|
@@ -33,11 +33,23 @@ canonical (reconciled 2026-08-11, 5 → 11). Conditional dimensions dispatch onl
 | `safety` | SF- | always |
 | `testing` | TE- | always |
 | `silent-failure` | SI- | always |
+| `performance` | PF- | always |
 | `wander` | WD- | always (questions, not findings) |
 | `runtime` | RT- | `is_agent_code` |
 | `safeguards` | SG- | `is_agent_code` |
 | `leakage` | LK- | `is_ml_code` |
 | `contracts` | CT- | `has_sanyi_contracts` |
+
+**Adding a dimension means editing three files**, and missing one fails at dispatch rather
+than at import: `signals.py` (`ALWAYS_ON_DIMENSIONS` / `CONDITIONAL_DIMENSIONS`),
+`driver.py` (`_DIMENSION_TO_AGENT_FILE` + `_DIMENSION_TO_REPORTER`), and
+`schemas/models.py` (`Reporter` + `REPORTER_ID_PREFIX`).
+
+**akira and sanyi were absorbed, not retired.** Sanyi's contract taxonomy *is* the
+`contracts` dimension; akira's defect scanning split across
+`correctness`/`safety`/`architecture`. The `Reporter` enum keeps `AKIRA_SCAN` /
+`AKIRA_WANDER` / `SANYI` as `DEPRECATED_REPORTERS` so historical sweep records still
+deserialize; the driver never dispatches them.
 
 Renamed in that reconciliation: `structure` → `architecture` (ST- → AR-), and
 `agent-quality` (AQ-) split into `runtime` + `safeguards`. Findings persisted under the

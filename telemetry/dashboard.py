@@ -7043,3 +7043,79 @@ def render_pipeline_health_region(store: Path) -> str:
         "Retro = tooling-ledger-log.md last R# header; Config = open hypothesis rows.</p>"
         "</div>"
     )
+
+
+def render_scope_decisions_region(scope_log: Path | None) -> str:
+    """Render the triage pipeline card from scope-decisions.jsonl."""
+    if not scope_log or not scope_log.exists():
+        return (
+            '<div class="card">'
+            '<div class="card-title">Triage pipeline</div>'
+            '<p class="card-note">No scope decisions yet. '
+            "Run <code>/workflow-scope &lt;issue#&gt;</code> to triage a backlog issue.</p>"
+            "</div>"
+        )
+
+    records = []
+    for line in scope_log.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    if not records:
+        return (
+            '<div class="card">'
+            '<div class="card-title">Triage pipeline</div>'
+            '<p class="card-note">No scope decisions recorded yet.</p>'
+            "</div>"
+        )
+
+    total = len(records)
+    outcomes = [r for r in records if r.get("outcome")]
+    ready = sum(1 for r in outcomes if r["outcome"] == "ready")
+    blocked = sum(1 for r in outcomes if r["outcome"] == "blocked")
+    retries = sum(int(r.get("retries") or 0) for r in outcomes)
+
+    entry_points: dict[str, int] = {}
+    for r in records:
+        ep = r.get("entry_point", "unknown")
+        entry_points[ep] = entry_points.get(ep, 0) + 1
+
+    ep_bar = "".join(
+        f'<div style="flex:{cnt};background:{_scope_color(ep)};display:flex;'
+        f"align-items:center;justify-content:center;font-size:10px;color:white;"
+        f'font-weight:600;min-width:30px;border-radius:3px">{ep}</div>'
+        for ep, cnt in sorted(entry_points.items(), key=lambda kv: -kv[1])
+    )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Triage pipeline</div>'
+        f'<p class="card-note">{total} issues scoped. '
+        f"{ready} reached READY, {blocked} blocked, {retries} total retries.</p>"
+        f'<div style="display:flex;height:24px;border-radius:5px;overflow:hidden;'
+        f'margin:12px 0;gap:2px">{ep_bar}</div>'
+        '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-2);margin-bottom:8px">'
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s3)"></span>'
+        "plan (research skipped)</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s1)"></span>'
+        "research</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s4)"></span>'
+        "refine</span></div>"
+        "</div>"
+    )
+
+
+def _scope_color(entry_point: str) -> str:
+    return {
+        "research": "var(--s1)",
+        "plan": "var(--s3)",
+        "refine": "var(--s4)",
+    }.get(entry_point, "var(--text-3)")
