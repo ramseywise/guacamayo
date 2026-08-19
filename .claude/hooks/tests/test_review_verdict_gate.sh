@@ -16,7 +16,7 @@
 
 set -euo pipefail
 
-HOOK="$(cd "$(dirname "$0")/../proposed" && pwd)/review-verdict-gate.sh"
+HOOK="$HOME/.claude/hooks/review-verdict-gate.sh"
 
 PASS=0
 FAIL=0

@@ -6981,9 +6981,32 @@ def render_pipeline_health_region(store: Path) -> str:
         text = ledger_log.read_text(encoding="utf-8", errors="replace")
         headers = _RETRO_HEADER.findall(text)
         if headers:
-            last_header = headers[-1]  # e.g. "## R11"
-            # Find the line after the header for a date
-            idx = text.rfind(last_header)
+            # tooling-ledger-log.md sections are NOT chronological (R0, R1, R10, R11, R9…R2).
+            # Pick the header whose date is latest; fall back to highest round number.
+            best_header = None
+            best_dt: _datetime | None = None
+            best_round = -1
+            for hdr in headers:
+                idx = text.find(hdr)
+                snippet = text[idx : idx + 120]
+                date_m = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
+                round_m = re.search(r"## R(\d+)", hdr)
+                round_n = int(round_m.group(1)) if round_m else -1
+                if date_m:
+                    try:
+                        dt = _datetime.fromisoformat(date_m.group()).replace(tzinfo=UTC)
+                        if best_dt is None or dt > best_dt:
+                            best_dt = dt
+                            best_header = hdr
+                            best_round = round_n
+                    except ValueError:
+                        pass
+                if best_dt is None and round_n > best_round:
+                    best_round = round_n
+                    best_header = hdr
+            last_header = best_header  # e.g. "## R11"
+            # Find the matching occurrence to extract date
+            idx = text.find(last_header)
             snippet = text[idx : idx + 120]
             date_match = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
             if date_match:
@@ -7124,6 +7147,18 @@ def render_scope_decisions_region(scope_log: Path | None) -> str:
         for ep, cnt in sorted(entry_points.items(), key=lambda kv: -kv[1])
     )
 
+    job_types: dict[str, int] = {}
+    for r in records:
+        jt = r.get("job_type", "unknown")
+        job_types[jt] = job_types.get(jt, 0) + 1
+
+    jt_bar = "".join(
+        f'<div style="flex:{cnt};background:{_job_type_color(jt)};display:flex;'
+        f"align-items:center;justify-content:center;font-size:10px;color:white;"
+        f'font-weight:600;min-width:30px;border-radius:3px">{jt}</div>'
+        for jt, cnt in sorted(job_types.items(), key=lambda kv: -kv[1])
+    )
+
     return (
         '<div class="card">'
         '<div class="card-title">Triage pipeline</div>'
@@ -7141,6 +7176,21 @@ def render_scope_decisions_region(scope_log: Path | None) -> str:
         '<span style="display:flex;align-items:center;gap:4px">'
         '<span style="width:8px;height:8px;border-radius:50%;background:var(--s4)"></span>'
         "refine</span></div>"
+        f'<div style="display:flex;height:24px;border-radius:5px;overflow:hidden;'
+        f'margin:8px 0;gap:2px">{jt_bar}</div>'
+        '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-2);margin-bottom:8px">'
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--bad)"></span>'
+        "debug</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s1)"></span>'
+        "new-feature</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--ac-violet)"></span>'
+        "refactor</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--text-3)"></span>'
+        "chore</span></div>"
         "</div>"
     )
 
@@ -7151,6 +7201,15 @@ def _scope_color(entry_point: str) -> str:
         "plan": "var(--s3)",
         "refine": "var(--s4)",
     }.get(entry_point, "var(--text-3)")
+
+
+def _job_type_color(job_type: str) -> str:
+    return {
+        "debug": "var(--bad)",
+        "new-feature": "var(--s1)",
+        "refactor": "var(--ac-violet)",
+        "chore": "var(--text-3)",
+    }.get(job_type, "var(--text-3)")
 
 
 # ---------------------------------------------------------------------------
