@@ -24,8 +24,9 @@ import re
 from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
+from datetime import UTC, timedelta
 from datetime import date as _date
-from datetime import timedelta
+from datetime import datetime as _datetime
 from pathlib import Path
 from typing import Any
 
@@ -4896,6 +4897,14 @@ INSIGHTS_TAB_SECTIONS: dict[str, tuple[str, ...]] = {
     "context": ("section-ce", "section-pe"),
 }
 
+# Report sections the board drops outright. Unlike INSIGHTS_TAB_SECTIONS these
+# are not re-homed — they are read on the report itself, not the board.
+#   section-work  — the projects roster; portfolio.md and the Overview own that.
+#   section-usage — the how-you-use-Claude-Code profile; Context Health owns the
+#                   same signals as metrics rather than prose.
+# The Retro tab keeps only the narrative four: wins, features, patterns, horizon.
+INSIGHTS_DROPPED_SECTIONS: tuple[str, ...] = ("section-work", "section-usage")
+
 
 def _split_report_sections(inner: str) -> tuple[str, dict[str, str]]:
     """Split report HTML into (overview_remainder, {tab: sections_html}).
@@ -4912,7 +4921,53 @@ def _split_report_sections(inner: str) -> tuple[str, dict[str, str]]:
                 continue
             taken.setdefault(tab, []).append(m.group(0))
             inner = inner.replace(m.group(0), "", 1)
+    for sid in INSIGHTS_DROPPED_SECTIONS:
+        m = re.search(rf'<section id="{re.escape(sid)}">.*?</section>', inner, re.DOTALL)
+        if not m:
+            log.warning("insights.section_missing", section=sid, tab="(dropped)")
+            continue
+        inner = inner.replace(m.group(0), "", 1)
     return inner, {tab: "".join(parts) for tab, parts in taken.items()}
+
+
+def _drop_div_block(inner: str, class_name: str) -> str:
+    """Remove `<div class="{class_name}">…</div>` including nested divs.
+
+    A non-greedy regex stops at the first `</div>`, which for these blocks is an
+    inner one — so match the opening tag, then walk to its true partner.
+    """
+    open_re = re.compile(rf'<div class="{re.escape(class_name)}"[^>]*>')
+    while True:
+        m = open_re.search(inner)
+        if not m:
+            return inner
+        depth, pos = 1, m.end()
+        tag = re.compile(r"<div\b[^>]*>|</div>")
+        while depth:
+            t = tag.search(inner, pos)
+            if not t:  # unbalanced source — leave it rather than truncate
+                log.warning("insights.unbalanced_block", block=class_name)
+                return inner
+            depth += 1 if t.group(0) != "</div>" else -1
+            pos = t.end()
+        inner = inner[: m.start()] + inner[pos:]
+
+
+def _strip_report_chrome(inner: str) -> str:
+    """Drop the report's standalone framing: header, KPI cards, glance box,
+    pull-quote and footer.
+
+    The board supplies its own header and nav, and the KPI numbers live on Cost
+    & Efficiency and Context Health. What remains is the narrative sections.
+    """
+    for pattern in (r"<header[^>]*>.*?</header>", r"<footer[^>]*>.*?</footer>"):
+        inner = re.sub(pattern, "", inner, flags=re.DOTALL)
+    for block in ("stat-cards", "glance-box", "quote-box"):
+        inner = _drop_div_block(inner, block)
+    # stat-cards + glance-box share one .container, quote-box has its own; drop
+    # any wrapper left holding nothing but whitespace.
+    inner = re.sub(r'<div class="container">\s*</div>', "", inner)
+    return inner
 
 
 def render_insights_region(report_path: Path | None, *, today: str | None = None) -> str:
@@ -4958,6 +5013,7 @@ def render_insights_region(report_path: Path | None, *, today: str | None = None
     inner = re.sub(r"<script[^>]*>.*?</script>", "", inner, flags=re.DOTALL)
 
     overview_inner, _by_tab = _split_report_sections(inner)
+    overview_inner = _strip_report_chrome(overview_inner)
 
     return (
         f"<style>{styles}</style>"
@@ -6815,4 +6871,175 @@ def render_token_grid_region(store: Path) -> str:
             "tokens",
         )
         + "</div>"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Pipeline health region (GUA-138)
+# ---------------------------------------------------------------------------
+
+_RETRO_HEADER = re.compile(r"^## R\d+", re.MULTILINE)
+_INSIGHTS_DATE = re.compile(r"^## \d{4}-\d{2}-\d{2}", re.MULTILINE)
+_GROWTH_ENTRY = re.compile(r"^\[(?:discovered|confirmed|corrected)\]", re.MULTILINE)
+
+
+def _age_label(dt: _datetime | None, *, now: _datetime) -> tuple[str, str]:
+    """Return (glyph, text) describing how long ago *dt* was.
+
+    Freshness thresholds:
+      green  ✓  < 24 h
+      yellow ⚠  1–7 d
+      red    ✗  > 7 d  or never seen
+    """
+    if dt is None:
+        return "✗", "never"
+    delta = now - dt
+    hours = delta.total_seconds() / 3600
+    if hours < 24:
+        if hours < 1:
+            mins = int(delta.total_seconds() / 60)
+            return "✓", f"{mins}m ago"
+        return "✓", f"{int(hours)}h ago"
+    days = int(hours / 24)
+    if days == 1:
+        return "⚠", "1d ago"
+    if days <= 7:
+        return "⚠", f"{days}d ago"
+    return "✗", f"{days}d ago"
+
+
+def _cell_style(glyph: str) -> str:
+    if glyph == "✓":
+        return "color:var(--good)"
+    if glyph == "⚠":
+        return "color:var(--warn)"
+    return "color:var(--bad)"
+
+
+def render_pipeline_health_region(store: Path) -> str:
+    """Compact pipeline-health card for the Loop Health tab.
+
+    Reads five sources to answer whether each stage of the metacognition
+    pipeline last ran recently:
+
+    * Capture  — ``sessions.db`` mtime  (librarian-owned; guacamayo reads it)
+    * Insights — ``insights-log.md`` max date header
+    * Feedback — always "— manual" (human gate by design)
+    * Retro    — ``tooling-ledger-log.md`` last ``## R<N>`` header
+    * Config   — ``tooling-ledger.md`` open hypothesis count
+
+    Color coding: green (<24 h), yellow (1–7 d), red (>7 d or absent).
+    Each cell also renders the row count used so the frame is always visible.
+    """
+    now = _datetime.now(UTC)
+    guacamayo_root = store.parent.parent  # store is …/librarian/data/sessions.db
+    sounding_root = guacamayo_root / ".sounding"
+
+    # ── Capture: sessions.db mtime ──────────────────────────────────────────
+    cap_dt: _datetime | None = None
+    cap_rows: int = 0
+    if store.exists():
+        mtime = store.stat().st_mtime
+        cap_dt = _datetime.fromtimestamp(mtime, tz=UTC)
+        # Row count from the factstore (already loaded elsewhere; cheap re-read here)
+        try:
+            rows = read_all(store)
+            cap_rows = len(rows)
+        except Exception:
+            cap_rows = 0
+    cap_glyph, cap_label = _age_label(cap_dt, now=now)
+
+    # ── Insights: latest date header in insights-log.md ─────────────────────
+    ins_dt: _datetime | None = None
+    ins_path = sounding_root / "insights" / "insights-log.md"
+    if ins_path.exists():
+        text = ins_path.read_text(encoding="utf-8", errors="replace")
+        dates = _INSIGHTS_DATE.findall(text)
+        if dates:
+            latest = max(d.lstrip("# ").strip() for d in dates)
+            try:
+                ins_dt = _datetime.fromisoformat(latest).replace(tzinfo=UTC)
+            except ValueError:
+                pass
+    ins_glyph, ins_label = _age_label(ins_dt, now=now)
+
+    # ── Retro: last ## R<N> header in tooling-ledger-log.md ─────────────────
+    retro_dt: _datetime | None = None
+    retro_label_text = "never"
+    ledger_log = sounding_root / "tooling-ledger-log.md"
+    if ledger_log.exists():
+        text = ledger_log.read_text(encoding="utf-8", errors="replace")
+        headers = _RETRO_HEADER.findall(text)
+        if headers:
+            last_header = headers[-1]  # e.g. "## R11"
+            # Find the line after the header for a date
+            idx = text.rfind(last_header)
+            snippet = text[idx : idx + 120]
+            date_match = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
+            if date_match:
+                try:
+                    retro_dt = _datetime.fromisoformat(date_match.group()).replace(tzinfo=UTC)
+                    retro_label_text = f"{last_header.strip()} · {date_match.group()}"
+                except ValueError:
+                    retro_label_text = last_header.strip()
+            else:
+                retro_label_text = last_header.strip()
+    retro_glyph, retro_age = _age_label(retro_dt, now=now)
+
+    # ── Config: open hypothesis count in tooling-ledger.md ──────────────────
+    hyp_count = 0
+    ledger_active = sounding_root / "tooling-ledger.md"
+    if ledger_active.exists():
+        text = ledger_active.read_text(encoding="utf-8", errors="replace")
+        # Count non-header table rows (hypothesis rows start with |)
+        rows_found = [
+            ln
+            for ln in text.splitlines()
+            if ln.startswith("|") and not re.match(r"\|[-\s|]+\|", ln)
+        ]
+        # Subtract the header row
+        hyp_count = max(0, len(rows_found) - 1)
+
+    def _stage(name: str, glyph: str, label: str, detail: str, style: str) -> str:
+        return (
+            f'<div class="ph-cell" style="{style}">'
+            f'<div class="ph-name">{html.escape(name)}</div>'
+            f'<div class="ph-glyph">{glyph}</div>'
+            f'<div class="ph-label">{html.escape(label)}</div>'
+            f'<div class="ph-detail" style="font-size:11px;color:var(--text-3)">'
+            f"{html.escape(detail)}</div>"
+            f"</div>"
+        )
+
+    config_label = f"{hyp_count} pending" if hyp_count else "0 pending"
+    config_style = "color:var(--warn)" if hyp_count > 5 else "color:var(--text-2)"
+
+    cells = "".join(
+        [
+            _stage("Capture", cap_glyph, cap_label, f"{cap_rows} rows", _cell_style(cap_glyph)),
+            _stage(
+                "Insights",
+                ins_glyph,
+                ins_label,
+                ins_path.name if ins_path.exists() else "not found",
+                _cell_style(ins_glyph),
+            ),
+            _stage("Feedback", "—", "manual", "human gate", "color:var(--text-3)"),
+            _stage("Retro", retro_glyph, retro_age, retro_label_text, _cell_style(retro_glyph)),
+            _stage("Config", "·", config_label, "open hypotheses", config_style),
+        ]
+    )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Pipeline health</div>'
+        '<p class="card-note">Each stage of the metacognition pipeline — last run time '
+        "and freshness. Green &lt;24 h, yellow 1–7 d, red &gt;7 d or never. "
+        "Feedback is a permanent human gate.</p>"
+        f'<div class="ph-grid" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">'
+        f"{cells}</div>"
+        '<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
+        "Capture = sessions.db mtime; Insights = insights-log.md max date; "
+        "Retro = tooling-ledger-log.md last R# header; Config = open hypothesis rows.</p>"
+        "</div>"
     )

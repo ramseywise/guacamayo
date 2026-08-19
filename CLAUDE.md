@@ -18,7 +18,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 
 ---
 
-## Session Lifecycle — four skills
+## Session Lifecycle — four skills + metacognition pipeline
 
 | Skill | When | What it does |
 |-------|------|-------------|
@@ -26,8 +26,12 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/meta-wake` | Session start | Load seeds + read dashboard + plan state + ingest cross-session context. The entry point |
 | `/meta-grow` | Mid-session | **Awareness layer**: cross-session ingest + capture growth entries + surface signals + **background-spawn `/meta-insights`** (keeps insights-log fresh) + refresh dashboard + overwrite handover. "Nothing shifted" is valid — still runs ingest and signals |
 | `/meta-dream` | Session end | Write reflection + growth entries + final dashboard update + conditionally: synthesize seeds (if 5+ entries), **background-spawn `/meta-retro`** (if retro-worthy or overdue), tidy indexes. **Sole transformer** of identity files |
+| `/meta-insights` | Auto-spawned by grow/retro | Reads `sessions.db` + hook logs; writes `insights-log.md`. Detects friction patterns, token economics, context health signals |
+| `/meta-retro` | Auto after feedback, or overdue | Reads insights-log + tooling ledger; proposes config diffs (hooks, skills, rules). Propose-only — silence is not approval |
+| `/meta-feedback` | **Manual — human gate** | Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `feedback-log.md` |
+| `/hypothesis` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
 
-The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it.
+The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Five tabs: **Overview** (system architecture diagram), **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/retro + pending hypothesis count), **Retro** (graduation rate). Auto-updates via `uv run telemetry`.
 
 Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/meta-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
 
@@ -150,11 +154,7 @@ state, insights, telemetry, and the dashboard.
 - `data/sessions.db.bak` is a **decoy store** — 701 rows, newest session 2026-08-04, stale
   by content well before its mtime suggests. It is safe to delete; nothing should read it.
 
-**Metric fences.** A metric whose input column is sparsely populated must declare its frame
-rather than silently computing over whatever rows happen to have the column
-(`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era,
-`COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every
-tile renders the row count it was computed from.
+**Signal registry.** `telemetry/signals.py` declares 56 signals, 18 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
 
 ---
 

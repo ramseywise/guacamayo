@@ -89,6 +89,93 @@ esac
 log "--- run finished (exit ${EXIT_CODE})"
 
 # ---------------------------------------------------------------------------
+# Insights auto-trigger (GUA-138 Session B)
+#
+# After each facts run: check two conditions against the live workspace and
+# write a marker file if either is true. The marker is consumed (and deleted)
+# by the next /meta-grow or /meta-wake invocation — no `claude -p` here,
+# which avoids per-cron token cost (OQ1 in the plan doc).
+#
+# Conditions (either → trigger):
+#   1. growth.md has ≥ 3 entries (accumulation signal)
+#   2. insights-log.md last run date is > 3 days ago (staleness signal)
+#
+# To disable: set INSIGHTS_TRIGGER_ENABLED= (empty string) below.
+INSIGHTS_TRIGGER_ENABLED=1
+INSIGHTS_MARKER="${TELEMETRY_DIR:-${REPO_DIR}/.sounding/telemetry}/insights-due.marker"
+INSIGHTS_LOCK="/tmp/guacamayo-insights.lock"
+INSIGHTS_LOG="${REPO_DIR}/logs/insights-auto.log"
+GROWTH_FILE="${REPO_DIR}/.sounding/growth/growth.md"
+INSIGHTS_LOG_FILE="${REPO_DIR}/.sounding/insights/insights-log.md"
+
+if [ "${INSIGHTS_TRIGGER_ENABLED:-}" = "1" ] && [ "${MODE}" = "facts" ]; then
+    mkdir -p "$(dirname "${INSIGHTS_LOG}")"
+
+    # --- Condition 1: growth count ---
+    growth_count=0
+    if [ -f "${GROWTH_FILE}" ]; then
+        growth_count="$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' "${GROWTH_FILE}" 2>/dev/null || echo 0)"
+    fi
+
+    # --- Condition 2: insights staleness ---
+    insights_stale=0
+    insights_last_date=""
+    if [ -f "${INSIGHTS_LOG_FILE}" ]; then
+        insights_last_date="$(grep -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' "${INSIGHTS_LOG_FILE}" \
+            | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}' | sort -r | head -1)"
+        if [ -n "${insights_last_date}" ]; then
+            # Days since last insights run (macOS date: -j -f parses, no -d)
+            last_ts="$(date -j -f '%Y-%m-%d' "${insights_last_date}" '+%s' 2>/dev/null || echo 0)"
+            now_ts="$(date '+%s')"
+            days_stale=$(( (now_ts - last_ts) / 86400 ))
+            if [ "${days_stale}" -gt 3 ] 2>/dev/null; then
+                insights_stale=1
+            fi
+        else
+            # No parseable date — treat as stale
+            insights_stale=1
+            days_stale="unknown"
+        fi
+    else
+        insights_stale=1
+        days_stale="no file"
+    fi
+
+    echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: growth_count=${growth_count} insights_last=${insights_last_date:-none} insights_stale=${insights_stale}" >> "${INSIGHTS_LOG}"
+
+    # Determine trigger reason
+    trigger_reason=""
+    if [ "${growth_count}" -ge 3 ] 2>/dev/null; then
+        trigger_reason="growth_count=${growth_count} (>=3)"
+    fi
+    if [ "${insights_stale}" = "1" ]; then
+        stale_suffix=" days_stale=${days_stale:-unknown}"
+        if [ -n "${trigger_reason}" ]; then
+            trigger_reason="${trigger_reason}; stale${stale_suffix}"
+        else
+            trigger_reason="staleness${stale_suffix}"
+        fi
+    fi
+
+    if [ -n "${trigger_reason}" ]; then
+        # Acquire lockfile (non-blocking mkdir)
+        if ! mkdir "${INSIGHTS_LOCK}" 2>/dev/null; then
+            echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: lockfile held, skipping" >> "${INSIGHTS_LOG}"
+        else
+            ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            # Write marker for /meta-grow or /meta-wake to consume
+            printf 'reason: %s\ntimestamp: %s\ngrowth_count: %s\ninsights_last: %s\n' \
+                "${trigger_reason}" "${ts}" "${growth_count}" "${insights_last_date:-none}" \
+                > "${INSIGHTS_MARKER}"
+            echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: marker written (${trigger_reason})" >> "${INSIGHTS_LOG}"
+            rmdir "${INSIGHTS_LOCK}"
+        fi
+    else
+        echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: no trigger (growth=${growth_count}, stale=${insights_stale})" >> "${INSIGHTS_LOG}"
+    fi
+fi
+
+# ---------------------------------------------------------------------------
 # Step 7 — Unattended retro spawn (GUA-119 sub-issue C)
 #
 # After every board tick: compare retro_due vs retro_acked in cascade-state.json.

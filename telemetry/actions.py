@@ -53,6 +53,92 @@ _UNAMBIGUOUS_FIX: dict[str, frozenset[str]] = {
 
 
 # ---------------------------------------------------------------------------
+# Schema vocabulary (2026-08-19)
+# ---------------------------------------------------------------------------
+
+# The three architecture layers a decision can act on. Before this, every record
+# was a board triage action, so experiment reversals and metacognition decisions
+# lived only as ledger prose and never reached the log at all.
+PLANE_WORK = "work"  # the work itself: issues, branches, labels
+PLANE_METACOGNITION = "metacognition"  # the system observing itself: retro, insights
+PLANE_CONTROL = "control"  # the loop that runs the system: jobs, schedules
+
+PLANES = frozenset({PLANE_WORK, PLANE_METACOGNITION, PLANE_CONTROL})
+
+# `reverted` is the addition that matters: "decided, then undone" was previously
+# indistinguishable from "never decided", which is exactly what hid the
+# fable-as-default reversal (decided and reverted the same day, 2026-07-30).
+OUTCOME_ACTED = "acted"
+OUTCOME_ACCEPTED = "accepted"
+OUTCOME_DECLINED = "declined"
+OUTCOME_REJECTED = "rejected"
+OUTCOME_REVERTED = "reverted"
+
+OUTCOMES = frozenset(
+    {OUTCOME_ACTED, OUTCOME_ACCEPTED, OUTCOME_DECLINED, OUTCOME_REJECTED, OUTCOME_REVERTED}
+)
+
+# Action-kind → plane. Board mutations are work-plane; anything the metacognition
+# loop decides (retire a skill, promote a pattern) is metacognition-plane; job and
+# schedule decisions are control-plane.
+_ACTION_PLANE: dict[str, str] = {
+    "triage": PLANE_WORK,
+    "close_issue": PLANE_WORK,
+    "auto_close_merged": PLANE_WORK,
+    "fix_label": PLANE_WORK,
+    "auto_fix_label": PLANE_WORK,
+    "delete_branch": PLANE_WORK,
+    "retire_skill": PLANE_METACOGNITION,
+    "consolidate_skill": PLANE_METACOGNITION,
+    "promote_pattern": PLANE_METACOGNITION,
+    "revert_experiment": PLANE_METACOGNITION,
+    "ledger_row": PLANE_METACOGNITION,
+    "schedule_job": PLANE_CONTROL,
+    "disable_job": PLANE_CONTROL,
+    "alert_threshold": PLANE_CONTROL,
+}
+
+
+def plane_for_action(action: str) -> str:
+    """Map an action kind to its architecture plane.
+
+    Unknown actions default to `work` — the plane every pre-2026-08-19 record
+    belonged to — rather than raising, so an unrecognised action still writes a
+    well-formed row instead of losing the decision entirely.
+    """
+    return _ACTION_PLANE.get(action, PLANE_WORK)
+
+
+def read_actions(actions_log: Path | None = None) -> list[dict[str, Any]]:
+    """Read actions.jsonl, normalising pre-2026-08-19 records to the new schema.
+
+    The five original records carry no `plane`, no `effect_measured`, and no
+    `proposal_id`. Absent keys are filled with the same defaults a fresh write
+    would produce, so callers never branch on record age. Malformed lines are
+    skipped rather than failing the read.
+    """
+    path = actions_log or _DEFAULT_ACTIONS_LOG
+    if not path.exists():
+        return []
+    records: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rec = json.loads(line)
+            except ValueError:
+                log.warning("actions.malformed_line", path=str(path))
+                continue
+            rec.setdefault("plane", plane_for_action(rec.get("action", "")))
+            rec.setdefault("effect_measured", None)
+            rec.setdefault("proposal_id", "")
+            records.append(rec)
+    return records
+
+
+# ---------------------------------------------------------------------------
 # Action log
 # ---------------------------------------------------------------------------
 
@@ -80,6 +166,8 @@ def _log_record(
     reason: str,
     evidence: str,
     proposal_id: str = "",
+    plane: str | None = None,
+    effect_measured: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Build one actions.jsonl record.
 
@@ -89,14 +177,29 @@ def _log_record(
     decision cannot be tied back to the proposal that produced it, since `target`
     alone is not unique across action kinds. Defaults to "" so callers that have no
     proposal in hand still write a well-formed row.
+
+    `plane` names the architecture layer the decision acts on (see PLANE_*), so the
+    log covers all three planes rather than only triage. It is derived from the
+    action kind when not passed explicitly — never guessed at read time, because a
+    reader cannot recover it from `target` alone.
+
+    `effect_measured` is written back once a decision's metric resolves; it stays
+    None until then. This is what closes the verification break — before it, the
+    log recorded that something was decided but never whether it helped.
+
+    Backward compatibility: the five pre-2026-08-19 records carry none of these
+    fields. Readers must treat an absent key as None (see `read_actions`), so the
+    schema stays append-only and old rows keep parsing unchanged.
     """
-    record = {
+    record: dict[str, Any] = {
         "ts": datetime.now(UTC).isoformat(),
         "action": action,
+        "plane": plane or plane_for_action(action),
         "target": target,
         "outcome": outcome,
         "reason": reason,
         "evidence": evidence,
+        "effect_measured": effect_measured,
     }
     if proposal_id:
         record["proposal_id"] = proposal_id
@@ -416,6 +519,57 @@ def auto_fix_label(
     )
     _append_action_log(rec, actions_log, dry_run=False)
     log.info("auto_fix_label.acted", repo=repo, issue=issue_num, removed=sorted(bad_labels))
+    return rec
+
+
+# ---------------------------------------------------------------------------
+# Effect measurement (write-back)
+# ---------------------------------------------------------------------------
+
+
+def record_effect(
+    proposal_id: str,
+    metric: str,
+    verdict: str,
+    *,
+    checked_at: str | None = None,
+    actions_log: Path = _DEFAULT_ACTIONS_LOG,
+    dry_run: bool = False,
+) -> dict[str, Any] | None:
+    """Attach a measured effect to the decision identified by `proposal_id`.
+
+    Appends a new record carrying `effect_measured` rather than rewriting the
+    original line — the log is append-only, and rewriting history would destroy
+    the very audit trail the log exists to provide. The new record shares the
+    original's action/target/plane so a reader grouping by `proposal_id` sees the
+    decision and its effect as one story.
+
+    Returns None when `proposal_id` matches no existing decision — measuring the
+    effect of a decision that was never logged is a caller error, not something to
+    paper over with an orphan record.
+    """
+    existing = read_actions(actions_log)
+    origin = next((r for r in existing if r.get("proposal_id") == proposal_id), None)
+    if origin is None:
+        log.warning("actions.effect_no_matching_decision", proposal_id=proposal_id)
+        return None
+
+    rec = _log_record(
+        action=origin.get("action", ""),
+        target=origin.get("target", {}),
+        proposal_id=proposal_id,
+        plane=origin.get("plane"),
+        outcome=origin.get("outcome", ""),
+        reason=f"effect measured for decision {proposal_id}",
+        evidence=f"metric={metric!r} verdict={verdict!r}",
+        effect_measured={
+            "metric": metric,
+            "verdict": verdict,
+            "checked_at": checked_at or datetime.now(UTC).isoformat(),
+        },
+    )
+    _append_action_log(rec, actions_log, dry_run=dry_run)
+    log.info("actions.effect_recorded", proposal_id=proposal_id, verdict=verdict)
     return rec
 
 
