@@ -13,7 +13,6 @@ from __future__ import annotations
 import datetime
 import json
 import subprocess
-import textwrap
 from pathlib import Path
 
 import pytest
@@ -21,7 +20,7 @@ from click.testing import CliRunner
 
 from review.cli import main
 from review.driver import (
-    _DIMENSION_TO_AGENT_FILE,
+    _DIMENSION_TO_REPORTER,
     FINDINGS_SCHEMA,
     DriverConfig,
     DriverResult,
@@ -34,6 +33,7 @@ from review.driver import (
     run_review,
 )
 from review.schemas.models import (
+    REPORTER_ID_PREFIX,
     Category,
     Claim,
     CommentType,
@@ -99,56 +99,86 @@ def make_finding_dict(
 
 
 class TestLoadAgentPrompt:
-    def test_strips_yaml_frontmatter(self, tmp_path: Path) -> None:
-        """Frontmatter YAML fields are removed from the prompt body."""
-        agents_dir = tmp_path / "agents"
-        agents_dir.mkdir()
-        (agents_dir / "correctness.md").write_text(
-            textwrap.dedent("""\
-            ---
-            name: scan-correctness
-            description: Test agent
-            tools: Read
-            model: haiku
-            ---
-            You are the correctness scanner.
-
-            Scan for bugs.
-            """)
+    @staticmethod
+    def _harness(agents_dir: Path, body: str = "You are a review reporter.") -> None:
+        agents_dir.mkdir(parents=True, exist_ok=True)
+        (agents_dir / "review.md").write_text(
+            f"---\nname: review\ntools: Read\nmodel: haiku\n---\n{body}\n"
         )
-        prompt = load_agent_prompt("correctness", agents_dir)
-        # Frontmatter YAML fields should not appear in the prompt
-        assert "name: scan-correctness" not in prompt
-        assert "description: Test agent" not in prompt
-        assert "model: haiku" not in prompt
-        # Body content should be present
-        assert "You are the correctness scanner." in prompt
+
+    @staticmethod
+    def _skill(skills_dir: Path, dimension: str, prefix: str, body: str) -> None:
+        d = skills_dir / f"review-{dimension}"
+        d.mkdir(parents=True, exist_ok=True)
+        (d / "SKILL.md").write_text(
+            f"---\nname: review-{dimension}\nprefix: {prefix}\nallowed-tools: Read\n---\n{body}\n"
+        )
+
+    def test_strips_yaml_frontmatter(self, tmp_path: Path) -> None:
+        """Frontmatter YAML fields are removed from both halves of the prompt."""
+        agents_dir, skills_dir = tmp_path / "agents", tmp_path / "skills"
+        self._harness(agents_dir)
+        self._skill(skills_dir, "correctness", "CR", "Scan for bugs.")
+
+        prompt = load_agent_prompt("correctness", agents_dir, skills_dir)
+
+        assert "name: review" not in prompt
+        assert "allowed-tools: Read" not in prompt
+        assert "prefix: CR" not in prompt
+        assert "You are a review reporter." in prompt
+        assert "Scan for bugs." in prompt
+
+    def test_composes_harness_with_dimension_skill(self, tmp_path: Path) -> None:
+        """The prompt names the dimension and its ID prefix."""
+        agents_dir, skills_dir = tmp_path / "agents", tmp_path / "skills"
+        self._harness(agents_dir)
+        self._skill(skills_dir, "correctness", "CR", "Scan for bugs.")
+
+        prompt = load_agent_prompt("correctness", agents_dir, skills_dir)
+
+        assert "Your dimension: correctness" in prompt
+        assert "ID prefix `CR-`" in prompt
 
     def test_appends_driver_mode_suffix(self, tmp_path: Path) -> None:
-        """Driver-mode suffix is appended after the body."""
-        agents_dir = tmp_path / "agents"
-        agents_dir.mkdir()
-        (agents_dir / "safety.md").write_text("---\nname: x\n---\nBody text.\n")
-        prompt = load_agent_prompt("safety", agents_dir)
+        """Driver-mode suffix is appended after the composed body."""
+        agents_dir, skills_dir = tmp_path / "agents", tmp_path / "skills"
+        self._harness(agents_dir, "Body text.")
+        self._skill(skills_dir, "safety", "SF", "Checklist text.")
+
+        prompt = load_agent_prompt("safety", agents_dir, skills_dir)
+
         assert "Driver mode (deterministic pipeline)" in prompt
-        assert "Body text." in prompt
+        assert prompt.index("Body text.") < prompt.index("Checklist text.")
 
-    def test_no_frontmatter_returns_full_body(self, tmp_path: Path) -> None:
-        """Files without frontmatter return full content + suffix."""
-        agents_dir = tmp_path / "agents"
-        agents_dir.mkdir()
-        (agents_dir / "architecture.md").write_text("You are architecture.\n")
-        prompt = load_agent_prompt("architecture", agents_dir)
-        assert "You are architecture." in prompt
-        assert "Driver mode" in prompt
+    def test_skills_dir_defaults_to_agents_sibling(self, tmp_path: Path) -> None:
+        """Omitting skills_dir resolves it next to agents_dir."""
+        claude = tmp_path / ".claude"
+        self._harness(claude / "agents")
+        self._skill(claude / "skills", "testing", "TE", "Checklist text.")
 
-    def test_hyphenated_dimension_mapped_to_hyphenated_file(self, tmp_path: Path) -> None:
-        """'silent-failure' dimension maps to 'silent-failure.md'."""
-        agents_dir = tmp_path / "agents"
-        agents_dir.mkdir()
-        (agents_dir / "silent-failure.md").write_text("---\nname: x\n---\nSI content.\n")
-        prompt = load_agent_prompt("silent-failure", agents_dir)
-        assert "SI content." in prompt
+        prompt = load_agent_prompt("testing", claude / "agents")
+
+        assert "Checklist text." in prompt
+
+    def test_dedicated_agent_file_bypasses_composition(self, tmp_path: Path) -> None:
+        """wander keeps its own agent and is not composed with a skill."""
+        agents_dir, skills_dir = tmp_path / "agents", tmp_path / "skills"
+        self._harness(agents_dir)
+        (agents_dir / "wander.md").write_text("---\nname: wander\n---\nWD content.\n")
+
+        prompt = load_agent_prompt("wander", agents_dir, skills_dir)
+
+        assert "WD content." in prompt
+        assert "You are a review reporter." not in prompt
+
+    def test_missing_dimension_skill_raises(self, tmp_path: Path) -> None:
+        """A harness with no checklist declares no prefix — fail loudly, not bare."""
+        agents_dir, skills_dir = tmp_path / "agents", tmp_path / "skills"
+        self._harness(agents_dir)
+        skills_dir.mkdir()
+
+        with pytest.raises(FileNotFoundError, match="Dimension skill not found"):
+            load_agent_prompt("correctness", agents_dir, skills_dir)
 
     def test_missing_agent_file_raises(self, tmp_path: Path) -> None:
         """FileNotFoundError when agent .md is missing."""
@@ -157,9 +187,14 @@ class TestLoadAgentPrompt:
         with pytest.raises(FileNotFoundError, match="Agent file not found"):
             load_agent_prompt("correctness", agents_dir)
 
-    @pytest.mark.parametrize("dimension", sorted(_DIMENSION_TO_AGENT_FILE))
+    @pytest.mark.parametrize("dimension", sorted(_DIMENSION_TO_REPORTER))
     def test_all_dimensions_load_from_real_repo(self, dimension: str) -> None:
-        """Every registered dimension's agent file loads and strips frontmatter."""
+        """Every dispatchable dimension composes against the real repo layout.
+
+        Parametrized over `_DIMENSION_TO_REPORTER` (all 12) rather than
+        `_DIMENSION_TO_AGENT_FILE` (only `wander` since the collapse) so the
+        composed path stays covered.
+        """
         repo_root = Path(__file__).resolve().parent.parent.parent
         agents_dir = repo_root / ".claude" / "agents"
         prompt = load_agent_prompt(dimension, agents_dir)
@@ -167,6 +202,10 @@ class TestLoadAgentPrompt:
         assert not prompt.startswith("---")
         # Driver suffix present
         assert "Driver mode" in prompt
+        # Composed dimensions carry their prefix; wander uses its own agent file
+        if dimension != "wander":
+            expected = REPORTER_ID_PREFIX[_DIMENSION_TO_REPORTER[dimension]]
+            assert f"ID prefix `{expected}-`" in prompt
 
 
 # ---------------------------------------------------------------------------

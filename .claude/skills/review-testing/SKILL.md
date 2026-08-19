@@ -1,16 +1,17 @@
 ---
 name: review-testing
 description: >
-  Testing Dimension Checklist — dimension checklist read by the testing agent (.claude/agents/testing.md).
+  Testing Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: TE
 allowed-tools: Read
 ---
 
 # Testing Dimension Checklist
 
-Agent: `testing` | ID prefix: `TE-` | Always-on
+Dimension: `testing` | Agent: `review` | ID prefix: `TE-` | Always-on
 
-Used by: `.claude/agents/testing.md`
+Used by: `.claude/agents/review.md`
 
 This dimension owns whether anything would *catch* the bug. The bug itself belongs to
 correctness or silent-failure.

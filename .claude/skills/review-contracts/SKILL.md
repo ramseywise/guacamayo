@@ -1,16 +1,17 @@
 ---
 name: review-contracts
 description: >
-  Contracts Dimension Checklist — dimension checklist read by the contracts agent (.claude/agents/contracts.md).
+  Contracts Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: CT
 allowed-tools: Read
 ---
 
 # Contracts Dimension Checklist
 
-Agent: `contracts` | ID prefix: `CT-` | Conditional (SANYI.md present)
+Dimension: `contracts` | Agent: `review` | ID prefix: `CT-` | Conditional (SANYI.md present)
 
-Used by: `.claude/agents/contracts.md`
+Used by: `.claude/agents/review.md`
 
 Activation: `detect-signals` returns `has_sanyi_contracts: true`
 
