@@ -91,6 +91,25 @@ _V2_RETIRED_REGIONS: frozenset[str] = frozenset(
     }
 )
 
+# Hidden-region audit (GUA-154, 2026-08-19): the eight display:none attic regions,
+# each labeled dup/superseded/moved by its own data-hidden attribute, are retired
+# from injection on the canonical dashboard. Their bodies were blanked once; the
+# markers stay declared so the completeness test holds. Verdict trajectories are
+# preserved as a JSON sink (verdict-trajectories.json) instead of a 225KB hidden
+# table. Un-retiring = remove from this set; the next run re-fills the region.
+RETIRED_REGIONS: frozenset[str] = frozenset(
+    {
+        "VERDICT-TRAJECTORIES",
+        "FRICTION-REGROUP",
+        "EXPERIMENTS-LIFECYCLE",
+        "REVIEW-FINDINGS",
+        "SKILL-EVALS",
+        "LOOP",
+        "RETRO",
+        "AUTOMATED-ACTIONS",
+    }
+)
+
 
 # The ten repos wake's Phase 5 loop already walks (wake/SKILL.md:97). Reused rather
 # than maintained separately — a second list would drift from the first, and a repo
@@ -1335,8 +1354,27 @@ def _run_facts() -> None:
             # than refilled on every run.
             if ctx_path.name == "context-dashboard-v2.html":
                 regions = {k: v for k, v in regions.items() if k not in _V2_RETIRED_REGIONS}
+            # GUA-154: retired attic regions are never injected; trajectories go to
+            # the JSON sink below instead of a hidden 225KB table.
+            regions = {k: v for k, v in regions.items() if k not in RETIRED_REGIONS}
             injected = inject_regions(ctx_path, regions)
             print(f"Region injection: {injected}")
+
+            trajectories_path = ctx_path.parent / "telemetry" / "verdict-trajectories.json"
+            trajectories_path.parent.mkdir(parents=True, exist_ok=True)
+            verdict_rows = read_verdicts(store)
+            trajectories_path.write_text(
+                json.dumps(
+                    {
+                        "collected_at": datetime.now(UTC).isoformat(timespec="seconds"),
+                        "rows": verdict_rows,
+                    },
+                    indent=1,
+                    default=str,
+                )
+                + "\n"
+            )
+            print(f"Verdict trajectories: {len(verdict_rows)} rows -> {trajectories_path}")
         else:
             print(f"context-dashboard not found, skipping injection: {ctx_path}", flush=True)
 

@@ -11,8 +11,8 @@ without a model call lives here.
 | Part | Where | Role |
 |------|-------|------|
 | Deterministic backbone | `review/` (this package) | Schemas, validation, dedup, fingerprints, trends, routing signals, report rendering |
-| Dimension agents | `.claude/agents/` | LLM judgment — 12 dimensions, see the table below |
-| Checklists | `.claude/skills/` | Per-dimension checklists + `shared` scan rules, read by the agents; not invoked directly |
+| Review agent | `.claude/agents/review.md` | LLM judgment — one generic harness, dispatched once per active dimension. `wander` keeps its own agent (questions, not findings) |
+| Checklists | `.claude/skills/` | Per-dimension checklists + `shared` scan rules, composed into the harness at dispatch; not invoked directly |
 
 Orchestration: `review-cli run` is the single entry point — it owns the full pipeline
 from signal detection through report rendering. Skills (`/workflow-review`) call
@@ -40,10 +40,16 @@ Conditional dimensions dispatch only when `signals.py` detects the matching sign
 | `leakage` | LK- | `is_ml_code` |
 | `contracts` | CT- | `has_sanyi_contracts` |
 
-**Adding a dimension means editing three files**, and missing one fails at dispatch rather
-than at import: `signals.py` (`ALWAYS_ON_DIMENSIONS` / `CONDITIONAL_DIMENSIONS`),
-`driver.py` (`_DIMENSION_TO_AGENT_FILE` + `_DIMENSION_TO_REPORTER`), and
-`schemas/models.py` (`Reporter` + `REPORTER_ID_PREFIX`).
+**Adding a dimension means editing three files plus its skill**, and missing one fails at
+dispatch rather than at import: `signals.py` (`ALWAYS_ON_DIMENSIONS` /
+`CONDITIONAL_DIMENSIONS`), `driver.py` (`_DIMENSION_TO_REPORTER`), `schemas/models.py`
+(`Reporter` + `REPORTER_ID_PREFIX`), and `.claude/skills/review-<dim>/SKILL.md` — whose
+`prefix:` frontmatter must match `REPORTER_ID_PREFIX`, since the harness reads it to tell
+the agent which IDs to emit and the schema rejects anything else.
+
+No new agent file is needed: the generic `review` harness composes with the new
+checklist automatically. `_DIMENSION_TO_AGENT_FILE` lists only dimensions that override
+that default (currently just `wander`).
 
 **akira and sanyi were absorbed, not retired.** Sanyi's contract taxonomy *is* the
 `contracts` dimension; akira's defect scanning split across

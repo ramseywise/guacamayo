@@ -1,16 +1,17 @@
 ---
 name: review-architecture
 description: >
-  Architecture Dimension Checklist — dimension checklist read by the architecture agent (.claude/agents/architecture.md).
+  Architecture Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: AR
 allowed-tools: Read
 ---
 
 # Architecture Dimension Checklist
 
-Agent: `architecture` | ID prefix: `AR-` | Always-on
+Dimension: `architecture` | Agent: `review` | ID prefix: `AR-` | Always-on
 
-Used by: `.claude/agents/architecture.md`
+Used by: `.claude/agents/review.md`
 
 ## Naming and Layering
 

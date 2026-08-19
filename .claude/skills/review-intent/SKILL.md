@@ -1,16 +1,17 @@
 ---
 name: review-intent
 description: >
-  Intent Dimension Checklist — dimension checklist read by the intent agent (.claude/agents/intent.md).
+  Intent Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: IN
 allowed-tools: Read
 ---
 
 # Intent Dimension Checklist
 
-Agent: `intent` | ID prefix: `IN-` | Always-on
+Dimension: `intent` | Agent: `review` | ID prefix: `IN-` | Always-on
 
-Used by: `.claude/agents/intent.md`
+Used by: `.claude/agents/review.md`
 
 ## Statement of Intent
 

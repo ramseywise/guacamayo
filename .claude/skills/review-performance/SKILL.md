@@ -1,16 +1,17 @@
 ---
 name: review-performance
 description: >
-  Performance Dimension Checklist — dimension checklist read by the performance agent (.claude/agents/performance.md).
+  Performance Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: PF
 allowed-tools: Read
 ---
 
 # Performance Dimension Checklist
 
-Agent: `performance` | ID prefix: `PF-` | Always-on
+Dimension: `performance` | Agent: `review` | ID prefix: `PF-` | Always-on
 
-Used by: `.claude/agents/performance.md`
+Used by: `.claude/agents/review.md`
 
 Performance findings are the easiest dimension to fill with noise. The bar is not
 "could this be faster" — almost anything could. The bar is **this degrades badly as
