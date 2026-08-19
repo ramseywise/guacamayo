@@ -130,6 +130,58 @@ to it (`telemetry/actions.py`, `PLANE_*`):
 - `metacognition` — the system observing itself: retro, insights, skills
 - `control` — the loop that runs the system: jobs, schedules, alerts
 
+## Gate 5 — pattern_key for friction-type rows
+
+Every row whose metric begins with `absence:` or `count-drop:` is a friction-type
+row — it measures the *reduction* of something bad. Friction rows require a
+`pattern_key` that traces the row back to a PATTERNS signature in
+`telemetry/recurrence.py`.
+
+**Check the Change + metric text against PATTERNS:**
+
+```bash
+uv run python -c "
+from telemetry.recurrence import PATTERNS
+import re, sys
+text = ' '.join(sys.argv[1:])
+matched = [k for k, rx in PATTERNS.items()
+           if re.search(rx, text, re.IGNORECASE)]
+print(matched or 'NO MATCH')" \
+"<paste Change + metric text here>"
+```
+
+Decision tree:
+
+```
+if metric starts with "absence:" or "count-drop:":
+    1. Look for an explicit pattern_key in the Change text
+       (e.g. "warn-hook for `silent-swallow`" names the key).
+    2. If not explicit, run the Change + metric through PATTERNS above.
+       - One or more matches -> propose the key(s); author must confirm or
+         reject each. Confirmed key goes into the row's Status cell as
+         `pattern_key: \`<key>\``.
+       - No match -> ask: "Is this a code-corpus friction (would appear as a
+         finding title in a review sweep)?"
+         - YES -> propose a new PATTERNS entry in `telemetry/recurrence.py`
+           first. Block the ledger row until the signature is written and
+           tests pass.
+         - NO (workflow/process/infra friction) -> accept the row without a
+           pattern_key. State in the row that none applies and why (one
+           sentence).
+    3. If a pattern_key is already present, verify it exists in PATTERNS:
+       `python -c "from telemetry.recurrence import PATTERNS; print('<key>' in PATTERNS)"`
+       If False, reject with: "pattern_key '<key>' not in telemetry/recurrence.py
+       PATTERNS -- add the signature first."
+```
+
+**What counts as code-corpus friction**: the friction appears (or would appear) as a
+finding title in a review sweep — e.g. "hardcoded URL" in a scan of a Python file.
+Workflow rows (skill compliance, PR metadata, ledger hygiene) describe process
+behaviour, not code defects, and correctly have no pattern_key.
+
+**No partial pass.** If Gate 5 cannot be resolved (no key, no confirmation the row is
+process friction), stop and return the decision to the author.
+
 ## Output
 
 Produce, in this order:
