@@ -54,10 +54,30 @@ Research is NOT warranted when:
 - It's a bug fix with a clear reproduction
 - It's a refactor of existing code with a known target state
 
+### Job-type classification
+
+Classify the issue into exactly one job type **before** logging. This runs immediately
+after state assessment, using the issue title, labels, and body already in context.
+
+| Job type | Detection (first match wins) |
+|----------|------------------------------|
+| `debug` | Label `bug`, or title contains: fix / bug / broken / error / regression |
+| `refactor` | Label `refactor`, or title contains: refactor / rename / extract / reorganize |
+| `chore` | Label `chore`, `docs`, `ci`, or `tooling`; or title contains: chore / docs / update / bump / ledger / tooling |
+| `new-feature` | Default — none of the above matched |
+
+Unclassifiable issues (no issue body, inline text only) → `"unknown"`.
+
+The `job_type` field shapes the exit artifact hint in the exit block:
+- `debug` → repro steps + root-cause section in plan
+- `new-feature` → acceptance criteria + test plan
+- `refactor` → before/after contract + no-regression test
+- `chore` → scope boundary + done-when condition
+
 Log the routing decision:
 
 ```bash
-echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","issue":'<N>',"repo":"'<repo>'","state":"'<STATE>'","entry_point":"'<NEXT>'"}' >> .sounding/telemetry/scope-decisions.jsonl
+echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","issue":'<N>',"repo":"'<repo>'","state":"'<STATE>'","entry_point":"'<NEXT>'","job_type":"'<TYPE>'"}' >> .sounding/telemetry/scope-decisions.jsonl
 ```
 
 ## Step 2 — Execute the routing loop
@@ -132,7 +152,7 @@ After the loop completes (all stages run, or main model resolved gaps):
 gh issue edit <N> -R ramseywise/<repo> --add-label "ready" --remove-label "backlog"
 
 # Log completion
-echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","issue":'<N>',"repo":"'<repo>'","outcome":"ready","stages_run":['<LIST>'],"retries":'<N>'}' >> .sounding/telemetry/scope-decisions.jsonl
+echo '{"ts":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","issue":'<N>',"repo":"'<repo>'","outcome":"ready","stages_run":['<LIST>'],"retries":'<N>',"job_type":"'<TYPE>'"}' >> .sounding/telemetry/scope-decisions.jsonl
 ```
 
 Print exit block:
@@ -175,6 +195,7 @@ Fields:
 | `outcome` | string | `ready` / `blocked` / `partial` |
 | `stages_run` | list | Stages actually executed |
 | `retries` | int | Total retry count across all stages |
+| `job_type` | string | `debug` / `new-feature` / `refactor` / `chore` / `unknown` |
 | `time_to_ready_s` | int | Wall-clock seconds from start to READY |
 
 The dashboard's Loop Health tab reads this file to render:

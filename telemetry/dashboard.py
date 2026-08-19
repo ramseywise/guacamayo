@@ -7124,6 +7124,18 @@ def render_scope_decisions_region(scope_log: Path | None) -> str:
         for ep, cnt in sorted(entry_points.items(), key=lambda kv: -kv[1])
     )
 
+    job_types: dict[str, int] = {}
+    for r in records:
+        jt = r.get("job_type", "unknown")
+        job_types[jt] = job_types.get(jt, 0) + 1
+
+    jt_bar = "".join(
+        f'<div style="flex:{cnt};background:{_job_type_color(jt)};display:flex;'
+        f"align-items:center;justify-content:center;font-size:10px;color:white;"
+        f'font-weight:600;min-width:30px;border-radius:3px">{jt}</div>'
+        for jt, cnt in sorted(job_types.items(), key=lambda kv: -kv[1])
+    )
+
     return (
         '<div class="card">'
         '<div class="card-title">Triage pipeline</div>'
@@ -7141,6 +7153,21 @@ def render_scope_decisions_region(scope_log: Path | None) -> str:
         '<span style="display:flex;align-items:center;gap:4px">'
         '<span style="width:8px;height:8px;border-radius:50%;background:var(--s4)"></span>'
         "refine</span></div>"
+        f'<div style="display:flex;height:24px;border-radius:5px;overflow:hidden;'
+        f'margin:8px 0;gap:2px">{jt_bar}</div>'
+        '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-2);margin-bottom:8px">'
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--bad)"></span>'
+        "debug</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s1)"></span>'
+        "new-feature</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--ac-violet)"></span>'
+        "refactor</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--text-3)"></span>'
+        "chore</span></div>"
         "</div>"
     )
 
@@ -7151,6 +7178,15 @@ def _scope_color(entry_point: str) -> str:
         "plan": "var(--s3)",
         "refine": "var(--s4)",
     }.get(entry_point, "var(--text-3)")
+
+
+def _job_type_color(job_type: str) -> str:
+    return {
+        "debug": "var(--bad)",
+        "new-feature": "var(--s1)",
+        "refactor": "var(--ac-violet)",
+        "chore": "var(--text-3)",
+    }.get(job_type, "var(--text-3)")
 
 
 # ---------------------------------------------------------------------------

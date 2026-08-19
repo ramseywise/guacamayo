@@ -3404,3 +3404,75 @@ def test_data_block_region_faceted_series_include_r_field(tmp_path: Path) -> Non
     # The compaction and sessions_week arrays must contain at least one point
     # with an `r:` field (regime).
     assert ",r:" in out, "no r: field found — faceted series not emitting regime"
+
+
+# ---------------------------------------------------------------------------
+# render_scope_decisions_region tests (GUA-152)
+# ---------------------------------------------------------------------------
+
+
+def test_scope_decisions_empty_state(tmp_path: Path) -> None:
+    from telemetry.dashboard import render_scope_decisions_region
+
+    out = render_scope_decisions_region(tmp_path / "scope-decisions.jsonl")
+    assert "No scope decisions" in out
+    assert "workflow-scope" in out
+
+
+def test_scope_decisions_renders_job_type_bar(tmp_path: Path) -> None:
+    import json
+
+    from telemetry.dashboard import render_scope_decisions_region
+
+    log = tmp_path / "scope-decisions.jsonl"
+    records = [
+        {
+            "ts": "2026-08-19T10:00:00Z",
+            "issue": 152,
+            "repo": "guacamayo",
+            "state": "CLEAR",
+            "entry_point": "plan",
+            "job_type": "new-feature",
+            "outcome": "ready",
+            "retries": 0,
+        },
+        {
+            "ts": "2026-08-19T11:00:00Z",
+            "issue": 100,
+            "repo": "guacamayo",
+            "state": "UNSCOPED",
+            "entry_point": "research",
+            "job_type": "debug",
+            "outcome": "ready",
+            "retries": 1,
+        },
+    ]
+    log.write_text("\n".join(json.dumps(r) for r in records))
+
+    out = render_scope_decisions_region(log)
+    assert "2 issues scoped" in out
+    assert "new-feature" in out
+    assert "debug" in out
+    assert "2 reached READY" in out
+
+
+def test_scope_decisions_tolerates_missing_job_type(tmp_path: Path) -> None:
+    import json
+
+    from telemetry.dashboard import render_scope_decisions_region
+
+    log = tmp_path / "scope-decisions.jsonl"
+    log.write_text(
+        json.dumps(
+            {
+                "ts": "2026-08-19T09:00:00Z",
+                "issue": 99,
+                "repo": "guacamayo",
+                "state": "CLEAR",
+                "entry_point": "plan",
+            }
+        )
+    )
+    out = render_scope_decisions_region(log)
+    # must not raise; should contain the card title
+    assert "Triage pipeline" in out
