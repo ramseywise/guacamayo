@@ -1,16 +1,17 @@
 ---
 name: review-silent-failure
 description: >
-  Silent-Failure Dimension Checklist — dimension checklist read by the silent-failure agent
-  (.claude/agents/silent-failure.md). Reference material, not invoked directly.
+  Silent-Failure Dimension Checklist — dimension checklist read by the generic `review` agent
+  (.claude/agents/review.md). Reference material, not invoked directly.
+prefix: SI
 allowed-tools: Read
 ---
 
 # Silent-Failure Dimension Checklist
 
-Agent: `silent-failure` | ID prefix: `SI-` | Always-on
+Dimension: `silent-failure` | Agent: `review` | ID prefix: `SI-` | Always-on
 
-Used by: `.claude/agents/silent-failure.md`
+Used by: `.claude/agents/review.md`
 
 A silent failure is worse than a crash — the crash gets fixed the same day; the silent
 failure corrupts data for six months. Correctness owns whether the logic is right; the

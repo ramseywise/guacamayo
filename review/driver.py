@@ -34,6 +34,7 @@ from review.fingerprint import (
 )
 from review.render import render_report
 from review.schemas.models import (
+    REPORTER_ID_PREFIX,
     Attribution,
     MergeDecision,
     MergeImpact,
@@ -68,6 +69,8 @@ class DriverConfig:
     max_turns: int = 30
     # agents dir: defaults to repo/.claude/agents
     agents_dir: Path | None = None
+    # skills dir: defaults to repo/.claude/skills
+    skills_dir: Path | None = None
     # escape hatch: set False to skip static analysis (e.g. in tests that don't need it)
     static_analysis: bool = True
     # session_id: passed from invoking skill via --session-id; null when absent
@@ -84,6 +87,8 @@ class DriverConfig:
             self.reviews_dir = self.repo / self.reviews_dir
         if self.agents_dir is None:
             self.agents_dir = self.repo / ".claude" / "agents"
+        if self.skills_dir is None:
+            self.skills_dir = self.repo / ".claude" / "skills"
 
 
 @dataclass
@@ -117,21 +122,20 @@ class DriverResult:
 
 _YAML_FRONTMATTER = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
 
-# Dimension name → agent filename stem mapping
+# Dimension name → agent filename stem mapping.
+#
+# Only dimensions with their own agent file appear here. The 11 scan dimensions are
+# served by the generic `review` harness (agents/review.md) composed with their
+# `review-<dimension>/SKILL.md` checklist, so they are deliberately absent —
+# `load_agent_prompt` falls through to the generic path for anything not listed.
+# `wander` keeps a dedicated agent because its output contract is questions, not
+# schema findings, and it has no dimension skill to compose against.
 _DIMENSION_TO_AGENT_FILE: dict[str, str] = {
-    "correctness": "correctness",
-    "intent": "intent",
-    "architecture": "architecture",
-    "safety": "safety",
-    "contracts": "contracts",
-    "testing": "testing",
-    "runtime": "runtime",
-    "safeguards": "safeguards",
-    "silent-failure": "silent-failure",
-    "leakage": "leakage",
-    "performance": "performance",
     "wander": "wander",
 }
+
+# The generic review harness, composed with one dimension skill per dispatch.
+_GENERIC_REVIEW_AGENT = "review"
 
 # Driver-mode output instruction appended to the system prompt
 _DRIVER_MODE_SUFFIX = """
@@ -261,23 +265,61 @@ def emit_findings_jsonl(
             fh.write(json.dumps(row) + "\n")
 
 
-def load_agent_prompt(dimension: str, agents_dir: Path) -> str:
-    """Read the agent .md, strip YAML frontmatter, append driver-mode suffix.
+def load_agent_prompt(dimension: str, agents_dir: Path, skills_dir: Path | None = None) -> str:
+    """Compose the system prompt for one dimension scan.
+
+    Dimensions with a dedicated agent file (see `_DIMENSION_TO_AGENT_FILE`) use it
+    directly. Everything else composes the generic `review` harness with that
+    dimension's `review-<dimension>/SKILL.md` checklist — the harness supplies the
+    role, evidence rules, and injection defense; the skill supplies what to look for
+    and the ID prefix.
 
     Args:
-        dimension: Dimension name (e.g. "correctness", "agent-quality").
+        dimension: Dimension name (e.g. "correctness", "wander").
         agents_dir: Directory containing the agent .md files.
+        skills_dir: Directory containing the review-* skills. Defaults to the
+            sibling `skills` directory next to `agents_dir`.
 
     Returns:
         System prompt string for SDK query.
+
+    Raises:
+        FileNotFoundError: The agent file or the dimension skill is missing. A
+            missing skill is fatal rather than a bare-harness fallback: a harness
+            with no checklist declares no ID prefix, so every finding it produced
+            would be rejected downstream as a skill-load failure anyway.
     """
-    stem = _DIMENSION_TO_AGENT_FILE.get(dimension, dimension)
-    agent_file = agents_dir / f"{stem}.md"
+    if skills_dir is None:
+        skills_dir = agents_dir.parent / "skills"
+
+    stem = _DIMENSION_TO_AGENT_FILE.get(dimension)
+    if stem is not None:
+        agent_file = agents_dir / f"{stem}.md"
+        if not agent_file.exists():
+            raise FileNotFoundError(f"Agent file not found: {agent_file}")
+        body = _YAML_FRONTMATTER.sub("", agent_file.read_text(), count=1)
+        return body.strip() + "\n" + _DRIVER_MODE_SUFFIX
+
+    agent_file = agents_dir / f"{_GENERIC_REVIEW_AGENT}.md"
     if not agent_file.exists():
         raise FileNotFoundError(f"Agent file not found: {agent_file}")
-    raw = agent_file.read_text()
-    body = _YAML_FRONTMATTER.sub("", raw, count=1)
-    return body.strip() + "\n" + _DRIVER_MODE_SUFFIX
+    skill_file = skills_dir / f"review-{dimension}" / "SKILL.md"
+    if not skill_file.exists():
+        raise FileNotFoundError(f"Dimension skill not found: {skill_file}")
+
+    harness = _YAML_FRONTMATTER.sub("", agent_file.read_text(), count=1).strip()
+    checklist = _YAML_FRONTMATTER.sub("", skill_file.read_text(), count=1).strip()
+    reporter = _DIMENSION_TO_REPORTER.get(dimension)
+    prefix = REPORTER_ID_PREFIX.get(reporter) if reporter is not None else None
+    header = f"## Your dimension: {dimension}"
+    if prefix:
+        header += f" (ID prefix `{prefix}-`)"
+
+    return (
+        f"{harness}\n\n---\n\n{header}\n\n"
+        f"The checklist below is the dimension skill you were dispatched with. It is "
+        f"your entire remit.\n\n{checklist}\n" + _DRIVER_MODE_SUFFIX
+    )
 
 
 def _findings_json_schema() -> dict[str, Any]:
@@ -382,7 +424,7 @@ async def sdk_scan(
         )
 
     try:
-        system_prompt = load_agent_prompt(dimension, config.agents_dir)
+        system_prompt = load_agent_prompt(dimension, config.agents_dir, config.skills_dir)
     except FileNotFoundError as exc:
         return ScanError(dimension=dimension, subtype="agent_not_found", detail=str(exc))
 
@@ -448,7 +490,7 @@ async def _repair_scan(
         )
 
     try:
-        system_prompt = load_agent_prompt(dimension, config.agents_dir)
+        system_prompt = load_agent_prompt(dimension, config.agents_dir, config.skills_dir)
     except FileNotFoundError as exc:
         return ScanError(dimension=dimension, subtype="agent_not_found", detail=str(exc))
 

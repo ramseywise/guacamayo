@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-19T20:37:49.179375+00:00",
+  "collected_at": "2026-08-19T21:52:45.091180+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,25 +15,25 @@
   "skipped_repos": [],
   "total_issues": 8,
   "heartbeat": {
-    "started_at": "2026-08-19T20:37:20.761856+00:00",
-    "finished_at": "2026-08-19T20:37:49.202195+00:00",
+    "started_at": "2026-08-19T21:51:42.988607+00:00",
+    "finished_at": "2026-08-19T21:52:45.120301+00:00",
     "exit": 0,
-    "duration_s": 28.44,
+    "duration_s": 62.13,
     "error": null
   },
   "proposed_actions": [
     {
-      "id": "014a89158be7",
+      "id": "4b6b4ba8c97f",
       "action": "close_issue",
       "target": {
         "repo": "guacamayo",
-        "issue_num": 156
+        "issue_num": 154
       },
-      "reason": "branch merged to main but issue #156 is still open",
-      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-156-r12-retro-proposals` is an ancestor of origin/main'; evidence='guacamayo#156 is still OPEN after branch merged'",
+      "reason": "branch merged to main but issue #154 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-154-hidden-region-audit` is an ancestor of origin/main'; evidence='guacamayo#154 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T20:37:49.200533+00:00"
+      "created_at": "2026-08-19T21:52:45.112827+00:00"
     },
     {
       "id": "379752492c21",
@@ -46,19 +46,19 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GAL-31-deploy-harden-marketing-comms` is an ancestor of origin/main'; evidence='galactus#31 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-19T20:37:49.200533+00:00"
+      "created_at": "2026-08-19T21:52:45.112827+00:00"
     }
   ],
   "records": [
     {
       "repo": "guacamayo",
-      "issue_num": 156,
-      "title": "Apply R12 retro proposals: closes-link enforcement, file-replace discipline, stale-store guard",
+      "issue_num": 158,
+      "title": "Consolidate agent roster: agent maps to skill set, not general-purpose",
       "raw_label": "backlog",
-      "column": "backlog",
-      "backlog_stage": "scope",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-158-agent-roster' exists, is_ancestor=False",
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "guacamayo",
@@ -68,7 +68,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "playground",
@@ -78,7 +78,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "galactus",
@@ -88,7 +88,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "galactus",
@@ -98,7 +98,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "galactus",
@@ -108,7 +108,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "galactus",
@@ -118,7 +118,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     },
     {
       "repo": "galactus",
@@ -128,7 +128,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-19T20:37:49.179375+00:00"
+      "collected_at": "2026-08-19T21:52:45.091180+00:00"
     }
   ]
 }

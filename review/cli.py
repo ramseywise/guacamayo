@@ -7,6 +7,7 @@ from pathlib import Path
 import click
 
 from review import commit_verification, validation
+from review.capabilities import resolve_capability_agent
 from review.deduplication import find_duplicate_clusters
 from review.fingerprint import (
     finding_to_sweep_finding,
@@ -343,3 +344,22 @@ def detect_signals_cmd(repo, files):
     signals = detect_signals(file_list, repo_root=repo)
     dims = active_dimensions(signals)
     click.echo(json.dumps({"signals": signals, "active_dimensions": dims}, indent=2))
+
+
+@main.command("resolve-capability")
+@click.option("--repo", default=".", help="Git repo root path")
+@click.argument("capability")
+def resolve_capability_cmd(repo, capability):
+    """Check that CAPABILITY's advisor loads before it is dispatched.
+
+    Exits 1 when the advisor does not resolve, so a caller can tell a failed
+    dispatch from a clean advisor pass. A capability whose advisor never loaded
+    must be reported as a hole in the run, never as "ran and found nothing".
+
+    Example:
+        uv run review-cli resolve-capability fog
+    """
+    result = resolve_capability_agent(capability, repo_root=repo)
+    click.echo(json.dumps(result, indent=2))
+    if not result["resolved"]:
+        sys.exit(1)

@@ -1,16 +1,17 @@
 ---
 name: review-correctness
 description: >
-  Correctness Dimension Checklist — dimension checklist read by the correctness agent (.claude/agents/correctness.md).
+  Correctness Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Reference material, not invoked directly.
+prefix: CR
 allowed-tools: Read
 ---
 
 # Correctness Dimension Checklist
 
-Agent: `correctness` | ID prefix: `CR-` | Always-on
+Dimension: `correctness` | Agent: `review` | ID prefix: `CR-` | Always-on
 
-Used by: `.claude/agents/correctness.md`
+Used by: `.claude/agents/review.md`
 
 ## Intent and Correctness
 

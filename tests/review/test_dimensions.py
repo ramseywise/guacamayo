@@ -66,29 +66,42 @@ DIMENSION_PREFIXES = {
 }
 
 
-class TestDimensionAgentMarkdowns:
-    """Each dimension must have an agent markdown in .claude/agents/."""
+class TestGenericReviewAgent:
+    """The 11 scan dimensions share one harness: .claude/agents/review.md.
 
-    @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
-    def test_agent_markdown_exists(self, dimension):
-        agent_file = SCAN_AGENTS_DIR / f"{dimension}.md"
-        assert agent_file.exists(), f"Missing agent markdown: {agent_file}"
+    Per-dimension agent files were collapsed into this harness (GUA-158); the
+    dimension-specific half now lives in each ``review-*`` SKILL.md, asserted by
+    TestDimensionSkillChecklists below.
+    """
 
-    @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
-    def test_agent_markdown_has_frontmatter(self, dimension):
-        agent_file = SCAN_AGENTS_DIR / f"{dimension}.md"
-        content = agent_file.read_text()
-        assert content.startswith("---"), f"{agent_file} must start with YAML frontmatter"
-        assert "name:" in content
+    def test_generic_agent_exists(self):
+        agent_file = SCAN_AGENTS_DIR / "review.md"
+        assert agent_file.exists(), f"Missing generic review agent: {agent_file}"
+
+    def test_generic_agent_has_frontmatter(self):
+        content = (SCAN_AGENTS_DIR / "review.md").read_text()
+        assert content.startswith("---"), "review.md must start with YAML frontmatter"
+        assert "name: review" in content
         assert "tools:" in content
         assert "model:" in content
 
-    @pytest.mark.parametrize("dimension,prefix", sorted(DIMENSION_PREFIXES.items()))
-    def test_agent_markdown_references_correct_prefix(self, dimension, prefix):
+    def test_generic_agent_loads_one_dimension_skill(self):
+        content = (SCAN_AGENTS_DIR / "review.md").read_text()
+        assert "review-*" in content, (
+            "review.md must state that it loads one review-* dimension skill per dispatch"
+        )
+
+    @pytest.mark.parametrize("dimension", EXPECTED_DIMENSIONS)
+    def test_no_per_dimension_agent_file(self, dimension):
+        """A resurrected per-dimension agent silently shadows the generic harness.
+
+        `load_agent_prompt` prefers a dedicated agent file, so a stray file here
+        would take precedence over the composed prompt without failing anything.
+        """
         agent_file = SCAN_AGENTS_DIR / f"{dimension}.md"
-        content = agent_file.read_text()
-        assert f"{prefix}-" in content, (
-            f"{agent_file} must reference its ID prefix {prefix + '-'!r}"
+        assert not agent_file.exists(), (
+            f"{agent_file} shadows the generic review harness — dimension content "
+            f"belongs in .claude/skills/review-{dimension}/SKILL.md"
         )
 
 
@@ -107,6 +120,19 @@ class TestDimensionSkillChecklists:
         # Each SKILL.md should reference its agent name or the dimension name
         assert dimension in content.lower(), (
             f"{skill_file} should reference its dimension {dimension!r}"
+        )
+
+    @pytest.mark.parametrize("dimension,prefix", sorted(DIMENSION_PREFIXES.items()))
+    def test_skill_md_declares_prefix(self, dimension, prefix):
+        """The generic harness reads `prefix:` to tell the agent which IDs to emit.
+
+        A wrong or missing prefix here is rejected downstream by ReviewFinding's
+        reporter/id validator, so this must match REPORTER_ID_PREFIX exactly.
+        """
+        skill_file = SCAN_DIMS_DIR / f"review-{dimension}" / "SKILL.md"
+        content = skill_file.read_text()
+        assert f"\nprefix: {prefix}\n" in content, (
+            f"{skill_file} must declare 'prefix: {prefix}' in its frontmatter"
         )
 
 

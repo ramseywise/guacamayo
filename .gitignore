@@ -20,3 +20,5 @@ logs/
 # writes each one is the interface; the artifact is not.
 .sounding/telemetry/consistency.json
 .sounding/telemetry/cascade-state.json
+# 2.1MB full-rewrite dump (GUA-154) -- replaces the hidden VERDICT-TRAJECTORIES table
+.sounding/telemetry/verdict-trajectories.json

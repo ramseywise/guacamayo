@@ -110,8 +110,8 @@ multiple angles explored simultaneously rather than deep sequential research.
 2. **Propose agents** — suggest N agents (2–10) with one angle each. Wait for confirmation.
    Mark each angle that assesses an existing asset (repo, template, skill, spec, library,
    config) as **asset-bearing** — that flag drives the verdict requirement in step 3.
-3. **Deploy** — spawn each as the named `plan-research-scout` agent
-   (`subagent_type: plan-research-scout`), one per angle, in parallel, with
+3. **Deploy** — spawn each as the named `research-scout` agent
+   (`subagent_type: research-scout`), one per angle, in parallel, with
    `model: "haiku"` pinned explicitly — an unpinned spawn inherits the session model,
    which leaks fable/opus tokens into fan-out work (R8 F5). Each prompt carries:
    - the angle assignment;

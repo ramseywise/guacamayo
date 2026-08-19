@@ -1,16 +1,17 @@
 ---
 name: review-runtime
 description: >
-  Runtime Dimension Checklist — dimension checklist read by the runtime agent (.claude/agents/runtime.md).
+  Runtime Dimension Checklist — dimension checklist read by the generic `review` agent (.claude/agents/review.md).
   Conditional dimension (agent-system code only). Reference material, not invoked directly.
+prefix: RT
 allowed-tools: Read
 ---
 
 # Runtime Dimension Checklist
 
-Agent: `runtime` | ID prefix: `RT-` | Conditional (`is_agent_code`)
+Dimension: `runtime` | Agent: `review` | ID prefix: `RT-` | Conditional (`is_agent_code`)
 
-Used by: `.claude/agents/runtime.md`
+Used by: `.claude/agents/review.md`
 
 Activation: dispatched only when `detect-signals` reports `is_agent_code: true` — files
 import an LLM/agent framework or match agent-system path signals.

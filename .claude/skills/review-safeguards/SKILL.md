@@ -1,17 +1,18 @@
 ---
 name: review-safeguards
 description: >
-  Safeguards Dimension Checklist — dimension checklist read by the safeguards agent
-  (.claude/agents/safeguards.md). Conditional dimension (agent-system code only).
+  Safeguards Dimension Checklist — dimension checklist read by the generic `review` agent
+  (.claude/agents/review.md). Conditional dimension (agent-system code only).
   Reference material, not invoked directly.
+prefix: SG
 allowed-tools: Read
 ---
 
 # Safeguards Dimension Checklist
 
-Agent: `safeguards` | ID prefix: `SG-` | Conditional (`is_agent_code`)
+Dimension: `safeguards` | Agent: `review` | ID prefix: `SG-` | Conditional (`is_agent_code`)
 
-Used by: `.claude/agents/safeguards.md`
+Used by: `.claude/agents/review.md`
 
 Activation: dispatched only when `detect-signals` reports `is_agent_code: true`.
 
