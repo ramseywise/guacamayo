@@ -6981,9 +6981,32 @@ def render_pipeline_health_region(store: Path) -> str:
         text = ledger_log.read_text(encoding="utf-8", errors="replace")
         headers = _RETRO_HEADER.findall(text)
         if headers:
-            last_header = headers[-1]  # e.g. "## R11"
-            # Find the line after the header for a date
-            idx = text.rfind(last_header)
+            # tooling-ledger-log.md sections are NOT chronological (R0, R1, R10, R11, R9…R2).
+            # Pick the header whose date is latest; fall back to highest round number.
+            best_header = None
+            best_dt: _datetime | None = None
+            best_round = -1
+            for hdr in headers:
+                idx = text.find(hdr)
+                snippet = text[idx : idx + 120]
+                date_m = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
+                round_m = re.search(r"## R(\d+)", hdr)
+                round_n = int(round_m.group(1)) if round_m else -1
+                if date_m:
+                    try:
+                        dt = _datetime.fromisoformat(date_m.group()).replace(tzinfo=UTC)
+                        if best_dt is None or dt > best_dt:
+                            best_dt = dt
+                            best_header = hdr
+                            best_round = round_n
+                    except ValueError:
+                        pass
+                if best_dt is None and round_n > best_round:
+                    best_round = round_n
+                    best_header = hdr
+            last_header = best_header  # e.g. "## R11"
+            # Find the matching occurrence to extract date
+            idx = text.find(last_header)
             snippet = text[idx : idx + 120]
             date_match = re.search(r"\d{4}-\d{2}-\d{2}", snippet)
             if date_match:
