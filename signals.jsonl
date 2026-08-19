@@ -53,3 +53,4 @@
 {"event":"issues","action":"labeled","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":158,"issue_title":"Consolidate agent roster: agent maps to skill set, not general-purpose","collected_at":"2026-08-19T21:37:38Z"}
 {"event":"pull_request","action":"opened","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":159,"pr_title":"Gua 158 agent roster","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T21:57:10Z"}
 {"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":159,"pr_title":"Gua 158 agent roster","issue_number":null,"issue_title":null,"collected_at":"2026-08-19T21:57:38Z"}
+{"event":"issues","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":158,"issue_title":"Consolidate agent roster: agent maps to skill set, not general-purpose","collected_at":"2026-08-19T21:59:11Z"}
