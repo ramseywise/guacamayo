@@ -628,3 +628,66 @@ signal, not a turns signal.
 - F6: Parallax review-shared graduated as inconclusive
 - F7: 6 untestable rows annotated with R3 graduation deadline
 - 2 new hypothesis rows added (design skill optimization, hook telemetry wiring)
+
+## Backlog audit — 2026-08-19 (`/hypothesis` first run)
+
+First run of the `/hypothesis` backlog audit against the 25 rows that were past due
+(20) or carried no due date (5). Every row got one of three dispositions: **graduate**
+(the claim resolved — verified, failed, or superseded), **rewrite** (the claim is real
+but its metric was unobservable, so it is restated in countable form and stays active),
+or **drop** (the claim cannot be measured and is not worth a collection change).
+
+Disposition of the 25: **11 graduated**, **8 rewritten**, **6 dropped**.
+
+The audit did not invent verdicts. Where a row's own Status prose claimed a fix was
+applied, the claim was re-derived against the live files per the meta-retro "re-derive,
+never re-read" clause — that check is what caught row #41 (target skill does not exist)
+and confirmed #23/#36/#44.
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-08-05 | R8 F4 insights-agent spawn protocol (`/meta-grow` Step 4a) | workflow | verified | Re-derived 2026-08-19: `grep -c 'line-count\|invariant' .claude/skills/meta-grow/SKILL.md` → 2. Protocol present; two windows elapsed with no data-destruction recurrence |
+| 2026-08-05 | R8 F4 **duplicate row** naming `/grow` (pre-rename path) | workflow | duplicate | `ls .claude/skills/grow` → does not exist; skill is `meta-grow` (v3 rename). Same finding as the row above, written twice against a stale path. Removed, not re-verified |
+| 2026-07-31 | Insights-report path drift (`/meta-insights` root writes + double-dated filenames) | workflow | verified | Re-derived 2026-08-19: no `.sounding/insights-report*.html` remain (stale root artifacts cleaned since the row was written); fix at SKILL.md:29 holds. One historical double-dated artifact survives in `insights/` as an archived file, not a live write path |
+| 2026-08-05 | task_complete_check.sh e2e false-blocks (`tests/e2e` middle branch) | quality | verified | Re-derived 2026-08-19: `grep -c 'tests/e2e' ~/.claude/hooks/task_complete_check.sh` → 2. Fix in place; no recurrence in two windows |
+| 2026-08-06 | Stale `review-cli verdict` / `review/verdict.py` references removed | quality | verified | Re-derived 2026-08-19: no `review-cli verdict` references remain under `~/.claude/skills/`. Decision ladder now points at `review/driver.py` |
+| 2026-08-07 | Stop hook blocking on vendored code (`--force-exclude` + vendored-tree filter) | friction | verified | Applied 2026-08-07 and verified end-to-end at the time (hook exit 0, project gate green); two windows elapsed with no recurrence |
+| 2026-07-24 | Session intent classifier + compliance metric | observability | superseded | Metric `ratio:execution-sessions-with-skills above 80%` is live and registered, but the 2026-08-11 row (R9, target 70% by 2026-09-30) is the current window for the same signal. Two rows, one signal — the older target is retired in favour of the newer |
+| 2026-08-05 | R8 F5 fable leaking into non-verdict skills | cost | inconclusive | Row's own note is the verdict: the 17.74% measurement window overlapped the 5-day fable settings drift, which alone explains most of it. The fix (pin the one unpinned spawn) landed 2026-08-05; the metric was never re-measured post-fix. Signal `fable-tokens-in-non-verdict-skills` stays registered — re-opened as a fresh row with a clean window |
+| 2026-07-31 | CLA-71 risky_git_guard path resolution (`-C` → `cd` prefix → payload cwd) | friction | verified | 26-case end-to-end suite green at write; `worktree-commit-blocks` is registered and the guard's block events are attributable. Superseded in scope by the 2026-08-01 variable-`cd` recurrence row, which carries the open half |
+| 2026-08-01 | R7 F1 Co-Authored-By trailer ban (`~/.claude/CLAUDE.md`) | friction | verified | Confirmed at R10: `grep -c` CLAUDE.md → 1, and 0 `Co-Authored-By` trailers in commits since 08-11. Signal `co-authored-by-in-drafted-commits` registered (14 historical trailers, all pre-rule) |
+| 2026-07-30 | R6 F6 design-* skills — 0 invocations across 261 sessions | workflow | failed | The decision the row was waiting on was taken and executed on 2026-08-11: `design-*` demoted from global to guacamayo, `/design-milestones` retired outright (see `~/.claude/CLAUDE.md`, "Demoted 2026-08-11"). Option (a)/(b) chosen; the row outlived its own resolution by 8 days because nothing closed it |
+
+### Collisions caught by the audit's own new detector (2026-08-19)
+
+`duplicate-active-ledger-signals` was registered as part of this audit and measured
+**2** on its first run — both real, both the older row shadowing a newer one that
+already owned the signal. Removed, taking the audit to 0 collisions:
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-07-30 | fable-as-session-default reverted (predecessor of R8 F5) | cost | inconclusive | Same signal as the R8 F5 row graduated above and as the clean-window row re-opened 2026-08-19. Its stated 17.74% failure measured the settings drift, not the leak. Three rows, one signal — the two older ones close |
+| 2026-07-31 | CLA-67 `quick-pr` closing-issue link derivation | friction | superseded | Signal is owned by the 2026-08-18 R11 F1 row, whose `closes_link_guard.sh` is deployed and caught a live miss on PR #135. CLA-67's create-time derivation is the thing R11 F1 verifies; keeping both rows measured one claim twice |
+
+### Audit findings applied
+- F1: 11 rows graduated (6 verified, 1 failed, 1 duplicate, 1 superseded, 1 inconclusive, 1 verified-in-part).
+- F2: 8 rows rewritten into countable metrics against registered signals — see the active ledger.
+- F3: 6 rows dropped as unmeasurable-and-not-worth-collecting; each names why in the drop note below.
+- F4: **Duplicate-row class found.** #40/#41 were the same R8 F4 finding written twice, one against a pre-v3-rename path. Nothing in the ledger detects duplicate rows; `/hypothesis` should reject a metric whose `(signal, target-file)` pair already appears in an active row.
+- F5: **Two rows shared one signal** (`execution-sessions-with-skills`, 2026-07-24 and 2026-08-11) with different targets and no cross-reference — the older was silently dead. Same gate as F4.
+
+### Dropped rows (2026-08-19) — not graduated, not rewritten
+
+Each of these is `unobservable` in `telemetry/signals.py` and the collection change
+that would make it scorable costs more than the claim is worth. They leave the ledger
+with no verdict, which is the honest outcome — a claim that was never falsifiable
+cannot be said to have passed or failed.
+
+| Date | Change | Area | Why dropped |
+|---|---|---|---|
+| 2026-07-31 | `make ship` wrong-branch confirmation | friction | `wrong-branch-ship-events` — no ship-event stream records the branch. The fix (echo `Branch:`/`Issue:` before pushing) is one Makefile.common line and should just be applied; measuring it needs a ship-event collector nobody wants |
+| 2026-07-31 | Autocompact not firing, terminal mode | context | `autocompact-non-firing-reports` — a non-firing autocompact leaves no event by construction. This is the second time this claim has been written and the second time it cannot be measured; it needs a terminal-mode transcript investigation, not a ledger row |
+| 2026-08-01 | CLA-71 variable-`cd` misresolution | friction | `variable-cd-misresolution` — shell variable resolution is not captured in any log. The fix landed with a 26-case suite; the suite is the falsifier, not a ledger metric |
+| 2026-08-01 | Land-verification by commit message | workflow | `land-verification-by-message-alone` — nothing records *how* a landing was verified. The rule earned ("verify by content on main, never by message") belongs in a ref, not under a metric |
+| 2026-08-02 | CLA-78 pre-commit/CI lint skew | quality | `precommit-ci-lint-skew` — requires paired local/CI lint runs; only one side is logged. `scripts/lint-parity.sh` already *is* the check, and it exits non-zero on a real break — a ledger row measuring a checker that already fails loudly adds nothing. The job-system GAP it flags stays open as work, not as a hypothesis |
+| 2026-07-31 | Dispatches ending staged | friction | `dispatches-ending-staged` — dispatch outcomes are not recorded as events. The rule is documented in CLAUDE.md Session hygiene step 4; enforcement would be a hook, not a measurement |

@@ -12,9 +12,13 @@ Ported from ramseywise/librarian tools/cartographer/__main__.py:147-458 (`_run_f
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from telemetry.signals import SignalSources
 
 from telemetry.log_config import configure_logging
 
@@ -772,6 +776,111 @@ def _run_consistency() -> None:
     )
 
 
+def _read_jsonl(path: Path) -> list[dict[str, Any]]:
+    """Read a JSONL log, skipping malformed lines rather than failing the run.
+
+    The hook logs are appended to by shell hooks; a truncated final line during a
+    concurrent write must not abort verdict scoring.
+    """
+    if not path.exists():
+        return []
+    rows: list[dict[str, Any]] = []
+    with path.open(encoding="utf-8", errors="replace") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                rows.append(json.loads(line))
+            except ValueError:
+                continue
+    return rows
+
+
+def _build_signal_sources(
+    store: Path,
+    workspace: Path,
+    hook_log: Path,
+    hook_pass_log: Path,
+) -> SignalSources:
+    """Assemble every source a signal resolver may read.
+
+    Passing only session rows (the pre-2026-08-19 behaviour) would make every
+    git-, hooklog-, findings- and repofile-backed signal silently resolve to
+    "no data" -- indistinguishable from a genuine empty window.
+    """
+    from telemetry.factstore import read_all, read_findings
+    from telemetry.gitstore import read_git_activity, read_issues, read_prs
+    from telemetry.signals import SignalSources
+
+    return SignalSources(
+        sessions=read_all(store),
+        git_activity=read_git_activity(store),
+        prs=read_prs(store),
+        issues=read_issues(store),
+        findings=read_findings(store),
+        hook_log=_read_jsonl(hook_log),
+        hook_pass_log=_read_jsonl(hook_pass_log),
+        workspace=workspace,
+    )
+
+
+def _report_signal_coverage(experiments: list[Any]) -> None:
+    """Print which ledger rows are scorable and, for the rest, *why* not.
+
+    The failure this addresses: 49 of 59 rows reported one collapsed
+    `inconclusive` message, so a row nobody had registered looked identical to a
+    row no telemetry could ever observe. The three causes have different owners --
+    register a name, change a collector, or rewrite the hypothesis -- so they are
+    listed separately with the names spelled out.
+    """
+    from telemetry import signals
+    from telemetry.verdicts import _normalize_signal, parse_metric
+
+    buckets: dict[str, list[str]] = {
+        signals.UNREGISTERED: [],
+        signals.NEEDS_COLLECTION: [],
+        signals.UNOBSERVABLE: [],
+    }
+    scorable = 0
+    untyped = 0
+
+    for exp in experiments:
+        clauses = parse_metric(exp.metric)
+        if not clauses:
+            untyped += 1
+            continue
+        states = {}
+        for clause in clauses:
+            name = _normalize_signal(clause.signal)
+            states[name] = signals.state_of(name)
+        if all(state == signals.REGISTERED for state in states.values()):
+            scorable += 1
+            continue
+        # Report the row under its most actionable blocker, worst-first.
+        for state in (signals.UNREGISTERED, signals.NEEDS_COLLECTION, signals.UNOBSERVABLE):
+            named = sorted(n for n, s in states.items() if s == state)
+            if named:
+                buckets[state].extend(named)
+                break
+
+    total = len(experiments)
+    print(f"  scorable: {scorable}/{total} ({untyped} rows carry no typed metric)")
+
+    labels = [
+        (signals.UNREGISTERED, "unregistered — declare in telemetry/signals.py"),
+        (signals.NEEDS_COLLECTION, "needs collection change — capture the field first"),
+        (signals.UNOBSERVABLE, "unobservable — rewrite the hypothesis"),
+    ]
+    for state, label in labels:
+        names = sorted(set(buckets[state]))
+        if not names:
+            continue
+        print(f"  {len(names)} {label}:")
+        for name in names:
+            print(f"    - {name}")
+
+
 def _run_facts() -> None:
     """Refresh the session fact table and inject dashboard regions.
 
@@ -955,11 +1064,16 @@ def _run_facts() -> None:
         ledger_log_path = Path(args.ledger_log).expanduser() if args.ledger_log else None
         if ledger_path.exists():
             experiments = parse_ledger(ledger_path, ledger_log_path)
-            scored_rows = read_all(store)
             run_at = datetime.now(UTC).isoformat()
+            sources = _build_signal_sources(
+                store,
+                Path(args.workspace).expanduser(),
+                Path(args.hook_log).expanduser(),
+                Path(args.hook_pass_log).expanduser(),
+            )
             verdict_rows = []
             for exp in experiments:
-                verdict = score_metric(exp.metric, scored_rows)
+                verdict = score_metric(exp.metric, sources)
                 verdict_rows.append(
                     {
                         "experiment": exp.name,
@@ -971,6 +1085,7 @@ def _run_facts() -> None:
                 )
             appended = append_verdicts(verdict_rows, store, run_at)
             print(f"Verdicts: {appended} scored -> {store}")
+            _report_signal_coverage(experiments)
         else:
             print(f"Verdicts: skipped — ledger not found at {ledger_path}")
 
