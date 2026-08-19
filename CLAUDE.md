@@ -167,3 +167,5 @@ state, insights, telemetry, and the dashboard.
 ## Settings
 
 `defaultMode: acceptEdits` — edits auto-apply. Denied: `git push`, `git commit` (Ramsey commits, always), `sudo`, destructive `rm`.
+
+**File-replace discipline**: Use `Edit` for surgical changes to files the user may be viewing; `Write`-replacing (full overwrite) destroys the user's reference copy mid-review. Before replacing any file with `Write`, confirm which file Ramsey is actively looking at.

@@ -33,6 +33,30 @@ class EmptyInputError(RuntimeError):
     """
 
 
+def _assert_store_fresh(store: Path, days: int = 30) -> None:
+    """Abort before rendering if the store has no sessions in the last `days` days.
+
+    A decoy store (wrong path, stale copy) renders a silently empty dashboard that is
+    byte-for-byte a healthy-looking run (R12 F4; the `data/sessions.db.bak` decoy).
+    Same fail-loud rationale as EmptyInputError: exit non-zero rather than render
+    from data that cannot be current.
+    """
+    import sqlite3
+
+    with sqlite3.connect(store) as conn:
+        count = conn.execute(
+            "SELECT COUNT(*) FROM sessions WHERE date > date('now', ?)",
+            (f"-{days} days",),
+        ).fetchone()[0]
+    if count == 0:
+        exc = EmptyInputError(
+            f"store at {store} has no sessions in the last {days} days — "
+            "likely a decoy or wrong path; refusing to render"
+        )
+        print(f"FATAL: {exc}", file=sys.stderr)
+        raise SystemExit(1) from exc
+
+
 def main() -> None:
     """Route to the appropriate telemetry subcommand."""
     configure_logging()
@@ -1168,6 +1192,7 @@ def _run_facts() -> None:
     # coupling them would mean the daily job never refreshes a region. --no-inject is
     # the only opt-out.
     if not args.no_inject:
+        _assert_store_fresh(store)
         from telemetry.actions import read_actions
         from telemetry.dashboard import (
             inject_regions,
