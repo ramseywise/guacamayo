@@ -184,17 +184,16 @@ so the counter never advances and the next session sees the same trigger. Phase 
 already compacted, so the window can afford it.
 
 ```
-Agent(model: "sonnet", run_in_background: false)
+Agent(agentType: "persistence", model: "sonnet", run_in_background: false)
 prompt: |
   Repo: ~/workspace/guacamayo
   Task: Run /meta-retro. Read .sounding/insights/insights-log.md for latest insights data,
-  then propose config changes. Update .sounding/tooling-ledger.md (active hypotheses)
-  and .sounding/tooling-ledger-log.md (graduated experiments). Increment retro number
-  from the latest R# header in tooling-ledger-log.md.
-  Constraint: Read files before editing. Propose changes — do not auto-apply to
-  ~/.claude/ config. Stage results only — never commit or push; Ramsey reviews
-  and commits.
+  then propose config changes.
+  Constraint: Read files before editing.
 ```
+
+The retro contract (ledger targets, R# increment, propose-only, never commit) lives in
+`.claude/agents/persistence.md` — the agentType loads it.
 
 **Then verify it landed — the agent's success report is not evidence.**
 

@@ -3404,3 +3404,116 @@ def test_data_block_region_faceted_series_include_r_field(tmp_path: Path) -> Non
     # The compaction and sessions_week arrays must contain at least one point
     # with an `r:` field (regime).
     assert ",r:" in out, "no r: field found — faceted series not emitting regime"
+
+
+# ---------------------------------------------------------------------------
+# render_scope_decisions_region tests (GUA-152)
+# ---------------------------------------------------------------------------
+
+
+def test_scope_decisions_empty_state(tmp_path: Path) -> None:
+    from telemetry.dashboard import render_scope_decisions_region
+
+    out = render_scope_decisions_region(tmp_path / "scope-decisions.jsonl")
+    assert "No scope decisions" in out
+    assert "workflow-scope" in out
+
+
+def test_scope_decisions_renders_job_type_bar(tmp_path: Path) -> None:
+    import json
+
+    from telemetry.dashboard import render_scope_decisions_region
+
+    log = tmp_path / "scope-decisions.jsonl"
+    records = [
+        {
+            "ts": "2026-08-19T10:00:00Z",
+            "issue": 152,
+            "repo": "guacamayo",
+            "state": "CLEAR",
+            "entry_point": "plan",
+            "job_type": "new-feature",
+            "outcome": "ready",
+            "retries": 0,
+        },
+        {
+            "ts": "2026-08-19T11:00:00Z",
+            "issue": 100,
+            "repo": "guacamayo",
+            "state": "UNSCOPED",
+            "entry_point": "research",
+            "job_type": "debug",
+            "outcome": "ready",
+            "retries": 1,
+        },
+    ]
+    log.write_text("\n".join(json.dumps(r) for r in records))
+
+    out = render_scope_decisions_region(log)
+    assert "2 issues scoped" in out
+    assert "new-feature" in out
+    assert "debug" in out
+    assert "2 reached READY" in out
+
+
+def test_scope_decisions_tolerates_missing_job_type(tmp_path: Path) -> None:
+    import json
+
+    from telemetry.dashboard import render_scope_decisions_region
+
+    log = tmp_path / "scope-decisions.jsonl"
+    log.write_text(
+        json.dumps(
+            {
+                "ts": "2026-08-19T09:00:00Z",
+                "issue": 99,
+                "repo": "guacamayo",
+                "state": "CLEAR",
+                "entry_point": "plan",
+            }
+        )
+    )
+    out = render_scope_decisions_region(log)
+    # must not raise; should contain the card title
+    assert "Triage pipeline" in out
+
+
+# --- retro-header parse (GUA-149) ------------------------------------------
+
+
+def test_pipeline_health_retro_picks_latest_not_last_in_file(tmp_path: Path) -> None:
+    """render_pipeline_health_region must pick the most-recent retro by date.
+
+    tooling-ledger-log.md sections are NOT in chronological order — they are
+    appended at write time, so R10 appears before R9 when R9 was written later.
+    The old ``headers[-1]`` approach returned the last section in file order
+    (e.g. "## R2"), not the most-recent one (e.g. "## R11 · 2026-08-18").
+    """
+    from telemetry.dashboard import render_pipeline_health_region
+
+    # Build a minimal sounding directory with an out-of-order ledger log.
+    sounding = tmp_path / ".sounding"
+    sounding.mkdir()
+    ledger_log = sounding / "tooling-ledger-log.md"
+    ledger_log.write_text(
+        "## R0\n2026-07-01 first retro\n\n"
+        "## R1\n2026-07-15 second retro\n\n"
+        "## R10\n2026-08-10 tenth retro\n\n"
+        "## R11\n2026-08-18 latest retro\n\n"
+        "## R9\n2026-08-05 ninth retro\n\n"
+        "## R2\n2026-07-20 second addendum\n",
+        encoding="utf-8",
+    )
+
+    # store path: render_pipeline_health_region derives guacamayo_root as store.parent.parent
+    # (the comment in dashboard.py says "store is …/librarian/data/sessions.db", so
+    # store.parent.parent == librarian/, not the guacamayo root).  The actual derivation is
+    # guacamayo_root = store.parent.parent — so to get tmp_path as the guacamayo root, place
+    # the store at tmp_path/data/sessions.db (store.parent.parent == tmp_path).
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+
+    out = render_pipeline_health_region(store)
+
+    assert "R11" in out, f"Expected most-recent retro 'R11' in output but got:\n{out[:500]}"
+    assert "2026-08-18" in out, f"Expected date '2026-08-18' from R11 section but got:\n{out[:500]}"

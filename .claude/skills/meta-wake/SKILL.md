@@ -87,6 +87,11 @@ Read `.sounding/telemetry/cascade-state.json` (`jq -c '{compacts,grows_due,insig
 — the PreCompact hook's cascade ledger. A nonzero `retro_due` above its `retro_acked` counterpart
 means enough compaction-measured work has accumulated to warrant a retro; surface it in the
 session-open summary alongside the ≥7-day check. Absent file = cascade never fired; not an error.
+Check `.sounding/telemetry/feedback-log.md` — the /meta-feedback verification log (the
+loop's one human gate). Absent file = feedback has **never run**: report `feedback: never run`
+in the session-open summary — insights findings exist unverified until Ramsey runs
+/meta-feedback. If present, surface the most recent entry date by max date (same rule as
+insights-log: max `## YYYY-MM-DD` header, not file position).
 Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board (cross-repo)
@@ -286,6 +291,7 @@ If ready items exist           → "Ready items available — pick one for /work
 If no backlog, no ready        → "Board is clear — work or run /meta-insights to check for friction"
 If hypothesis rows > 2 wks    → "Stale hypotheses — run /meta-insights → /meta-retro"
 If insights-log.md date ≥7d → "⚠ Weekly retro overdue (last: YYYY-MM-DD) — run /meta-insights → /meta-retro in next opus session"
+If feedback-log.md absent + insights findings exist → "feedback: never run — insights findings unverified; run /meta-feedback (human gate)"
 If PLANNED plans without issue → "Unissued plans: [name] — create issue or keep plan-only"
 ```
 

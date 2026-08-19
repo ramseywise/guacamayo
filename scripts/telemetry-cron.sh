@@ -89,12 +89,14 @@ esac
 log "--- run finished (exit ${EXIT_CODE})"
 
 # ---------------------------------------------------------------------------
-# Insights auto-trigger (GUA-138 Session B)
+# Insights auto-trigger (GUA-138 Session B; headless spawn added GUA-150 step 1)
 #
-# After each facts run: check two conditions against the live workspace and
-# write a marker file if either is true. The marker is consumed (and deleted)
-# by the next /meta-grow or /meta-wake invocation — no `claude -p` here,
-# which avoids per-cron token cost (OQ1 in the plan doc).
+# After each facts run: check two conditions against the live workspace. When
+# either is true, write the marker (still consumed by the next manual
+# /meta-grow or /meta-wake) AND spawn `claude -p "/meta-insights"` headlessly,
+# mirroring the retro spawn pattern below: lockfile + once-per-day stamp +
+# spawn_insights row in actions.jsonl. The stamp bounds token cost to at most
+# one spawn per day.
 #
 # Conditions (either → trigger):
 #   1. growth.md has ≥ 3 entries (accumulation signal)
@@ -102,11 +104,15 @@ log "--- run finished (exit ${EXIT_CODE})"
 #
 # To disable: set INSIGHTS_TRIGGER_ENABLED= (empty string) below.
 INSIGHTS_TRIGGER_ENABLED=1
-INSIGHTS_MARKER="${TELEMETRY_DIR:-${REPO_DIR}/.sounding/telemetry}/insights-due.marker"
-INSIGHTS_LOCK="/tmp/guacamayo-insights.lock"
+TELEMETRY_DIR="${REPO_DIR}/.sounding/telemetry"
+INSIGHTS_MARKER="${TELEMETRY_DIR}/insights-due.marker"
+INSIGHTS_LOCK="${TELEMETRY_DIR}/insights-spawn.lock"
 INSIGHTS_LOG="${REPO_DIR}/logs/insights-auto.log"
 GROWTH_FILE="${REPO_DIR}/.sounding/growth/growth.md"
 INSIGHTS_LOG_FILE="${REPO_DIR}/.sounding/insights/insights-log.md"
+INSIGHTS_ACTIONS_LOG="${TELEMETRY_DIR}/actions.jsonl"
+INSIGHTS_STAMP_DIR="${TELEMETRY_DIR}/stamps"
+INSIGHTS_STAMP="${INSIGHTS_STAMP_DIR}/insights-spawn-$(date '+%Y-%m-%d')"
 
 if [ "${INSIGHTS_TRIGGER_ENABLED:-}" = "1" ] && [ "${MODE}" = "facts" ]; then
     mkdir -p "$(dirname "${INSIGHTS_LOG}")"
@@ -114,7 +120,11 @@ if [ "${INSIGHTS_TRIGGER_ENABLED:-}" = "1" ] && [ "${MODE}" = "facts" ]; then
     # --- Condition 1: growth count ---
     growth_count=0
     if [ -f "${GROWTH_FILE}" ]; then
-        growth_count="$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' "${GROWTH_FILE}" 2>/dev/null || echo 0)"
+        # `|| true`, not `|| echo 0`: grep -c already prints 0 on no match while
+        # exiting 1, so `|| echo 0` would yield the two-line value "0\n0" and
+        # corrupt the JSON evidence below.
+        growth_count="$(grep -cE '^[0-9]{4}-[0-9]{2}-[0-9]{2}' "${GROWTH_FILE}" 2>/dev/null || true)"
+        growth_count="${growth_count:-0}"
     fi
 
     # --- Condition 2: insights staleness ---
@@ -158,16 +168,46 @@ if [ "${INSIGHTS_TRIGGER_ENABLED:-}" = "1" ] && [ "${MODE}" = "facts" ]; then
     fi
 
     if [ -n "${trigger_reason}" ]; then
-        # Acquire lockfile (non-blocking mkdir)
+        # Acquire lockfile (non-blocking mkdir) — guards both the marker write
+        # and the headless spawn against a concurrent facts run.
         if ! mkdir "${INSIGHTS_LOCK}" 2>/dev/null; then
             echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: lockfile held, skipping" >> "${INSIGHTS_LOG}"
+            _ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+            printf '%s\n' "{\"ts\":\"${_ts}\",\"action\":\"spawn_insights\",\"outcome\":\"declined\",\"reason\":\"lockfile_held\",\"evidence\":{\"growth_count\":${growth_count},\"insights_stale\":${insights_stale}}}" >> "${INSIGHTS_ACTIONS_LOG}"
         else
             ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
-            # Write marker for /meta-grow or /meta-wake to consume
+            # Write marker for /meta-grow or /meta-wake to consume (manual path
+            # stays intact — the spawn below is the automated path)
             printf 'reason: %s\ntimestamp: %s\ngrowth_count: %s\ninsights_last: %s\n' \
                 "${trigger_reason}" "${ts}" "${growth_count}" "${insights_last_date:-none}" \
                 > "${INSIGHTS_MARKER}"
             echo "$(date '+%Y-%m-%d %H:%M:%S') insights-trigger: marker written (${trigger_reason})" >> "${INSIGHTS_LOG}"
+
+            # Headless spawn (GUA-150 step 1) — once-per-day stamp bounds cost
+            mkdir -p "${INSIGHTS_STAMP_DIR}"
+            if [ -f "${INSIGHTS_STAMP}" ]; then
+                echo "$(date '+%Y-%m-%d %H:%M:%S') insights-spawn: already ran today (stamp exists), skipping" >> "${INSIGHTS_LOG}"
+                _ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+                printf '%s\n' "{\"ts\":\"${_ts}\",\"action\":\"spawn_insights\",\"outcome\":\"declined\",\"reason\":\"already_ran_today\",\"evidence\":{\"growth_count\":${growth_count},\"insights_stale\":${insights_stale}}}" >> "${INSIGHTS_ACTIONS_LOG}"
+            else
+                echo "$(date '+%Y-%m-%d %H:%M:%S') insights-spawn: spawning /meta-insights (sonnet) — ${trigger_reason}" >> "${INSIGHTS_LOG}"
+                touch "${INSIGHTS_STAMP}"
+                spawn_outcome="acted"
+                spawn_error=""
+                if claude -p "/meta-insights" --model sonnet >> "${LOG_FILE}" 2>&1; then
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') insights-spawn: claude exited 0" >> "${INSIGHTS_LOG}"
+                else
+                    spawn_outcome="declined"
+                    spawn_error="claude exited non-zero"
+                    echo "$(date '+%Y-%m-%d %H:%M:%S') insights-spawn: FAILED — ${spawn_error}" >> "${INSIGHTS_LOG}"
+                fi
+                _ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+                if [ "${spawn_outcome}" = "acted" ]; then
+                    printf '%s\n' "{\"ts\":\"${_ts}\",\"action\":\"spawn_insights\",\"outcome\":\"acted\",\"reason\":\"${trigger_reason}\",\"evidence\":{\"growth_count\":${growth_count},\"insights_stale\":${insights_stale}}}" >> "${INSIGHTS_ACTIONS_LOG}"
+                else
+                    printf '%s\n' "{\"ts\":\"${_ts}\",\"action\":\"spawn_insights\",\"outcome\":\"declined\",\"reason\":\"${spawn_error}\",\"evidence\":{\"growth_count\":${growth_count},\"insights_stale\":${insights_stale}}}" >> "${INSIGHTS_ACTIONS_LOG}"
+                fi
+            fi
             rmdir "${INSIGHTS_LOCK}"
         fi
     else

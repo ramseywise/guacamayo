@@ -28,7 +28,7 @@ self-blocks when a consciousness exists. Identity evolution flows through the li
 below. Day-to-day starts with `/meta-wake`.
 
 `.sounding/context-dashboard.html` is the live rendering of everything described here — it
-shares the diagrams below, and its six monitoring tabs measure whether the system is
+shares the diagrams below, and its seven monitoring tabs measure whether the system is
 actually behaving the way this README claims.
 
 ---
@@ -48,6 +48,14 @@ into permanent config; improved config shapes the next session.
 | `/meta-retro` | Feedback routed findings, or cascade threshold reached | Proposes config diffs → `tooling-ledger.md`. Files issues back to the board. **Propose-only** | No |
 | → config | Ramsey reviews each diff | Graduates to hooks / skills / rules | **Yes** |
 | `/hypothesis` | Any session | Turns a retro recommendation into a falsifiable ledger row with a typed metric and due date | — |
+
+**Automation triggers (GUA-150):** The two "No" rows fire without human invocation.
+`/meta-insights` is spawned headlessly by `scripts/telemetry-cron.sh` when either condition
+is met (growth ≥ 3 entries OR insights stale > 3 days), using a once-per-day stamp and lockfile
+to prevent double-firing — the same pattern as the retro spawn that preceded it.
+`/meta-retro` is spawned by the same cron when the cascade threshold is reached.
+The SessionStart hook emits a 3-line status (cascade state + board staleness + growth count)
+so the human can see at a glance whether any stage needs attention.
 
 **`/meta-feedback` is the load-bearing gate, and it is the one most easily skipped.**
 A dashboard number is a claim, not a finding. Insights derive patterns from telemetry, but
