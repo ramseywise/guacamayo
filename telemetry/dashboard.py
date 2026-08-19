@@ -6880,6 +6880,7 @@ def render_token_grid_region(store: Path) -> str:
 
 _RETRO_HEADER = re.compile(r"^## R\d+", re.MULTILINE)
 _INSIGHTS_DATE = re.compile(r"^## \d{4}-\d{2}-\d{2}", re.MULTILINE)
+_FEEDBACK_RUN_HEADER = re.compile(r"^# Feedback Run\s*[—-]\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
 _GROWTH_ENTRY = re.compile(r"^\[(?:discovered|confirmed|corrected)\]", re.MULTILINE)
 
 
@@ -6924,7 +6925,7 @@ def render_pipeline_health_region(store: Path) -> str:
 
     * Capture  — ``sessions.db`` mtime  (librarian-owned; guacamayo reads it)
     * Insights — ``insights-log.md`` max date header
-    * Feedback — always "— manual" (human gate by design)
+    * Feedback — ``feedback-log.md`` last ``# Feedback Run`` header (grey when never run)
     * Retro    — ``tooling-ledger-log.md`` last ``## R<N>`` header
     * Config   — ``tooling-ledger.md`` open hypothesis count
 
@@ -7000,6 +7001,26 @@ def render_pipeline_health_region(store: Path) -> str:
         # Subtract the header row
         hyp_count = max(0, len(rows_found) - 1)
 
+    # ── Feedback: last # Feedback Run header in feedback-log.md ─────────────
+    # Manual gate, but still observable: a gate that never fires is exactly what
+    # a "healthy" pipeline would otherwise hide. Absent log renders grey "never
+    # run" rather than red, so an unfired gate reads as awaiting its first run.
+    fb_dt: _datetime | None = None
+    fb_path = sounding_root / "telemetry" / "feedback-log.md"
+    if fb_path.exists():
+        dates = _FEEDBACK_RUN_HEADER.findall(fb_path.read_text(encoding="utf-8", errors="replace"))
+        if dates:
+            try:
+                fb_dt = _datetime.fromisoformat(max(dates)).replace(tzinfo=UTC)
+            except ValueError:
+                fb_dt = None
+    if fb_dt is None:
+        fb_glyph, fb_label = "—", "never run"
+        fb_detail, fb_style = "manual gate — not yet run", "color:var(--text-3)"
+    else:
+        fb_glyph, fb_label = _age_label(fb_dt, now=now)
+        fb_detail, fb_style = "manual gate", _cell_style(fb_glyph)
+
     def _stage(name: str, glyph: str, label: str, detail: str, style: str) -> str:
         return (
             f'<div class="ph-cell" style="{style}">'
@@ -7024,7 +7045,7 @@ def render_pipeline_health_region(store: Path) -> str:
                 ins_path.name if ins_path.exists() else "not found",
                 _cell_style(ins_glyph),
             ),
-            _stage("Feedback", "—", "manual", "human gate", "color:var(--text-3)"),
+            _stage("Feedback", fb_glyph, fb_label, fb_detail, fb_style),
             _stage("Retro", retro_glyph, retro_age, retro_label_text, _cell_style(retro_glyph)),
             _stage("Config", "·", config_label, "open hypotheses", config_style),
         ]
@@ -7035,11 +7056,89 @@ def render_pipeline_health_region(store: Path) -> str:
         '<div class="card-title">Pipeline health</div>'
         '<p class="card-note">Each stage of the metacognition pipeline — last run time '
         "and freshness. Green &lt;24 h, yellow 1–7 d, red &gt;7 d or never. "
-        "Feedback is a permanent human gate.</p>"
+        "Feedback is a permanent human gate — manual, but still aged, so a gate "
+        "that never fires cannot hide behind a healthy loop.</p>"
         f'<div class="ph-grid" style="display:flex;gap:12px;flex-wrap:wrap;margin-top:12px">'
         f"{cells}</div>"
         '<p style="font-size:11px;color:var(--text-3);margin-top:8px;font-style:italic">'
         "Capture = sessions.db mtime; Insights = insights-log.md max date; "
+        "Feedback = feedback-log.md last run header; "
         "Retro = tooling-ledger-log.md last R# header; Config = open hypothesis rows.</p>"
         "</div>"
     )
+
+
+def render_scope_decisions_region(scope_log: Path | None) -> str:
+    """Render the triage pipeline card from scope-decisions.jsonl."""
+    if not scope_log or not scope_log.exists():
+        return (
+            '<div class="card">'
+            '<div class="card-title">Triage pipeline</div>'
+            '<p class="card-note">No scope decisions yet. '
+            "Run <code>/workflow-scope &lt;issue#&gt;</code> to triage a backlog issue.</p>"
+            "</div>"
+        )
+
+    records = []
+    for line in scope_log.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError:
+            continue
+
+    if not records:
+        return (
+            '<div class="card">'
+            '<div class="card-title">Triage pipeline</div>'
+            '<p class="card-note">No scope decisions recorded yet.</p>'
+            "</div>"
+        )
+
+    total = len(records)
+    outcomes = [r for r in records if r.get("outcome")]
+    ready = sum(1 for r in outcomes if r["outcome"] == "ready")
+    blocked = sum(1 for r in outcomes if r["outcome"] == "blocked")
+    retries = sum(int(r.get("retries") or 0) for r in outcomes)
+
+    entry_points: dict[str, int] = {}
+    for r in records:
+        ep = r.get("entry_point", "unknown")
+        entry_points[ep] = entry_points.get(ep, 0) + 1
+
+    ep_bar = "".join(
+        f'<div style="flex:{cnt};background:{_scope_color(ep)};display:flex;'
+        f"align-items:center;justify-content:center;font-size:10px;color:white;"
+        f'font-weight:600;min-width:30px;border-radius:3px">{ep}</div>'
+        for ep, cnt in sorted(entry_points.items(), key=lambda kv: -kv[1])
+    )
+
+    return (
+        '<div class="card">'
+        '<div class="card-title">Triage pipeline</div>'
+        f'<p class="card-note">{total} issues scoped. '
+        f"{ready} reached READY, {blocked} blocked, {retries} total retries.</p>"
+        f'<div style="display:flex;height:24px;border-radius:5px;overflow:hidden;'
+        f'margin:12px 0;gap:2px">{ep_bar}</div>'
+        '<div style="display:flex;gap:16px;font-size:11px;color:var(--text-2);margin-bottom:8px">'
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s3)"></span>'
+        "plan (research skipped)</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s1)"></span>'
+        "research</span>"
+        '<span style="display:flex;align-items:center;gap:4px">'
+        '<span style="width:8px;height:8px;border-radius:50%;background:var(--s4)"></span>'
+        "refine</span></div>"
+        "</div>"
+    )
+
+
+def _scope_color(entry_point: str) -> str:
+    return {
+        "research": "var(--s1)",
+        "plan": "var(--s3)",
+        "refine": "var(--s4)",
+    }.get(entry_point, "var(--text-3)")

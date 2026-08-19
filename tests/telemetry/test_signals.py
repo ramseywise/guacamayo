@@ -12,6 +12,8 @@ absence, and a resolver with no data must return None rather than 0.
 from __future__ import annotations
 
 import json
+from datetime import UTC, date, timedelta
+from datetime import datetime as _datetime
 from pathlib import Path
 from typing import Any
 
@@ -234,3 +236,70 @@ def test_duplicate_ledger_signals_none_when_ledger_missing(tmp_path: Path) -> No
         signals.resolve("duplicate-active-ledger-signals", SignalSources(workspace=tmp_path))
         is None
     )
+
+
+# --- meta-feedback liveness (GUA-144) --------------------------------------
+
+
+def _utc_today() -> date:
+    """UTC today, matching the resolver's clock (DTZ011: no naive date.today())."""
+    return _datetime.now(UTC).date()
+
+
+def _write_feedback_log(tmp_path: Path, body: str) -> None:
+    log_dir = tmp_path / "guacamayo" / ".sounding" / "telemetry"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    (log_dir / "feedback-log.md").write_text(body, encoding="utf-8")
+
+
+def test_feedback_run_age_is_scorable() -> None:
+    """The signal is REGISTERED, not merely declared."""
+    assert signals.is_scorable("meta-feedback-run-age-days")
+
+
+def test_feedback_run_age_none_without_workspace() -> None:
+    """No workspace is no data -- an unrun gate must not score as a fresh one."""
+    assert signals.resolve("meta-feedback-run-age-days", SignalSources()) is None
+
+
+def test_feedback_run_age_none_when_log_missing(tmp_path: Path) -> None:
+    """The gate has never fired; that is absence of data, not a zero-day age."""
+    src = SignalSources(workspace=tmp_path)
+    assert signals.resolve("meta-feedback-run-age-days", src) is None
+
+
+def test_feedback_run_age_none_when_log_has_no_headers(tmp_path: Path) -> None:
+    """A log with prose but no dated run header carries no run to age."""
+    _write_feedback_log(tmp_path, "Notes about feedback but no run header.\n")
+    src = SignalSources(workspace=tmp_path)
+    assert signals.resolve("meta-feedback-run-age-days", src) is None
+
+
+def test_feedback_run_age_single_header(tmp_path: Path) -> None:
+    """A run ten days ago ages to exactly ten days."""
+    ten_days_ago = _utc_today() - timedelta(days=10)
+    _write_feedback_log(tmp_path, f"# Feedback Run — {ten_days_ago.isoformat()}\n\nVerified.\n")
+    src = SignalSources(workspace=tmp_path)
+    assert signals.resolve("meta-feedback-run-age-days", src) == 10.0
+
+
+def test_feedback_run_age_newest_wins_not_file_order(tmp_path: Path) -> None:
+    """The skill appends newest-at-top, but the resolver must not trust order."""
+    older = _utc_today() - timedelta(days=30)
+    newer = _utc_today() - timedelta(days=3)
+    # Deliberately written oldest-first to prove max() beats position.
+    _write_feedback_log(
+        tmp_path,
+        f"# Feedback Run — {older.isoformat()}\n\nOld.\n\n"
+        f"# Feedback Run — {newer.isoformat()}\n\nNew.\n",
+    )
+    src = SignalSources(workspace=tmp_path)
+    assert signals.resolve("meta-feedback-run-age-days", src) == 3.0
+
+
+def test_feedback_run_age_accepts_plain_hyphen(tmp_path: Path) -> None:
+    """A hand-written header using "-" instead of the template's em dash parses."""
+    today = _utc_today()
+    _write_feedback_log(tmp_path, f"# Feedback Run - {today.isoformat()}\n")
+    src = SignalSources(workspace=tmp_path)
+    assert signals.resolve("meta-feedback-run-age-days", src) == 0.0
