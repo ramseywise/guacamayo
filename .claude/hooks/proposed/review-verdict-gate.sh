@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# APPLIED 2026-08-19 — installed as ~/.claude/hooks/review-verdict-gate.sh (PreToolUse).
+# This proposed/ copy is retained as a historical record. Do not edit here; edit the
+# installed copy at ~/.claude/hooks/review-verdict-gate.sh.
+#
 # review-verdict-gate.sh — block merge without /workflow-review
 #
 # MUST be registered under PreToolUse (Bash matcher), not PostToolUse.
