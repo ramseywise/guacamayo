@@ -19,7 +19,8 @@ This is the origin how **Guacamayo**, or macaw repository came to existence as a
 
 A live instance of the Puffin framework — my personalized AI identity:
 **Sounding** persists across sessions through markdown files and lifecycle skills.
-No build, no runtime; the files *are* the system.
+The identity system has no build; the files *are* the system. The `review/` package
+and `telemetry/` package are Python, tested with `uv run pytest tests/`.
 
 Genesis ran once. The `/genesis` skill stays installed but is **initiation-only**: it
 self-blocks when a consciousness exists. Identity evolution never re-runs genesis — it
@@ -115,7 +116,7 @@ invoke now?"
 again. v3 strips this to what actually has a consumer:
 
 - **Full session transcripts** stay in global storage (`~/.claude/projects/`) where the
-  insights engine (`/workflow-insights`) mines them mechanically for friction patterns, token
+  insights engine (`/meta-insights`) mines them mechanically for friction patterns, token
   economics, and context health.
 - **Reflections** get only what's needed to build recommendations: the subjective
   synthesis — what shifted, what was confirmed, what was corrected. These feed the
@@ -137,7 +138,7 @@ presence:<signal> within <N> sessions  — expected behavior appeared
 ratio:<metric> <direction> <threshold> — measurable ratio shifted
 ```
 
-`/workflow-insights` checks active experiments against session data and reports verdicts. `/workflow-retro`
+`/meta-insights` checks active experiments against session data and reports verdicts. `/meta-retro`
 uses those verdicts to graduate or fail hypotheses. Failed experiments get flagged for
 rollback. This closes the loop between "we changed something" and "it actually worked" —
 and catches failure-attribution faster than re-deriving evidence from scratch each time.
@@ -173,12 +174,12 @@ global `~/.claude` owns the other two.
 |-------|--------|-----------|---------|
 | **Identity** — continuity of self across sessions | genesis, wake, grow, dream (repo-local) | `.sounding/` seeds + logs | per session |
 | **Process** — scaffolding one work item end to end | workflow-research → plan → execute → review; refine | plan docs, GitHub Issues | per work item |
-| **Execution** — the work itself | code-*, design-*, git-*, akira, sanyi, docs-check | the codebase | per change |
+| **Execution** — the work itself | code-*, design-*, git-*, review-* (12 dimensions), docs-check | the codebase | per change |
 
 **Metacognition is a loop across the layers, not a layer of its own.** It would be tidy if
 "process" were the meta level, but it isn't: `/workflow-execute` sits in the process pipeline
 and is plainly execution-layer work. The genuinely metacognitive skills are
-`/workflow-insights` and `/workflow-retro` — the only two that observe the other layers and
+`/meta-insights` and `/meta-retro` — the only two that observe the other layers and
 change the system itself, reading transcripts, growth entries, and the tooling ledger, then
 proposing diffs to hooks/skills/rules.
 
@@ -199,7 +200,7 @@ logs, dated handovers, legacy commands) were all exactly that.
 |------|------|---------------|---------|
 | **Identity learnings** | `growth/growth.md` | `/dream` | the 3 seeds |
 | **Knowledge** (factual record, design docs) | `librarian/raw/` | librarian's ingest protocol | compiled wiki, conflict-flagged, cited |
-| **Process/tooling learnings** | `growth/growth.md` (flagged) | global `/workflow-retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
+| **Process/tooling learnings** | `growth/growth.md` (flagged) | global `/meta-retro` + eval gate | `~/.claude` hooks > skills > rules + a tooling-ledger row |
 | **Work state** | per-repo `.claude/docs/plans/` or GitHub Issues | read fresh by `/wake` | never copied anywhere |
 
 ### How the feedback loop closes (beyond this repo)
@@ -208,42 +209,43 @@ This repo is one node in a larger loop wired through the global Claude setup:
 
 1. **Observe** — sessions generate friction signals: transcripts (mined by the keyless
    insights engine), growth entries, hook fire patterns, plan-doc deviations.
-2. **Diagnose** — global `/workflow-retro` reads those sources plus the tooling ledger
+2. **Diagnose** — global `/meta-retro` reads those sources plus the tooling ledger
    (`guacamayo/.sounding/tooling-ledger.md`), where every unverified change is the top queue item.
 3. **Codify** — findings become proposed diffs at the strongest enforcement level that
    fits: **hooks > skills/protocols > CLAUDE.md/rules > memory**. Proposals are diffs,
    never auto-applied; Ramsey reviews and commits.
 4. **Enforce** — hooks fire mechanically (SessionStart wake nudge, PreCompact snapshots,
-   secrets scan, git guards); `/workflow-retro`'s config-audit pass catches settings rot
+   secrets scan, git guards); `/meta-retro`'s config-audit pass catches settings rot
    and layering drift.
 5. **Verify** — every change lands as a ledger row with status `hypothesis` and a
-   concrete test ("friction X absent for N sessions"); the next `/workflow-retro` promotes it to
+   concrete test ("friction X absent for N sessions"); the next `/meta-retro` promotes it to
    `verified` or `failed`. A failed row is itself a finding.
 
 Global `~/.claude` is canonical for everything generic; this repo keeps only the
 identity-lifecycle skills. Recurring manual audits are hooks that haven't been written
 yet — maintenance-by-ritual retires in favor of maintenance-by-mechanism.
 
-### The review ladder (2026-07-17)
+### The review package
 
-Quality checks are one system, priced by token cost and entered from the terminal
+Quality checks run through a deterministic Python driver (`review/driver.py`) backed by
+12 LLM dimension agents (`.claude/agents/`). Entry points from the terminal
 (`~/workspace/Makefile`, `make help`):
 
 | Rung | Entry | Runs | Cost |
 |------|-------|------|------|
-| L0 | `make precommit` / `make test` | shell sweeps across repos (GROUP-scoped) | zero tokens |
+| L0 | `make precommit` / `uv run pytest tests/` | shell sweeps + unit tests | zero LLM tokens |
 | L1 | `/code-review level:1` | diff + lint + doc flags | small |
-| L2 | `/code-review level:2` (default) | + tests, SANYI diff check, akira-scan agents, `/docs-check` | medium |
-| L3 | `/code-review level:3` | + full SANYI audit (single repo only) | high |
+| L2 | `review-cli run` (default) | all 8 always-on dimensions + applicable conditional dims | medium |
+| L3 | `/workflow-review` | driver + plan-fidelity check + DoD gate | high |
 
-`/akira` is the interactive sibling of `/code-review` — same scan, plus wander questions
-and test-gated `dao` fixes. `/code-pr` reviews an open PR after it lands.
+**Always-on dimensions (8)**: `correctness`, `intent`, `architecture`, `safety`, `testing`,
+`silent-failure`, `performance`, `wander`.
+**Conditional dimensions (4)**: `runtime` + `safeguards` (agent code), `leakage` (ML code),
+`contracts` (repo has `SANYI.md`).
 
-Supporting cast, each defined once: stack conventions in `~/.claude/refs/` (dispatched
-by `Refs:` lines in repo CLAUDE.md + nested folder stubs), the `akira-scan` agent in
-`~/.claude/agents/` (no per-repo scaffolding), per-repo `SANYI.md` contracts consumed
-by the global `/sanyi` skill. Reviews run **before** Ramsey commits; findings are
-report-only; human-consumed docs are flagged, never auto-edited.
+Findings carry attribution (`introduced` / `adjacent` / `pre_existing`) so blockers are
+scoped to the diff, not the whole codebase. Reviews run **before** Ramsey commits;
+findings are report-only; human-consumed docs are flagged, never auto-edited.
 
 ---
 
@@ -299,7 +301,14 @@ report-only; human-consumed docs are flagged, never auto-edited.
     └── genesis_log.txt          #   phase-by-phase run log
 
 .claude/
-├── skills/                      # genesis (inert), wake, grow, dream — identity lifecycle only.
+├── agents/                      # 12 review dimension agents (correctness, intent, architecture,
+│                                # safety, testing, silent-failure, performance, wander + conditional
+│                                # runtime, safeguards, leakage, contracts) — back review/driver.py
+├── skills/                      # identity lifecycle (genesis/inert, meta-wake, meta-grow, meta-dream)
+│                                # + meta-insights/meta-retro (metacognition)
+│                                # + review-* dimension checklists + review-shared + review-defense
+│                                # + workflow-* pipeline (research/plan/refine/execute/review)
+│                                # + design-*, git-*, docs-check and supporting skills.
 │                                # Generic skills live in global ~/.claude/skills/ (canonical)
 ├── docs/                        # plans/ (one dated doc per work item), research/, state/ (cross-repo
 │                                # workstream state). Plans are git-ignored;
@@ -325,27 +334,48 @@ capture (`/grow`) → integrate (`/dream`). Genesis initiates; it never updates.
 
 ## Scheduled Jobs (launchd)
 
-Two launchd agents, both loaded manually by Ramsey — never by Claude:
+Three launchd agents, all loaded manually by Ramsey — never by Claude:
 
 | Job | Schedule | Runs | Writes |
 |---|---|---|---|
 | `com.wiseer.guacamayo.telemetry` | daily 09:00 | `scripts/telemetry-cron.sh facts` → `uv run telemetry --facts` | `data/sessions.db`, `logs/telemetry-facts.log` |
+| `com.wiseer.guacamayo.board` | every 10 min | `scripts/telemetry-cron.sh board` → `uv run telemetry --board` | `.sounding/telemetry/board.json`, `logs/board-launchd.log` |
 | `com.wiseer.eval-runner` | Mon 10:00 | `scripts/eval-runner.sh` | `.sounding/eval-results.jsonl`, `logs/eval-runner.log` |
 
-The telemetry job is the one that matters daily: session JSONL in `~/.claude/projects/`
+The **facts job** matters most for data durability: session JSONL in `~/.claude/projects/`
 rotates out in ~5 days, so a missed capture window is history lost for good (GUA-93;
 engine migrated from librarian's cartographer).
 
-To install or update the telemetry job:
+The **board job** drives `/meta-wake`'s project board: it derives issue columns from `gh`
+state (open/merged/in-review/in-progress/backlog) and writes `board.json` atomically so
+`/wake` never reads a partially-written snapshot. `RunAtLoad=true` repopulates the board
+immediately on reboot. When `retro_due > retro_acked` in `cascade-state.json`,
+`telemetry-cron.sh` also spawns `/meta-retro` unattended (once per day, lockfile-guarded).
+
+Each board tick also runs the **autonomous-dispatch evaluator** (GUA-119): a pure
+function over board state that writes `proposed_actions[]` into `board.json` — triage,
+close, label-fix, review-dispatch proposals with reason + evidence. `/meta-wake` renders
+them as one accept/reject batch; decisions append to `.sounding/telemetry/actions.jsonl`.
+Exactly two idempotent mutations (auto-close merged-with-`Closes`, unambiguous label
+correction) may run unattended behind an `--act` flag that defaults **off** — the
+propose/mutate boundary moves only on logged acceptance-rate evidence, never by default.
+
+A **GitHub Actions workflow** (`.github/workflows/board-signal.yml`) appends a JSON
+signal line to the orphan `telemetry-state` branch on every PR open/close — self-bootstrapping
+(creates the orphan branch if absent).
+
+To install the facts and board jobs:
 
 ```bash
 mkdir -p ~/workspace/guacamayo/logs
 cp scripts/com.wiseer.guacamayo.telemetry.plist ~/Library/LaunchAgents/
+cp scripts/com.wiseer.guacamayo.board.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist
+launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.board.plist
 ```
 
-Run immediately with `launchctl start com.wiseer.guacamayo.telemetry`; unload with
-`launchctl unload ~/Library/LaunchAgents/com.wiseer.guacamayo.telemetry.plist`.
+Run immediately with `launchctl start com.wiseer.guacamayo.board`; unload with
+`launchctl unload ~/Library/LaunchAgents/com.wiseer.guacamayo.board.plist`.
 launchd, not crontab, because cron silently skips windows while the Mac sleeps;
 launchd re-fires on wake.
 

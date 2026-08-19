@@ -143,6 +143,26 @@ Don't wait for it — continue with signal reads below using existing data. The 
 - `.sounding/tooling-ledger.md` → count hypothesis rows. Any older than 2 weeks?
 - `.sounding/growth/growth.md` entry count → is synthesis approaching (5+ entries)?
 - Did this session touch tooling (hooks, skills, rules, settings, global config)? → this is a retro trigger in its own right. Spawn the retro here (see the cascade section below) rather than flagging it for /meta-dream. /meta-dream re-checks the same condition from `git diff`, not from this summary, so a missed flag is recoverable — but a flag is not a handoff.
+- **Overdue hypotheses (content-driven retro trigger)** — the cascade counter is cadence-based
+  (compaction count), but hypotheses have due dates. Content overdue ≠ cadence overdue. Check:
+  ```bash
+  # Due dates appear as "due 08-17" (no year) or "due 2026-08-17" — normalize both
+  grep -E 'hypothesis.*due ' .sounding/tooling-ledger.md \
+    | grep -oE 'due [0-9]{2,4}-[0-9]{2}(-[0-9]{2})?' \
+    | awk -v today="$(date +%F)" -v year="$(date +%Y)" '{
+        gsub(/due /,"",$0); n_parts=split($0,d,"-");
+        if(n_parts==2) { m=d[1]; dy=d[2]; y=year }
+        else if(length(d[1])==4) { y=d[1]; m=d[2]; dy=d[3] }
+        else { m=d[1]; dy=d[2]; y=year };
+        due=y*10000+m*100+dy; split(today,t,"-"); now=t[1]*10000+t[2]*100+t[3];
+        if(now-due>14) overdue++
+      } END{print overdue+0}'
+  ```
+  If the count is >3 (more than 3 hypotheses overdue by 14+ days), this is a **retro trigger
+  independent of the cascade**. Spawn `/meta-retro` exactly as in the cascade path below.
+  Report as `Retro: content-triggered (N hypotheses overdue >14d)` in the signal summary.
+  This catches the gap where low compaction count (short sessions, no context pressure) means
+  the cascade never fires, but the ledger has stale rows accumulating silently.
 - **Cascade ledger** — `.sounding/telemetry/cascade-state.json`, maintained by the PreCompact
   hook (`~/.claude/hooks/lifecycle_cascade.sh`). Compaction is the cadence signal: it fires on
   context pressure, so it tracks real work rather than wall-clock. Read it with
