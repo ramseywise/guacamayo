@@ -43,6 +43,9 @@ import json
 import re
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import UTC
+from datetime import date as _date
+from datetime import datetime as _datetime
 from pathlib import Path
 from typing import Any
 
@@ -352,6 +355,33 @@ def _duplicate_ledger_signals(src: SignalSources) -> float | None:
     return float(sum(1 for n in counts.values() if n > 1))
 
 
+_FEEDBACK_LOG = Path(".sounding/telemetry/feedback-log.md")
+_FEEDBACK_RUN_HEADER = re.compile(r"^# Feedback Run\s*[—-]\s*(\d{4}-\d{2}-\d{2})", re.MULTILINE)
+
+
+def _feedback_run_age_days(src: SignalSources) -> float | None:
+    """Days since the last /meta-feedback run.
+
+    None when the workspace, repo or log is absent -- the gate is manual, so an
+    unfired gate must read as "no data", never as a fresh zero.
+    """
+    if src.workspace is None:
+        return None
+    log = src.workspace / "guacamayo" / _FEEDBACK_LOG
+    if not log.is_file():
+        return None
+    dates = _FEEDBACK_RUN_HEADER.findall(log.read_text(encoding="utf-8", errors="replace"))
+    if not dates:
+        return None
+    try:
+        newest = _date.fromisoformat(max(dates))
+    except ValueError:
+        return None
+    # UTC, matching the dashboard's ageing ladder -- a local-time `today()` would
+    # make the same log read one day older or younger than the rendered cell.
+    return float((_datetime.now(UTC).date() - newest).days)
+
+
 # ---------------------------------------------------------------------------
 # The registry
 # ---------------------------------------------------------------------------
@@ -492,6 +522,14 @@ _ENTRIES: list[Signal] = [
         "Heavy sessions (>100 tool calls) with no TodoWrite call. Heavy is pinned "
         "here at 100 so the metric resolves; it was unobservable only because the "
         "threshold lived per-hypothesis and was never stored.",
+    ),
+    Signal(
+        "meta-feedback-run-age-days",
+        REGISTERED,
+        KIND_REPOFILE,
+        _feedback_run_age_days,
+        "Days since the last /meta-feedback run (None when never run — the gate is "
+        "manual, so absence means unfired, never fresh).",
     ),
     # --- needs-collection: observable, but the field is not captured ---
     Signal(
