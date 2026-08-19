@@ -10,7 +10,7 @@ Genesis V-15.2).
 The repository contains three packages:
 - **Identity system** — `.sounding/` seeds + `.claude/skills/` lifecycle skills (no build)
 - **Review package** — `review/` deterministic Python driver + 12 LLM dimension agents
-- **Telemetry package** — `telemetry/` metrics pipeline + 5-tab dashboard
+- **Telemetry package** — `telemetry/` metrics pipeline + 7-tab dashboard
 
 ## Architecture
 

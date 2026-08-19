@@ -37,7 +37,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 > spawn retro/insights only when a human invokes them; cron triggers are wired but
 > not yet firing.
 
-The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Five tabs: **Overview** (system architecture diagram), **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/retro + pending hypothesis count), **Retro** (graduation rate). Auto-updates via `uv run telemetry`.
+The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Seven tabs: **Overview** (system architecture diagram), **Cost & Efficiency**, **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/feedback/retro/config + pending hypothesis count; populated by `render_pipeline_health_region()`), **Experiments**, **Retro** (graduation rate). Auto-updates via `uv run telemetry --facts`. Full tab descriptions in `README.md §The Dashboard`.
 
 Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/meta-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
 
