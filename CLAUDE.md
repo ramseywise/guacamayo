@@ -93,10 +93,12 @@ else is execution at varying granularity.
 
 .claude/
 ├── hooks/                        # Repo-specific enforcement hooks (dream-ledger-gate.sh)
-├── agents/                       # Review dimension scanners (12: correctness, intent, architecture,
-│                                 # safety, testing, silent-failure, performance, wander + conditional
-│                                 # runtime, safeguards, leakage, contracts) — the review package's
-│                                 # LLM half. Vocabulary is reconciled with galactus's review-* family
+├── agents/                       # 5 agents, each a harness that runs a set of skills: review (generic
+│                                 # — loads one review-* dimension checklist per dispatch, serving all
+│                                 # 11 scan dimensions), wander (questions, not findings, so it keeps
+│                                 # its own), research-scout (per-angle research fan-out), triage
+│                                 # (one workflow stage per invocation), persistence (meta-insights /
+│                                 # meta-retro). Vocabulary reconciled with galactus's review-* family
 ├── skills/                       # genesis (inert), meta-wake, meta-grow, meta-dream — the identity
 │                                 # lifecycle — plus meta-insights/meta-retro (metacognition), the
 │                                 # review-* dimension checklists + review-shared scan rules
@@ -121,12 +123,18 @@ Skills auto-discover paths (Glob), nothing hardcoded — the workspace rename wi
 
 ### Review Dimensions — 12, reconciled with galactus
 
-The driver dispatches one agent per active dimension. The registry lives in three places
-that must stay in sync: `review/signals.py` (`ALWAYS_ON_DIMENSIONS` +
-`CONDITIONAL_DIMENSIONS`), `review/driver.py` (`_DIMENSION_TO_AGENT_FILE` +
-`_DIMENSION_TO_REPORTER`), and `review/schemas/models.py` (`Reporter` +
-`REPORTER_ID_PREFIX`). Adding a dimension without all five entries fails at dispatch, not
-at import.
+The driver dispatches the generic `review` agent once per active dimension, composing
+`.claude/agents/review.md` (the harness — role, evidence rules, injection defense) with
+that dimension's `.claude/skills/review-<dim>/SKILL.md` (the checklist and its `prefix:`).
+Per-dimension agent files were collapsed into that harness in GUA-158; only `wander` keeps
+a dedicated agent, because it emits questions rather than schema findings.
+
+The registry lives in four places that must stay in sync: `review/signals.py`
+(`ALWAYS_ON_DIMENSIONS` + `CONDITIONAL_DIMENSIONS`), `review/driver.py`
+(`_DIMENSION_TO_REPORTER`), `review/schemas/models.py` (`Reporter` +
+`REPORTER_ID_PREFIX`), and the dimension's `SKILL.md` (`prefix:` frontmatter, which must
+match `REPORTER_ID_PREFIX` or every finding is rejected). Adding a dimension without all
+five entries fails at dispatch, not at import.
 
 | Kind | Dimensions |
 |------|-----------|

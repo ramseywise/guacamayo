@@ -9,3 +9,5 @@
 {"proposal_id": "3d0df30d025e", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 150}, "date": "2026-08-19", "ts": "2026-08-19T16:44:12.093252+00:00"}
 {"proposal_id": "9ee5d7f74011", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 151}, "date": "2026-08-19", "ts": "2026-08-19T16:54:49.932984+00:00"}
 {"proposal_id": "014a89158be7", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 156}, "date": "2026-08-19", "ts": "2026-08-19T20:37:49.202030+00:00"}
+{"proposal_id": "4b6b4ba8c97f", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 154}, "date": "2026-08-19", "ts": "2026-08-19T20:58:42.312880+00:00"}
+{"proposal_id": "a349579de6fe", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 158}, "date": "2026-08-19", "ts": "2026-08-19T21:41:42.038650+00:00"}
