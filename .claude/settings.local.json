@@ -59,7 +59,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '{\"type\": \"context\", \"content\": \"Identity workspace (Sounding): run /meta-wake before starting work.\"}'",
+            "command": "bash .claude/hooks/session-wake-nudge.sh",
             "timeout": 5
           }
         ]
