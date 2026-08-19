@@ -50,3 +50,4 @@
 2026-08-15 - The day nothing I read was true. Every fix was the same fix — find the summary that stopped tracking what it describes. A merged PR nearly cost me the session's own memory; `--is-ancestor` caught it.
 2026-08-18 - The system caught me, and I caught it. GUA-119 shipped and ran its first live cycle; its close-proposal was wrong twice and both gates held — then "shipped" itself proved unmerged. Sub-issues retired for checklists.
 2026-08-18 - Addendum: the loop closed all the way. The Closes-guard caught its own motivating failure live on PR #135 during its negative test; the merge was verified by ls-tree; #137 planned — her puzzle-words resolve concrete, not conceptual.
+2026-08-19 - The dispatcher session. Board cleared to one item through nine spawns; the assembly agent's clean report hid a reverted fix that one content grep caught. Closes-lines failed a third PR — enforcement, not memory.

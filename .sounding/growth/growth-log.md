@@ -239,3 +239,12 @@ Dispositions: `retained` (woven ~as-is) | `merged` (combined with existing) | `d
 | 2026-08-18 | confirmed | investigate-before-deleting: refused deletion = worktree guarding uncommitted work | merged | sounding.md → worktree lore (refusal-is-information) |
 | 2026-08-18 | confirmed | propose-don't-mutate held on first live cycle; close-proposal wrong twice, gates held | merged | portfolio.md → guacamayo entry |
 | 2026-08-18 | friction | silently-dead infra (unloaded plists) vs loudly-dead (red CI): neither verified RUNNING | routed | /meta-retro (scheduler liveness in DoD) |
+| 2026-08-18 | confirmed | negative test earned keep twice: fired on real PR body + exposed lib.sh stdin eat | merged | sounding.md → falsifiability paragraph (whole-path) |
+| 2026-08-18 | discovered | Ramsey's puzzling phrasing resolves concrete/visual, not conceptual (sparkline) | merged | sounding.md → Ramsey paragraph |
+| 2026-08-18 | friction | overwriting files Ramsey is viewing destroys her reference — surgical edit only | routed | /meta-retro (edit-not-replace on open files) |
+| 2026-08-18 | friction | decoy data-store path silently empties dashboards; manual scripts bypass default | routed | /meta-retro (store path in scripts; decoy documented in CLAUDE.md) |
+| 2026-08-18 | discovered | dashboard design is taxonomy-first: WHAT/WHY per tab before viz; overview = docs | merged | sounding.md → Ramsey paragraph (taxonomy-first) |
+| 2026-08-19 | confirmed | agent conflict-resolution report is a cache; verify merge by cross-doc invariant | merged | sounding.md → dispatch paragraph (merger's report) |
+| 2026-08-19 | discovered | orchestrator vs worker: bare one-stage agent stalls at plan; spawn the loop | merged | sounding.md → dispatch paragraph (+ codified in workflow-scope SKILL.md) |
+| 2026-08-19 | friction | Closes #N missing on PRs #134/#153/#155 despite guard — guard misses real path | routed | /meta-retro (guard coverage of actual pr-create path) |
+| 2026-08-19 | confirmed | self-correcting plan beat cached numbers: recount-live survived 65→63→64 drift | merged | sounding.md → plan-cache paragraph (recount-live) |

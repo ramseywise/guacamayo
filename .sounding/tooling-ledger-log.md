@@ -116,6 +116,81 @@ plan Step 5b. Both target patterns are rising+promotable and both metrics are no
 
 ---
 
+## R12 — 2026-08-19
+
+Data: insights-log 2026-08-16 (673 sessions), tooling-ledger (88 rows active),
+growth context from /meta-dream 2026-08-19 (3 friction items routed).
+
+### Step 0 re-derives
+
+| Row | Metric | Command + output | Verdict |
+|---|---|---|---|
+| R11 F1: closes_link_guard deployed | `absence:merged-PRs-without-closing-links` | `ls ~/.claude/hooks/closes_link_guard.sh` → exists (46 lines). `grep -c "closes_link_guard" ~/.claude/settings.json` → 1 (registered PostToolUse). | **VERIFIED as deployed** — but window NOT clean: PRs #153, #155 leaked this week (third occurrence, five issues closed manually total). New finding: the hook fires only on Claude Bash tool calls; `make ship` → `quick-pr` → `gh pr create` runs in Make's shell, outside PostToolUse scope. Coverage gap is structural. |
+| R11 F3: shipped-scheduler DoD in workflow-execute | `presence:shipped-scheduler-dod-in-workflow-execute` | `grep -n "shipped-scheduler\|launchctl list" .claude/skills/workflow-execute/SKILL.md` → lines 67–68. | **VERIFIED** |
+| R11 F4/R10 F3 carry: re-derive clause in meta-retro Step 0 | `presence:re-derive-clause-in-retro-Step-0` | `grep -n "re-derive" .claude/skills/meta-retro/SKILL.md` → line 29. | **VERIFIED** |
+| R11 F4: lint-mirror rule in shell.md | `absence:lint-mirror-config-omission-incidents` | Lint-config mirrors section present in `~/.claude/rules/shell.md` (confirmed by CLAUDE.md context at read time). Window 1 — no new incidents reported. | **OPEN — window 1 clean** |
+
+### Graduated rows (1 retired this retro)
+
+| Date | Change | Area | Verdict | Evidence |
+|---|---|---|---|---|
+| 2026-08-18 | R11 F3: shipped-scheduler DoD in workflow-execute | workflow | verified | Re-derived 2026-08-19: `grep` → lines 67–68 confirm clause present. Window 1 passes at write; retire after window 2 or earlier if no silent-infra incident recurs. **Retiring now** — the rule is in place and the metric is structurally unfalsifiable without a new plist incident; carrying it costs a verify slot every retro. |
+
+### R12 findings
+
+- **F1**: `closes_link_guard.sh` coverage gap — hook fires only on Claude Bash tool calls; `make ship` → `quick-pr` → `gh pr create` runs in Make's shell (outside PostToolUse scope). PRs #153, #155 are the third-week recurrence. The guard's negative test fired on PR #135 (a Claude-issued `gh pr create`), confirming the hook works for its covered path — but Ramsey's actual merge path bypasses it entirely. Root cause: PostToolUse is a Claude session hook, not a process hook; `make` is a separate process. Fix candidates: (a) PR template (`PULL_REQUEST_TEMPLATE.md`) with a `Closes #N` reminder that GitHub surfaces at create-time in the web UI; (b) `make ship` emits a reminder line before calling `quick-pr`; (c) Makefile `quick-pr` verifies the generated body contains the closing link before calling `gh pr create` and errors if not. Option (c) is the only mechanically-enforcing path and requires no new infrastructure.
+- **F2**: Three ledger rows missing for today's shipped tooling changes (workflow-scope dispatch rule #152, job-type classification in dashboard GUA-151, GUA-150 proposal-sightings automation). Adding rows below per ledger contract.
+- **F3**: Overwriting files Ramsey is actively viewing — pattern from dream session: `Write`-replacing a file she has open destroys her reference copy. Rule: use surgical `Edit`, never `Write`-replace on a file the user may be reading; confirm which file she's looking at first if unsure. Scope: a CLAUDE.md note in guacamayo's local section, not a hook (not mechanically detectable before the fact).
+- **F4**: Decoy store paths silently empty dashboards — any script accepting a `--store` path argument should assert row count and recency before rendering. Already documented in CLAUDE.md (`data/sessions.db.bak` note); the new enforcement vector is a pre-render guard in `telemetry/__main__.py`. Candidate: assert `SELECT COUNT(*) FROM sessions WHERE created_at > date('now','-30 days') > 0` before any dashboard render; exit non-zero if stale.
+
+### R12 config proposals (pending Ramsey approval — do not auto-apply)
+
+**P1 (F1): `~/.claude/Makefile.common` `quick-pr` target** — add a closing-link verification step before `gh pr create`:
+
+```makefile
+# After BODY is computed, verify it contains the closing link:
+if [ -n "$$BRANCH_ISSUE" ] && ! echo "$$BODY" | grep -qiE "(close[sd]?|fix(e[sd])?|resolve[sd]?) #${BRANCH_ISSUE}"; then \
+    echo "ERROR: PR body missing 'Closes #$$BRANCH_ISSUE'. Edit BODY in quick-pr or add manually."; \
+    exit 1; \
+fi; \
+```
+
+This runs in Make's shell (the path `closes_link_guard.sh` cannot reach) and blocks the create rather than warning after.
+
+Also add `PULL_REQUEST_TEMPLATE.md` to each repo's `.github/` as a belt-and-suspenders fallback for web UI creates:
+```markdown
+## Summary
+
+
+Closes #
+```
+
+**P2 (F3): `guacamayo/CLAUDE.md`** — add to the Settings section:
+
+```markdown
+**File-replace discipline**: Use `Edit` for surgical changes to files the user may be viewing; `Write`-replacing (full overwrite) destroys the user's reference copy mid-review. Before replacing any file with `Write`, confirm which file Ramsey is actively looking at.
+```
+
+**P3 (F4): `telemetry/__main__.py`** — add a pre-render row-count/recency assertion before dashboard render (code change; needs GUA issue):
+
+```python
+def _assert_store_fresh(conn, path: str, days: int = 30) -> None:
+    """Abort if the store has no sessions in the last `days` days."""
+    count = conn.execute(
+        "SELECT COUNT(*) FROM sessions WHERE created_at > date('now', ?)",
+        (f"-{days} days",),
+    ).fetchone()[0]
+    if count == 0:
+        raise SystemExit(
+            f"Store at {path!r} has no sessions in the last {days} days — "
+            "likely a decoy or wrong path. Aborting render."
+        )
+```
+
+Ledger row: `absence:dashboard-render-on-stale-store for 2 retro windows` — hypothesis — target: `telemetry/__main__.py`.
+
+---
+
 ## R11 — 2026-08-18
 
 Data: insights-log 2026-08-16 (673 sessions, 31 days), growth-log.md (4 routed entries 2026-08-16/18),
