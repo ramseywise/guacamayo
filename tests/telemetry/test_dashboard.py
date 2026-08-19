@@ -9,6 +9,7 @@ tokens) are comparable and may.
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import date as _date
 from pathlib import Path
@@ -17,6 +18,7 @@ from typing import Any
 import pytest
 
 from telemetry.dashboard import (
+    _CONTEXT_BUCKETS,
     _DEFAULT_PERIOD,
     COMPACT_METRICS,
     JULY_BOUNDARY,
@@ -38,19 +40,24 @@ from telemetry.dashboard import (
     _period_sparkline,
     _population_line,
     _render_annotations,
+    _render_experiments,
     _render_review_findings,
     _render_skill_economics,
     _saturation_warning,
     _scored_count,
     _span_days,
+    _sparkline_svg,
     _svg_line,
     _work_sessions,
     build_hook_activity,
     build_series,
+    build_skill_daily,
     funnel_counts,
     parse_hook_log,
     render_dashboard,
+    render_friction_regroup_card,
     render_hook_activity_card,
+    trend_7d,
     warn_unmapped_experiments,
 )
 from telemetry.factstore import ERA_JSONL, ERA_NOTE, read_all, upsert
@@ -351,19 +358,49 @@ def test_experiment_panel_renders(two_regime_store: Path) -> None:
 
 
 def test_experiment_grouping() -> None:
-    """Confirmed sorts before failed before inconclusive."""
+    """Actionable verdicts sort first: failed, then confirmed, then unscored.
+
+    Ordering is deliberately actionable-first rather than good-news-first — a
+    failed experiment needs a decision, a confirmed one is already settled.
+    """
     from telemetry.dashboard import _render_experiments
 
     experiments = [
         Experiment(name="z-last", metric="m", status="hypothesis", date="d"),
-        Experiment(name="a-first", metric="m", status="confirmed", date="d"),
-        Experiment(name="m-mid", metric="m", status="failed", date="d"),
+        Experiment(name="a-confirmed", metric="m", status="confirmed", date="d"),
+        Experiment(name="m-failed", metric="m", status="failed", date="d"),
     ]
     html = _render_experiments(experiments)
-    pos_confirmed = html.index("a-first")
-    pos_failed = html.index("m-mid")
-    pos_hyp = html.index("z-last")
-    assert pos_confirmed < pos_failed < pos_hyp
+    assert html.index("m-failed") < html.index("a-confirmed") < html.index("z-last")
+
+
+def test_experiment_verdict_join_overrides_ledger_status(two_regime_store: Path) -> None:
+    """A scored verdict wins over the ledger's hand-written status.
+
+    The ledger's Status: text is rarely updated after the row is added, which
+    is why the pre-join render reported "107 pending" against 1,395 scored rows.
+    """
+    from telemetry.dashboard import _render_experiments
+    from telemetry.factstore import append_verdicts
+
+    append_verdicts(
+        [
+            {
+                "experiment": "measured",
+                "date": "2026-08-01",
+                "metric": "m",
+                "verdict": "failed",
+                "evidence": "metric moved the wrong way",
+            }
+        ],
+        two_regime_store,
+        run_at="2026-08-02T00:00:00Z",
+    )
+    experiments = [Experiment(name="measured", metric="m", status="hypothesis", date="2026-08-01")]
+
+    html = _render_experiments(experiments, two_regime_store)
+    assert "exp-failed" in html
+    assert "metric moved the wrong way" in html  # evidence surfaces in the badge title
 
 
 def test_experiment_empty_state(two_regime_store: Path) -> None:
@@ -867,6 +904,96 @@ def test_parse_ledger_with_log(tmp_path: Path) -> None:
     names = {e.name for e in exps}
     assert "active-exp" in names
     assert "old-exp" in names
+    # The log's Verdict column must land in `status`, not its Evidence column.
+    old = next(e for e in exps if e.name == "old-exp")
+    assert old.status == "failed"
+    assert old.metric == "no signal"
+
+
+# ---------------------------------------------------------------------------
+# GUA-137: ledger column offset + closed status vocabulary
+# ---------------------------------------------------------------------------
+
+
+def test_parse_ledger_log_reads_verdict_not_evidence(tmp_path: Path) -> None:
+    """Log rows are Date|Change|Area|Verdict|Evidence — verdict is the 4th cell.
+
+    Regression guard for the offset that fed evidence prose into _status_key and
+    reported 1 confirmed of 108 while 43 closed verdicts sat one column over.
+    """
+    from telemetry.dashboard import _status_key, parse_ledger
+
+    log_path = tmp_path / "tooling-ledger-log.md"
+    log_path.write_text(
+        "| Date | Change | Area | Verdict | Evidence |\n"
+        "|---|---|---|---|---|\n"
+        "| 2026-07-20 | exp-a | workflow | verified | 0 regressions in R3 window |\n",
+        encoding="utf-8",
+    )
+    ledger = tmp_path / "tooling-ledger.md"
+    ledger.write_text(
+        "| Date | Change | Area | Metric | Status |\n|---|---|---|---|---|\n", "utf-8"
+    )
+
+    exp = parse_ledger(ledger, log_path)[0]
+    assert exp.status == "verified"
+    # The evidence prose must NOT become the status key (this yielded "0" before).
+    assert _status_key(exp.status) == "verified"
+
+
+def test_status_key_normalises_case_and_markdown() -> None:
+    """_status_key folds case and strips markdown so real verdicts are not missed."""
+    from telemetry.dashboard import _status_key
+
+    assert _status_key("**VERIFIED**") == "verified"
+    assert _status_key("Confirmed present at `~/.claude/CLAUDE.md:176`") == "confirmed"
+    assert _status_key("failed") == "failed"
+    assert _status_key("") == ""
+
+
+def test_graduation_denominator_excludes_open_hypotheses() -> None:
+    """Rate is over resolved rows only; open hypotheses are reported separately."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    exps = [
+        Experiment(name="a", metric="m", status="verified", date="2026-08-01"),
+        Experiment(name="b", metric="m", status="**VERIFIED**", date="2026-08-02"),
+        Experiment(name="c", metric="m", status="failed", date="2026-08-03"),
+        Experiment(name="d", metric="m", status="inconclusive", date="2026-08-04"),
+        Experiment(name="e", metric="m", status="hypothesis", date="2026-08-05"),
+        Experiment(name="f", metric="m", status="superseded", date="2026-08-06"),
+    ]
+    grad = compute_graduation(exps)
+    assert (grad.confirmed, grad.failed, grad.inconclusive) == (2, 1, 1)
+    assert grad.resolved == 4  # open + excluded are NOT in the denominator
+    assert grad.open_count == 1
+    assert grad.excluded == 1
+    assert grad.rate_pct == 50.0
+    # Buckets must partition the input — no row silently vanishes.
+    assert grad.total == len(exps)
+
+
+def test_graduation_rate_is_none_when_nothing_resolved() -> None:
+    """An all-hypothesis ledger has no rate rather than a divide-by-zero or 0%."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    grad = compute_graduation(
+        [Experiment(name="a", metric="m", status="hypothesis", date="2026-08-01")]
+    )
+    assert grad.rate_pct is None
+    assert grad.open_count == 1
+
+
+def test_graduation_surfaces_unknown_statuses() -> None:
+    """Unrecognised statuses are counted and sampled, never folded into a bucket."""
+    from telemetry.dashboard import Experiment, compute_graduation
+
+    grad = compute_graduation(
+        [Experiment(name="a", metric="m", status=".venv\\ junk", date="2026-08-01")]
+    )
+    assert grad.unknown == 1
+    assert grad.resolved == 0
+    assert "venv\\" in grad.unknown_samples[0]
 
 
 # ---------------------------------------------------------------------------
@@ -1922,3 +2049,737 @@ def test_compaction_yield_note_does_not_hardcode_a_row_count(tmp_path: Path) -> 
     assert "n=182" not in page
     series = build_series("compaction_yield", store, "day")
     assert [p.n for p in series.points] == [1]
+
+
+# --- GUA-137 Step 1: the trend_7d component --------------------------------
+
+
+def test_sparkline_normalizes_min_and_max_to_the_viewbox() -> None:
+    """The lowest point sits at the bottom inset, the highest at the top.
+
+    Verifies the y-inversion too: SVG y grows downward, so the *larger* value
+    must produce the *smaller* y.
+    """
+    points = [
+        Point(date="2026-08-11", value=10.0, regime="r"),
+        Point(date="2026-08-12", value=20.0, regime="r"),
+        Point(date="2026-08-13", value=30.0, regime="r"),
+    ]
+    svg = _sparkline_svg(points)
+
+    coords = re.search(r'points="([^"]+)"', svg)
+    assert coords, "polyline carries no points"
+    parsed = [tuple(float(n) for n in pair.split(",")) for pair in coords.group(1).split()]
+
+    xs = [x for x, _ in parsed]
+    ys = [y for _, y in parsed]
+    assert xs == [0, 50, 100], "x should span the full 100-unit viewBox evenly"
+    assert ys[0] > ys[1] > ys[2], "larger values must sit higher (smaller y)"
+    assert min(ys) == 2 and max(ys) == 18, "extremes should land on the padded edges"
+
+
+def test_sparkline_flat_series_plots_down_the_middle() -> None:
+    """A genuinely flat metric is a real trend — not a divide-by-zero."""
+    points = [Point(date=f"2026-08-1{i}", value=5.0, regime="r") for i in range(3)]
+    svg = _sparkline_svg(points)
+
+    ys = {
+        float(pair.split(",")[1]) for pair in re.search(r'points="([^"]+)"', svg).group(1).split()
+    }
+    assert ys == {10.0}, "a flat series should render one horizontal line mid-box"
+
+
+@pytest.mark.parametrize("count", [0, 1])
+def test_sparkline_thin_series_renders_placeholder_not_a_line(count: int) -> None:
+    """The metric fence: one observation cannot show a trend, so none is drawn.
+
+    A fabricated flat line through a single point would read as "stable" on
+    evidence that cannot establish stability.
+    """
+    points = [Point(date="2026-08-13", value=7.0, regime="r")] * count
+    out = _sparkline_svg(points)
+
+    assert "<polyline" not in out, "a sub-2-point series must not draw a line"
+    assert "<svg" not in out
+    assert f"no trend (n={count})" in out
+
+
+def test_sparkline_tooltip_carries_every_date_value_pair() -> None:
+    """Hover text is the raw data — the cleaner presentation loses no numbers."""
+    points = [
+        Point(date="2026-08-12", value=1.0, regime="r"),
+        Point(date="2026-08-13", value=2.0, regime="r"),
+    ]
+    svg = _sparkline_svg(points)
+
+    assert "<title>2026-08-12=1 · 2026-08-13=2</title>" in svg
+
+
+def test_trend_7d_takes_the_last_seven_days_only(tmp_path: Path) -> None:
+    """A longer store is windowed to the trailing 7 points, in date order."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(f"s{i}", f"2026-07-{16 + i:02d}", "session-hygiene-v1", cost_units=100.0 * i)
+            for i in range(10)
+        ],
+        store,
+    )
+    svg = trend_7d("cost_units_p50", store)
+
+    pairs = re.search(r"<title>([^<]+)</title>", svg).group(1).split(" · ")
+    assert len(pairs) == 7, "window should be exactly 7 points"
+    dates = [p.split("=")[0] for p in pairs]
+    assert dates == sorted(dates), "points must be chronological"
+    assert dates[-1] == "2026-07-25", "window should end at the most recent day"
+
+
+def test_trend_7d_skips_missing_days_rather_than_zero_filling(tmp_path: Path) -> None:
+    """A day with no sessions is absent data, not a zero.
+
+    Zero-filling would draw a crash to the floor that never happened.
+    """
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("a", "2026-07-16", "session-hygiene-v1", cost_units=500.0),
+            _row("b", "2026-07-20", "session-hygiene-v1", cost_units=500.0),
+        ],
+        store,
+    )
+    svg = trend_7d("cost_units_p50", store)
+
+    title = re.search(r"<title>([^<]+)</title>", svg).group(1)
+    assert title == "2026-07-16=500 · 2026-07-20=500"
+    assert "2026-07-17" not in title, "gap days must not be imputed"
+    ys = {
+        float(pair.split(",")[1]) for pair in re.search(r'points="([^"]+)"', svg).group(1).split()
+    }
+    assert ys == {10.0}, "two equal values stay flat — no phantom dip between them"
+
+
+def test_trend_7d_single_day_store_renders_no_sparkline(tmp_path: Path) -> None:
+    """Step 2's contract at the source: absence, not a flat line."""
+    store = tmp_path / "facts.db"
+    upsert([_row("only", "2026-07-16", "session-hygiene-v1")], store)
+
+    assert "sparkline" not in trend_7d("cost_units_p50", store)
+
+
+def test_trend_7d_flattens_faceted_metrics_chronologically(tmp_path: Path) -> None:
+    """Rate metrics come back per-regime; a sparkline has no room for a legend."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("n1", "2026-05-01", "note-hook", compacted=True),
+            _row("n2", "2026-05-02", "note-hook", compacted=False),
+            _row("j1", "2026-07-16", "telemetry-v1", compacted=True),
+            _row("j2", "2026-07-17", "telemetry-v1", compacted=False),
+        ],
+        store,
+    )
+    svg = trend_7d("compaction_pct", store)
+
+    assert "<polyline" in svg, "faceted panels should flatten into one line"
+    dates = [
+        p.split("=")[0] for p in re.search(r"<title>([^<]+)</title>", svg).group(1).split(" · ")
+    ]
+    assert dates == sorted(dates), "flattened points must still be chronological"
+
+
+# --- GUA-137 Step 2: the component attached to three surfaces --------------
+
+
+def _multi_day_skill_store(tmp_path: Path) -> Path:
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                f"s{i}",
+                f"2026-07-{16 + i:02d}",
+                "session-hygiene-v1",
+                skill_costs=json.dumps({"/workflow-execute": 100.0 * (i + 1)}),
+            )
+            for i in range(4)
+        ],
+        store,
+    )
+    return store
+
+
+def test_skill_economics_renders_a_sparkline_per_skill(tmp_path: Path) -> None:
+    """Surface 1: skills carry the shared component."""
+    html_out = _render_skill_economics(_multi_day_skill_store(tmp_path))
+
+    assert "7-day trend" in html_out, "the trend column header should exist"
+    assert 'class="sparkline"' in html_out
+
+
+def test_skill_economics_single_day_renders_no_sparkline(tmp_path: Path) -> None:
+    """Absence, not a flat line — one day of data cannot show a trend."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [_row("s1", "2026-07-16", "session-hygiene-v1", skill_costs=json.dumps({"/x": 10.0}))],
+        store,
+    )
+    html_out = _render_skill_economics(store)
+
+    assert 'class="sparkline"' not in html_out
+    assert "no trend (n=1)" in html_out
+
+
+def test_build_skill_daily_averages_within_a_day_and_skips_gaps(tmp_path: Path) -> None:
+    """Two invocations on one day average; an unused day produces no point."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("a", "2026-07-16", "session-hygiene-v1", skill_costs=json.dumps({"/s": 100.0})),
+            _row("b", "2026-07-16", "session-hygiene-v1", skill_costs=json.dumps({"/s": 300.0})),
+            _row("c", "2026-07-18", "session-hygiene-v1", skill_costs=json.dumps({"/s": 50.0})),
+        ],
+        store,
+    )
+    points = build_skill_daily(store)["/s"]
+
+    assert [(p.date, p.value, p.n) for p in points] == [
+        ("2026-07-16", 200.0, 2),
+        ("2026-07-18", 50.0, 1),
+    ]
+    assert "2026-07-17" not in [p.date for p in points], "gap days are absent, not zero"
+
+
+def test_experiments_render_trend_only_for_store_backed_signals(tmp_path: Path) -> None:
+    """Surface 2: an experiment charts only where its ledger signal maps.
+
+    Most ledger rows name meta-signals nothing can chart; those must render an
+    empty cell rather than a line implying evidence.
+    """
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(f"s{i}", f"2026-07-{16 + i:02d}", "session-hygiene-v1", skills_used="/x")
+            for i in range(4)
+        ],
+        store,
+    )
+    mapped = Experiment(
+        name="mapped",
+        metric="execution-sessions-with-skills ratio:0.5",
+        status="trending",
+        date="2026-07-16",
+    )
+    unmapped = Experiment(
+        name="unmapped", metric="vibes-improved", status="pending", date="2026-07-16"
+    )
+
+    html_out = _render_experiments([mapped, unmapped], store)
+    assert "7-day trend" in html_out
+
+    unmapped_cell = html_out[html_out.index("unmapped") :]
+    assert 'class="sparkline"' not in unmapped_cell, "an unchartable signal draws nothing"
+
+
+def test_experiments_without_a_store_render_no_trends() -> None:
+    """The store is optional: existing marker-region callers keep working."""
+    experiments = [
+        Experiment(
+            name="e", metric="execution-sessions-with-skills", status="pending", date="2026-07-16"
+        )
+    ]
+    html_out = _render_experiments(experiments)
+
+    assert 'class="sparkline"' not in html_out
+    assert "<td" in html_out, "the row still renders, just without a trend"
+
+
+def test_friction_card_carries_the_shared_component(tmp_path: Path) -> None:
+    """Surface 3: friction tiles gain the trailing-7-day read."""
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                f"s{i}",
+                f"2026-07-{16 + i:02d}",
+                "session-hygiene-v1",
+                max_context=100_000 + 1000 * i,
+            )
+            for i in range(4)
+        ],
+        store,
+    )
+    card = render_friction_regroup_card(store)
+
+    assert 'class="sparkline"' in card, "friction metrics should carry a 7-day sparkline"
+
+
+# --- GUA-137 Step 3: verdict trajectory caps -------------------------------
+
+
+def _verdict_rows(experiment: str, count: int) -> list[dict[str, Any]]:
+    return [
+        {
+            "experiment": experiment,
+            "date": "2026-07-16",
+            "metric": "m",
+            "verdict": "trending",
+            "evidence": "e" * 500,
+            "run_at": f"2026-08-{1 + i:02d}T00:00:00",
+        }
+        for i in range(count)
+    ]
+
+
+def test_verdict_trajectory_caps_steps_and_marks_the_elision() -> None:
+    """A long history renders its recent tail, and says how much it hid.
+
+    Silent truncation would present a 3-run trajectory identically to a 40-run
+    one — the elision marker is what keeps the shortening honest.
+    """
+    from telemetry.dashboard import _TRAJECTORY_MAX_STEPS, _render_verdict_trajectories
+
+    out = _render_verdict_trajectories(_verdict_rows("long", 40))
+
+    assert out.count('class="verdict-step') == _TRAJECTORY_MAX_STEPS
+    assert f"+{40 - _TRAJECTORY_MAX_STEPS}" in out, "elided count must be shown"
+
+
+def test_verdict_trajectory_truncates_evidence_in_the_tooltip() -> None:
+    """Full evidence strings inlined per step are what caused the 302KB blowup."""
+    from telemetry.dashboard import _TRAJECTORY_EVIDENCE_CHARS, _render_verdict_trajectories
+
+    out = _render_verdict_trajectories(_verdict_rows("x", 2))
+
+    assert "e" * 500 not in out, "evidence must not be inlined in full"
+    assert "…" in out
+    assert "e" * (_TRAJECTORY_EVIDENCE_CHARS // 2) in out, "a useful prefix should survive"
+
+
+def test_verdict_trajectory_short_history_is_not_elided() -> None:
+    """Under the cap, nothing is hidden and no marker appears."""
+    from telemetry.dashboard import _render_verdict_trajectories
+
+    out = _render_verdict_trajectories(_verdict_rows("short", 3))
+
+    assert out.count('class="verdict-step') == 3
+    assert "verdict-elided" not in out
+
+
+# --- GUA-137 control board: rolling windows -------------------------------
+
+
+def test_subagent_windows_render_every_window_with_one_visible(tmp_path: Path) -> None:
+    """All windows are computed server-side; the toggle only changes visibility."""
+    from telemetry.dashboard import SUBAGENT_WINDOWS, render_subagent_windows_card
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row(
+                f"s{i}",
+                f"2026-07-{16 + i:02d}",
+                "session-hygiene-v1",
+                subagent_costs=json.dumps(
+                    {"by_agent": {"unattributed": {"cost": 100.0, "output_tokens": 10, "n": 1}}}
+                ),
+            )
+            for i in range(3)
+        ],
+        store,
+    )
+    card = render_subagent_windows_card(store)
+
+    assert card.count('class="win-panel"') == len(SUBAGENT_WINDOWS)
+    assert card.count("display:none") == len(SUBAGENT_WINDOWS) - 1, "exactly one panel visible"
+    assert "84%" not in card, "the stale hardcoded share must be gone"
+
+
+def test_subagent_window_cutoff_anchors_to_newest_row_not_wall_clock(tmp_path: Path) -> None:
+    """A stale store must not silently empty its own recent window.
+
+    The store is refreshed by a batch job; anchoring to today would show "no
+    data" for 7d whenever the job has not run, which is indistinguishable from
+    genuinely having spawned no agents.
+    """
+    from telemetry.dashboard import _window_cutoff
+
+    store = tmp_path / "facts.db"
+    upsert([_row("old", "2026-07-20", "session-hygiene-v1")], store)
+
+    assert _window_cutoff(store, 7) == "2026-07-13"
+    assert _window_cutoff(store, None) is None
+
+
+# --- GUA-137: insights embedded as the Overview ----------------------------
+
+
+def test_scope_css_rewrites_body_and_prefixes_selectors() -> None:
+    """A guest document's `body{}` must become the wrapper, not restyle the board."""
+    from telemetry.dashboard import _scope_css
+
+    out = _scope_css("body{margin:0}h2{color:red}.tag,.chip{font-size:9px}", "wrap")
+
+    assert ".wrap{margin:0}" in out
+    assert ".wrap h2{color:red}" in out
+    assert ".wrap .tag,.wrap .chip{font-size:9px}" in out
+    assert not re.search(r"(^|})body\{", out), "bare body rule leaked"
+
+
+def test_scope_css_scopes_inside_media_queries() -> None:
+    """Rules nested in @media are scoped too; the at-rule prelude is preserved."""
+    from telemetry.dashboard import _scope_css
+
+    out = _scope_css("@media (max-width:600px){body{padding:0}.x{color:blue}}", "wrap")
+
+    assert out.startswith("@media (max-width:600px){")
+    assert ".wrap{padding:0}" in out
+    assert ".wrap .x{color:blue}" in out
+
+
+def test_scope_css_leaves_keyframes_untouched() -> None:
+    """@keyframes percentages are not selectors — scoping them breaks the animation."""
+    from telemetry.dashboard import _scope_css
+
+    out = _scope_css("@keyframes spin{0%{opacity:0}100%{opacity:1}}", "wrap")
+
+    assert "@keyframes spin{0%{opacity:0}100%{opacity:1}}" in out
+    assert ".wrap 0%" not in out
+
+
+def test_insights_region_states_a_missing_report(tmp_path: Path) -> None:
+    """No report is a prompt to run the skill, never a blank panel."""
+    from telemetry.dashboard import render_insights_region
+
+    out = render_insights_region(tmp_path / "nope.html")
+
+    assert "No insights report found" in out
+    assert "/meta-insights" in out
+
+
+def test_insights_region_strips_guest_scripts(tmp_path: Path) -> None:
+    """An embedded report's script would run against the board's DOM, not its own."""
+    from telemetry.dashboard import render_insights_region
+
+    report = tmp_path / "insights-report-2026-08-16.html"
+    report.write_text(
+        "<html><head><style>body{margin:0}</style></head>"
+        "<body><h2>Report</h2><script>alert('x')</script></body></html>",
+        encoding="utf-8",
+    )
+    out = render_insights_region(report, today="2026-08-16")
+
+    assert "<script" not in out
+    assert "alert(" not in out
+    assert "<h2>Report</h2>" in out
+
+
+def test_insights_region_flags_a_stale_report(tmp_path: Path) -> None:
+    """Age is the first thing to know about a daily read that is not daily."""
+    from telemetry.dashboard import render_insights_region
+
+    report = tmp_path / "insights-report-2026-08-04.html"
+    report.write_text("<html><body><p>old</p></body></html>", encoding="utf-8")
+
+    out = render_insights_region(report, today="2026-08-18")
+    assert "14 days old" in out
+
+    fresh = tmp_path / "insights-report-2026-08-18.html"
+    fresh.write_text("<html><body><p>new</p></body></html>", encoding="utf-8")
+    assert "days old" not in render_insights_region(fresh, today="2026-08-18")
+
+
+# --- GUA-137 retro: does the improvement loop close? -----------------------
+
+
+def _verdict(experiment: str, verdict: str, run_at: str) -> dict[str, Any]:
+    return {"experiment": experiment, "verdict": verdict, "run_at": run_at, "date": "2026-07-16"}
+
+
+def test_retro_funnel_never_widens_at_a_later_stage() -> None:
+    """A scored experiment with no ledger row must not out-count the hypotheses.
+
+    Verdicts accumulate against names that later get renamed or graduate out of
+    the active ledger, so the raw scored set can exceed the hypothesis set — and
+    a funnel whose third bar is wider than its second cannot mean anything.
+    """
+    from telemetry.dashboard import _retro_funnel
+
+    exps = [Experiment(name="known", metric="m", status="hypothesis", date="2026-07-16")]
+    verdicts = [_verdict("known", "trending", "2026-08-01")] + [
+        _verdict(f"ghost{i}", "inconclusive", "2026-08-01") for i in range(5)
+    ]
+    out = _retro_funnel([{"id": 1}, {"id": 2}], exps, verdicts)
+
+    counts = [int(n.replace(",", "")) for n in re.findall(r'class="fn-n">([\d,]+)<', out)]
+    assert counts == sorted(counts, reverse=True), f"funnel widened: {counts}"
+    assert "5 scored experiment(s) match no ledger row" in out
+
+
+def test_retro_funnel_states_zero_stages_rather_than_omitting_them() -> None:
+    """An empty stage renders at zero width, not as a missing bar."""
+    from telemetry.dashboard import _retro_funnel
+
+    out = _retro_funnel([], [], [])
+
+    assert out.count("fn-row") == 4, "all four stages must render"
+    assert "width:0.0%" in out
+
+
+def test_retro_funnel_counts_only_resolved_statuses() -> None:
+    """Open hypotheses are not achievements; only terminal statuses resolve."""
+    from telemetry.dashboard import _retro_funnel
+
+    exps = [
+        Experiment(name="a", metric="m", status="hypothesis — due 09-01", date="2026-07-16"),
+        Experiment(name="b", metric="m", status="verified 2026-08-01", date="2026-07-16"),
+        Experiment(name="c", metric="m", status="failed at R10", date="2026-07-16"),
+    ]
+    out = _retro_funnel([], exps, [])
+
+    counts = [int(n.replace(",", "")) for n in re.findall(r'class="fn-n">([\d,]+)<', out)]
+    assert counts[1] == 3, "three hypotheses"
+    assert counts[3] == 2, "verified + failed resolve; the open one does not"
+    assert "1 of 3 hypotheses (33%) are still open" in out
+
+
+def test_verdict_mix_uses_latest_verdict_per_experiment() -> None:
+    """An experiment scored 25 times must not outvote one scored twice."""
+    from telemetry.dashboard import _verdict_mix
+
+    rows = [
+        *[_verdict("noisy", "inconclusive", f"2026-08-{d:02d}") for d in range(1, 11)],
+        _verdict("noisy", "confirmed", "2026-08-20"),
+        _verdict("quiet", "failed", "2026-08-02"),
+    ]
+    out = _verdict_mix(rows)
+
+    assert "(2 scored)" in out, "two experiments, not twelve rows"
+    assert "confirmed <b>1</b>" in out
+    assert "failed <b>1</b>" in out
+    assert "inconclusive" not in out, "superseded verdicts must not appear"
+
+
+def test_verdict_mix_empty_is_stated() -> None:
+    from telemetry.dashboard import _verdict_mix
+
+    assert "No scored verdicts yet" in _verdict_mix([])
+
+
+# --- GUA-137: native context & orchestration visuals -----------------------
+
+
+def test_bucket_bars_report_the_scored_population_not_all_rows() -> None:
+    """A distribution over rows carrying the column is not one over all sessions.
+
+    max_context is null on roughly half the corpus; drawing the distribution as
+    if it covered every session would overstate its frame — the same metric-fence
+    rule the tiles follow.
+    """
+    from telemetry.dashboard import _bucket_bars
+
+    rows = [
+        {"max_context": 40_000},
+        {"max_context": 120_000},
+        {"max_context": 200_000},
+        {"max_context": None},
+        {},
+    ]
+    bars, n = _bucket_bars(rows, "max_context", _CONTEXT_BUCKETS)
+
+    assert n == 3, "only rows carrying the column are scored"
+    assert "33%" in bars, "percentages are of the scored population"
+
+
+def test_bucket_bars_highlight_marks_only_a_populated_last_bucket() -> None:
+    """The heavy bucket goes red when it has rows — never as empty decoration."""
+    from telemetry.dashboard import _bucket_bars
+
+    heavy, _ = _bucket_bars(
+        [{"max_context": 200_000}], "max_context", _CONTEXT_BUCKETS, highlight_last=True
+    )
+    assert "var(--bad)" in heavy
+
+    light, _ = _bucket_bars(
+        [{"max_context": 40_000}], "max_context", _CONTEXT_BUCKETS, highlight_last=True
+    )
+    assert "var(--bad)" not in light, "an empty heavy bucket must not render as a warning"
+
+
+def test_bucket_bars_empty_input_is_stated() -> None:
+    from telemetry.dashboard import _bucket_bars
+
+    bars, n = _bucket_bars([{"max_context": None}], "max_context", _CONTEXT_BUCKETS)
+    assert n == 0
+    assert "No data" in bars
+
+
+def test_context_orchestration_card_renders_live_numbers(tmp_path: Path) -> None:
+    """The card computes from the store — not from a frozen insights report."""
+    from telemetry.dashboard import render_context_orchestration_card
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("a", "2026-07-16", "session-hygiene-v1", max_context=200_000, duration_min=95),
+            _row("b", "2026-07-17", "session-hygiene-v1", max_context=60_000, duration_min=10),
+        ],
+        store,
+    )
+    card = render_context_orchestration_card(store)
+
+    assert "Context window" in card
+    assert "Parallelism" in card
+    assert "Computed over 2 sessions carrying a context reading" in card
+
+    # Value and label live in sibling spans, so pair them before asserting.
+    stats = {
+        label: value
+        for value, label in re.findall(r'value">([^<]+)</span><span class="label">([^<]+)', card)
+    }
+    assert stats["sessions over 150k"] == "1", "one row exceeds the cliff"
+
+
+# --- GUA-137: native insights KPI panel ------------------------------------
+
+
+def test_insights_kpi_region_computes_from_the_store(tmp_path: Path) -> None:
+    """The KPI panel is live, not a snapshot lifted from a report file."""
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [
+            _row("a", "2026-07-16", "session-hygiene-v1", cost_units=1e9, compacted=True),
+            _row("b", "2026-07-17", "session-hygiene-v1", cost_units=1e9, compacted=False),
+        ],
+        store,
+    )
+    out = render_insights_kpi_region(store)
+
+    # Read the default (30d) panel — every window is emitted, so a bare regex
+    # over the whole region would mix figures from four different populations.
+    start = out.index('<div class="win-panel" data-win="30d"')
+    nxt = out.find('<div class="win-panel"', start + 10)
+    panel = out[start : nxt if nxt != -1 else len(out)]
+
+    tiles = dict(
+        re.findall(r'ikpi-label">([^<]+)</div><div class="ikpi-value">([^<]+)</div>', panel)
+    )
+    assert tiles["Sessions"] == "2"
+    assert tiles["Total cost units"] == "2.00B"
+    assert tiles["Compact rate"] == "50%", "one of two sessions compacted"
+    assert "1 of 2 sessions" in panel
+
+
+def test_insights_kpi_region_empty_store_is_stated(tmp_path: Path) -> None:
+    """An empty store says so rather than rendering zeros as findings."""
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert([_row("m", "2026-07-16", "session-hygiene-v1", is_meta=True)], store)
+
+    assert "No session data yet" in render_insights_kpi_region(store)
+
+
+def test_insights_kpi_names_the_response_time_substitution(tmp_path: Path) -> None:
+    """Session duration is not per-request response time — the panel must say so.
+
+    The source report showed response-time buckets; the fact store carries no
+    per-request timestamps, so the honest move is a different metric with its
+    frame stated, not a same-named chart computed from different data.
+    """
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert([_row("a", "2026-07-16", "session-hygiene-v1", duration_min=42)], store)
+    out = render_insights_kpi_region(store)
+
+    assert "Session duration" in out
+    assert "Per-request response time needs timestamps the fact store does not capture" in out
+
+
+# --- GUA-137: windowed insights --------------------------------------------
+
+
+def test_insights_windows_all_render_with_one_visible(tmp_path: Path) -> None:
+    """Every window is computed server-side; the toggle only changes visibility."""
+    from telemetry.dashboard import (
+        _INSIGHTS_DEFAULT_WINDOW,
+        INSIGHTS_WINDOWS,
+        render_insights_kpi_region,
+    )
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [_row(f"s{i}", f"2026-07-{10 + i:02d}", "session-hygiene-v1") for i in range(12)],
+        store,
+    )
+    out = render_insights_kpi_region(store)
+
+    assert out.count('class="win-panel"') == len(INSIGHTS_WINDOWS)
+    assert out.count("display:none") == len(INSIGHTS_WINDOWS) - 1, "exactly one visible"
+    assert f'data-win="{_INSIGHTS_DEFAULT_WINDOW}">' in out, "default window is the visible one"
+
+
+def test_insights_window_narrows_the_population(tmp_path: Path) -> None:
+    """A 7-day window must not count sessions outside it.
+
+    The whole point of windowing is that a recent regression is not averaged
+    away by months of older data.
+    """
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert(
+        [_row("old", "2026-05-01", "note-hook")]
+        + [_row(f"new{i}", f"2026-07-{20 + i:02d}", "session-hygiene-v1") for i in range(3)],
+        store,
+    )
+    out = render_insights_kpi_region(store)
+
+    def _panel(win: str) -> str:
+        start = out.index(f'<div class="win-panel" data-win="{win}"')
+        nxt = out.find('<div class="win-panel"', start + 10)
+        return out[start : nxt if nxt != -1 else len(out)]
+
+    assert ">3<" in _panel("7d"), "7-day window sees only the three recent sessions"
+    assert ">4<" in _panel("all"), "all-time window sees every session"
+
+
+def test_insights_window_anchors_to_newest_row_not_today(tmp_path: Path) -> None:
+    """A store refreshed by a batch job must not show an empty recent window."""
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert([_row("a", "2026-05-01", "note-hook"), _row("b", "2026-05-02", "note-hook")], store)
+    out = render_insights_kpi_region(store)
+
+    start = out.index('<div class="win-panel" data-win="7d"')
+    nxt = out.find('<div class="win-panel"', start + 10)
+    seven = out[start : nxt if nxt != -1 else len(out)]
+    assert "No sessions in this window" not in seven, "anchored to newest row, not wall clock"
+
+
+def test_spawn_records_tolerates_malformed_json() -> None:
+    """A malformed agent_spawns cell yields no spawns, never a crash."""
+    from telemetry.dashboard import _spawn_records
+
+    assert _spawn_records({"agent_spawns": '[{"type": "Explore"}]'}) == [{"type": "Explore"}]
+    assert _spawn_records({"agent_spawns": "not json"}) == []
+    assert _spawn_records({"agent_spawns": '{"type": "obj-not-list"}'}) == []
+    assert _spawn_records({}) == []
+
+
+def test_insights_separates_output_tokens_from_session_duration(tmp_path: Path) -> None:
+    """Two metrics, two cards — they were previously conflated under one title."""
+    from telemetry.dashboard import render_insights_kpi_region
+
+    store = tmp_path / "facts.db"
+    upsert([_row("a", "2026-07-16", "session-hygiene-v1", duration_min=42)], store)
+    out = render_insights_kpi_region(store)
+
+    out_idx = out.index("Output tokens per session")
+    dur_idx = out.index("Session duration")
+    assert out_idx != dur_idx
+    # The duration distribution must live under the duration card, not the token one.
+    between = out[out_idx:dur_idx]
+    assert between.count('class="dist-row"') == 0, "duration bars must not sit in the token card"

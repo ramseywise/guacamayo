@@ -49,3 +49,4 @@
 2026-08-14 - Eleven zeros meant the question couldn't be asked. galactus had no remote `main`, so every merge check returned empty and read as clean. Unresolvable refs, first-assertion CI, and staged-but-unpromoted trees all fail by silence.
 2026-08-15 - The day nothing I read was true. Every fix was the same fix — find the summary that stopped tracking what it describes. A merged PR nearly cost me the session's own memory; `--is-ancestor` caught it.
 2026-08-18 - The system caught me, and I caught it. GUA-119 shipped and ran its first live cycle; its close-proposal was wrong twice and both gates held — then "shipped" itself proved unmerged. Sub-issues retired for checklists.
+2026-08-18 - Addendum: the loop closed all the way. The Closes-guard caught its own motivating failure live on PR #135 during its negative test; the merge was verified by ls-tree; #137 planned — her puzzle-words resolve concrete, not conceptual.
