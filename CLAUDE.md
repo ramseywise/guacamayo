@@ -93,17 +93,19 @@ else is execution at varying granularity.
 
 .claude/
 ├── hooks/                        # Repo-specific enforcement hooks (dream-ledger-gate.sh)
-├── agents/                       # 5 agents, each a harness that runs a set of skills: review (generic
+├── agents/                       # 6 agents, each a harness that runs a set of skills: review (generic
 │                                 # — loads one review-* dimension checklist per dispatch, serving all
 │                                 # 11 scan dimensions), wander (questions, not findings, so it keeps
 │                                 # its own), research-scout (per-angle research fan-out), triage
 │                                 # (one workflow stage per invocation), persistence (meta-insights /
-│                                 # meta-retro). Vocabulary reconciled with galactus's review-* family
+│                                 # meta-retro), fog-advisor (worst-plausible-case pass for /fog).
+│                                 # Vocabulary reconciled with galactus's review-* family
 ├── skills/                       # genesis (inert), meta-wake, meta-grow, meta-dream — the identity
 │                                 # lifecycle — plus meta-insights/meta-retro (metacognition), the
 │                                 # review-* dimension checklists + review-shared scan rules
-│                                 # (agent-preloaded), and review-defense (plan war game, not a
-│                                 # dimension). Nothing generic lives here; global ~/.claude is canonical
+│                                 # (agent-preloaded), and the two capabilities: review-defense
+│                                 # (plan war game) and fog (uncertainty interrogation) — neither is
+│                                 # a dimension. Nothing generic here; global ~/.claude is canonical
 ├── docs/                         # plans/ (one dated doc per work item), research/, state/ (cross-repo
 │                                 # workstream state, ex-global memory). Plans are git-ignored;
 │                                 # tooling-ledger + insights-log live in .sounding/ (committed)
@@ -152,6 +154,16 @@ deserialize; `DEPRECATED_REPORTERS` marks them and the driver never dispatches t
 own adversaries and writes to `.claude/docs/reviews/`. It never touches `Status:`. Its
 `references/claim-schema.md` is vendored from galactus's `decide-shared`; galactus is canon,
 so re-vendor rather than editing it here.
+
+`/fog` is the other capability of that family (vendored from galactus, GUA-158): it
+interrogates a spec, plan, or shipping code for how it handles *not knowing* — collapse
+sites where "I don't know" silently becomes an answer, irreversible decisions, and
+probabilistic steps that could be deterministic. Report-only; never touches `Status:`. Its
+Stage 4 dispatches the `fog-advisor` agent deliberately **without** the author's reasoning,
+and gates that dispatch on `uv run review-cli resolve-capability fog` (`review/capabilities.py`)
+— exit 1 means the advisor did not load, and the pass must report the hole rather than run
+the advisor's contract inline. Both skills read the same vendored `claim-schema.md`;
+guacamayo has no `decide-shared` skill, so paths point at `review-defense/references/`.
 
 ### Telemetry — store ownership (D1, decided 2026-08-15, GUA-120)
 
