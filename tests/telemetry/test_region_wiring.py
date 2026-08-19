@@ -27,6 +27,7 @@ from telemetry.dashboard import (
     inject_regions,
     render_friction_regroup_card,
     render_input_tokens_card,
+    render_pipeline_health_region,
     render_skill_economics_card,
     render_tool_trends_card,
 )
@@ -313,3 +314,74 @@ def test_inject_four_regions_preserves_hook_activity_and_other_bytes(tmp_path: P
     for name, fragment in regions.items():
         _, _, injected = _region_slice(result, name)
         assert fragment.strip() == injected.strip()
+
+
+# ---------------------------------------------------------------------------
+# render_pipeline_health_region (GUA-138)
+# ---------------------------------------------------------------------------
+
+
+def test_render_pipeline_health_region_no_data(tmp_path: Path) -> None:
+    """render_pipeline_health_region returns non-empty HTML even with no files present."""
+    store = tmp_path / "data" / "sessions.db"
+    # Do NOT create the store — tests the absent-file paths.
+    result = render_pipeline_health_region(store)
+    assert result
+    assert "Pipeline health" in result
+    assert "Capture" in result
+    assert "Insights" in result
+    assert "Feedback" in result
+    assert "Retro" in result
+    assert "Config" in result
+
+
+def test_render_pipeline_health_region_with_store(tmp_path: Path) -> None:
+    """render_pipeline_health_region reads sessions.db and reflects its row count."""
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+    upsert([_row("s1"), _row("s2")], store)
+
+    result = render_pipeline_health_region(store)
+    assert result
+    assert "Pipeline health" in result
+    # Capture cell should show recency (store just written — less than 24 h)
+    assert "✓" in result
+    # Should mention row count somewhere
+    assert "2 rows" in result
+
+
+def test_render_pipeline_health_region_with_insights_log(tmp_path: Path) -> None:
+    """render_pipeline_health_region reads insights-log.md for the Insights stage."""
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+
+    # Fake sounding structure: store is …/data/sessions.db so root is tmp_path
+    insights_dir = tmp_path / ".sounding" / "insights"
+    insights_dir.mkdir(parents=True)
+    (insights_dir / "insights-log.md").write_text(
+        "## 2026-08-19\n\nSome insight.\n", encoding="utf-8"
+    )
+
+    result = render_pipeline_health_region(store)
+    assert result
+    assert "Pipeline health" in result
+    assert "Insights" in result
+
+
+def test_render_pipeline_health_region_roundtrip(tmp_path: Path) -> None:
+    """render_pipeline_health_region output injects cleanly into a marker pair."""
+    store = tmp_path / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+    upsert([_row("s1")], store)
+
+    fragment = render_pipeline_health_region(store)
+
+    p = tmp_path / "context-dashboard.html"
+    p.write_text(_make_html("PIPELINE-HEALTH"), encoding="utf-8")
+    inject_regions(p, {"PIPELINE-HEALTH": fragment})
+
+    result = p.read_text(encoding="utf-8")
+    assert fragment in result
+    assert "<p>old content</p>" not in result
+    assert _BEFORE in result
+    assert _AFTER in result

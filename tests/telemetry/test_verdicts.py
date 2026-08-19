@@ -114,10 +114,33 @@ def test_absence_failed_when_registered_signal_is_positive() -> None:
 
 
 def test_absence_inconclusive_when_signal_unregistered() -> None:
+    """A name nobody declared reports as an authoring gap, nameable and fixable."""
     rows = [_row() for _ in range(5)]
-    v = score_metric("absence:flat-sibling-issues-without-parent-link", rows)
+    v = score_metric("absence:a-signal-nobody-declared", rows)
     assert v.verdict == VERDICT_INCONCLUSIVE
-    assert "no factstore signal registered" in v.evidence
+    assert "unregistered signal" in v.evidence
+
+
+def test_absence_inconclusive_names_collection_gap_distinctly() -> None:
+    """`needs-collection` must not read as `unregistered`.
+
+    flat-sibling-issues-without-parent-link IS declared; it is unscorable only
+    because `issues` carries no parent relation. Collapsing that into "not
+    registered" is what sent an author off to register a name that already
+    existed instead of fixing the collector.
+    """
+    v = score_metric("absence:flat-sibling-issues-without-parent-link", [_row()])
+    assert v.verdict == VERDICT_INCONCLUSIVE
+    assert "needs a collection change" in v.evidence
+    assert "unregistered" not in v.evidence
+
+
+def test_absence_inconclusive_names_unobservable_distinctly() -> None:
+    """`unobservable` claims say so, and say to rewrite rather than to register."""
+    v = score_metric("absence:variable-cd-misresolution", [_row()])
+    assert v.verdict == VERDICT_INCONCLUSIVE
+    assert "unobservable by design" in v.evidence
+    assert "Rewrite" in v.evidence
 
 
 def test_absence_inconclusive_when_no_data() -> None:
