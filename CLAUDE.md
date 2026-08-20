@@ -29,7 +29,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/meta-insights` | Auto-spawned by grow/retro | Reads `sessions.db` + hook logs; writes `insights-log.md`. Detects friction patterns, token economics, context health signals |
 | `/meta-retro` | Auto after feedback, or overdue | **Repo-local.** Reads insights-log + tooling ledger; proposes config diffs (hooks, skills, rules). Propose-only — silence is not approval |
 | `/meta-feedback` | **Manual — human gate** | **Repo-local.** Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `.sounding/telemetry/feedback-log.md` |
-| `/hypothesis` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
+| `/track` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
 
 > **Note**: The cron→retro auto-spawn and SessionStart cascade edges in this table
 > describe the target state per `plans/2026-08-19-metacognition-automation.md`

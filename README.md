@@ -47,7 +47,7 @@ into permanent config; improved config shapes the next session.
 | `/meta-feedback` | Findings exist in insights-log | Verifies claims against the raw corpus. Confirmed → retro, phantom → metric fix | **Yes** |
 | `/meta-retro` | Feedback routed findings, or cascade threshold reached | Proposes config diffs → `tooling-ledger.md`. Files issues back to the board. **Propose-only** | No |
 | → config | Ramsey reviews each diff | Graduates to hooks / skills / rules | **Yes** |
-| `/hypothesis` | Any session | Turns a retro recommendation into a falsifiable ledger row with a typed metric and due date | — |
+| `/track` | Any session | Turns a retro recommendation into a falsifiable ledger row with a typed metric and due date | — |
 
 **Automation triggers (GUA-150):** The two "No" rows fire without human invocation.
 `/meta-insights` is spawned headlessly by `scripts/telemetry-cron.sh` when either condition

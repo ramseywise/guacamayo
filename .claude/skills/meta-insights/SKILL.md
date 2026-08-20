@@ -42,9 +42,24 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
    open ~/workspace/guacamayo/.sounding/insights/insights-report.html
    ```
 
+4b. **Session count verification** — before computing any per-session ratio, cross-check
+   the session count against the factstore:
+   ```
+   sqlite3 ~/workspace/librarian/data/sessions.db "SELECT COUNT(*) FROM sessions WHERE date >= '<start-date>';"
+   ```
+   The insights engine and the factstore must agree on session count for the same date
+   range. A divergence (feedback-log 2026-08-20, C1: 382 vs 416 for the same window)
+   means one source is filtering differently — diagnose before reporting ratios, because
+   every per-session metric inherits the denominator error.
+
 5. **Summary** — present the headline numbers:
    - Sessions analyzed, date range, messages
-   - % of usage over 150k context (the top cost lever)
+   - % of **sessions** over 150k context (the top cost lever) — this is
+     `COUNT(sessions > 150k) / COUNT(all sessions)`, NOT the cost share in those sessions.
+     The dashboard computes both (`pct_over_150k` = session count ratio,
+     `cost_bucket_pct_over150k` = cost share). Never conflate them — the cost share is
+     always higher because expensive sessions are expensive. Feedback-log 2026-08-20 C3
+     found 19% stated vs 5% measured — a 3.8× overstatement from mixing the two.
    - Cache hit rate and savings
    - Subagent share
 
@@ -105,12 +120,18 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
 9. **Friction patterns** — from tool errors, bash antipatterns, hook blocks, and
    explicit user signals:
    - Error types and frequency
-   - Bash antipatterns per session (shell used where dedicated tools exist)
+   - Bash antipatterns **median (p50)** per session — this signal is a MEDIAN, not a
+     mean. Always say "median" in the report, never "average" or "per-session average".
+     The resolver (`_bash_antipatterns_p50`) computes p50. Feedback-log 2026-08-20 C2
+     found the prose said "average" while the number was a median — 3-point gap.
    - Hook blocks (PreToolUse blocks, Stop blocks) — useful vs. false-positive
    - read:edit ratio (sessions editing without reading first)
    - Long sessions without planning structure
    - **Friction label count** and content summary (from `FRICTION:` prefixes in user messages)
-   - **Execution skill compliance rate** (% of execution-intent sessions invoking ≥1 skill)
+   - **Execution skill compliance rate** (% of execution-intent sessions invoking ≥1
+     **guardrail** skill — only workflow-execute/review, code-review/debug/refactor count.
+     Identity skills like wake/grow/dream do NOT count as execution compliance.
+     Feedback-log 2026-08-20 C5 found counting all skills inflated this 7× (36% vs 4.9%)
    - **Spawned-agent-type distribution** (from parent Agent tool calls — compare to cost attribution)
 
    **Failure attribution** — do NOT classify error events by hand. Attribution is
