@@ -42,7 +42,12 @@
       "Skill",
       "mcp__claude-in-chrome__tabs_context_mcp",
       "mcp__claude-in-chrome__navigate",
-      "mcp__claude-in-chrome__tabs_create_mcp"
+      "mcp__claude-in-chrome__tabs_create_mcp",
+      "mcp__librarian__search_wiki",
+      "mcp__librarian__read_page",
+      "mcp__librarian__list_domain",
+      "mcp__librarian__list_pages",
+      "mcp__librarian__get_domain_briefing"
     ],
     "deny": [
       "Bash(rm -rf /*)",
