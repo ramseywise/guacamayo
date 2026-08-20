@@ -71,6 +71,12 @@ after state assessment, using the issue title, labels, and body already in conte
 | `chore` | Label `chore`, `docs`, `ci`, or `tooling`; or title contains: chore / docs / update / bump / ledger / tooling |
 | `new-feature` | Default — none of the above matched |
 
+**Labels outrank titles.** Issues filed through `.github/ISSUE_TEMPLATE/` carry a
+job-type label stamped at creation (`bug` / `enhancement` / `refactor` / `chore`), so the
+label is a fact where the title keyword is a guess. Only fall through to title matching
+for issues with no job-type label — filed before the templates landed, opened from the
+CLI, or transferred from another repo.
+
 Unclassifiable issues (no issue body, inline text only) → `"unknown"`.
 
 The `job_type` field shapes the exit artifact hint in the exit block:

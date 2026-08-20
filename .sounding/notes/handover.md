@@ -1,53 +1,38 @@
-# Handover — 2026-08-19 22:15 Dispatch session closed the board (PR #155 merged)
+# Handover — 2026-08-20 11:24 Galactus Board Clear
 
-**Context**: Pure dispatcher session. Woke on GUA-151 just pushed; ended with the entire
-guacamayo board cleared to one deliberate backlog item. Nine agent spawns did the work.
+**Context**: Dispatch session focused on closing all open galactus issues. Scoped #39, executed via agent, consolidated all changes into one PR that merged.
 
 ## Current State
-- **Board: one open issue** — #154 (hidden-region audit, backlog, gated on per-region
-  confirmation from Ramsey — attended pass, never autonomous).
-- **PR #155 merged** (`c1f3b31` on main): six commits combining GUA-149 (telemetry truth
-  pass), GUA-150 (metacognition automation Session A+B + docs), GUA-152 (job-type
-  classification + dashboard bar) + workflow-scope dispatch rule + tab-count restore.
-- **Closed this session**: #145, #149 (auto via Closes), #150, #151, #152 — all verified
-  by content on origin/main before closing. All manual closes logged to
-  `.sounding/telemetry/actions.jsonl`.
-- **Worktrees**: all cleaned. Orphan `agent-af83c918` removed (verified: branch merged via
-  PR #140, uncommitted edits byte-identical to PR #147's landed content). Source branches
-  GUA-149/150/152 deleted after tree-verification against the combined branch.
-- **Live checkout**: on merged branch `GUA-149-150-152-combined`; safe to checkout main
-  and delete. `board.json` has session churn (uncommitted).
+- **Galactus: 0 open issues.** All 5 cleared this session:
+  - #31: closed (branch merged, orphan worktree removed)
+  - #35: closed (work landed via PR #41, plan SUPERSEDED)
+  - #36: closed (credit reunification on main)
+  - #5: closed (blocked/deferred — depends on #4 Phase 1)
+  - #39: executed via agent, cherry-picked onto GAL-40, PR merged
+- **Galactus live checkout**: `GAL-40-research-scout-rename` — now merged. Switch to main.
+- **Galactus consolidated plan** (`2026-08-18-ml-parity-consolidated.md`): still reads READY but all work verified landed. Needs EXECUTED.
+- **Guacamayo**: on branch `GUA-158-agent-roster` (merged). Switch to main.
+- **Guacamayo #154**: branch merged, issue still open.
+- **Guacamayo telemetry churn**: `board.json`, `proposal-sightings.jsonl`, `context-dashboard.html` modified, uncommitted.
 
 ## Decisions Made
-- Splitting → task checklists held; combined 3 branches → 1 PR via cherry-pick (worked,
-  with one caught regression — see below).
-- Dispatch rule codified in `workflow-scope/SKILL.md`: a triage spawn executes the
-  orchestrator skill, never the bare one-stage `triage` agent (both #149/#152 stalled at
-  `plan` when I spawned the bare worker).
-- #152 Q2 resolved by refine agent: job-type bar added (cheap copy of ep_bar pattern).
-- Signal count settled by live recount at execute: 64 total / 21 registered.
+- Consolidated small related galactus changes into single PR (cherry-pick + patch pattern) rather than per-issue PRs.
+- GAL-31 orphan worktree staged changes (deploy hardening, 1260 lines) folded into the consolidated PR.
+- Cross-repo worktree dispatch: agent self-recovered via /tmp manual worktree; `isolation: "worktree"` still has no cross-repo awareness.
 
 ## Open Threads
-- **Closes-line enforcement**: PRs #134, #153, #155 all merged missing `Closes #N` lines
-  (5 issues closed manually this week). The closes_link_guard exists (tested on #135) but
-  is evidently not catching the actual PR-creation path. Retro input — needs a hook on
-  `gh pr create` or a PR template, not memory.
-- **Cherry-pick conflict resolutions need invariant checks**: assembly agent's own
-  completeness verification passed while it had reverted #150's seven-tab fix. Fixed in
-  `b4c2b47`; the detector was a cross-doc content grep.
-- **Session ran on fable by accident** — dispatch work on judgment-tier budget. Check
-  launch path / settings before next session.
-- #154 execution: attended, per-region (unhide / retire / keep), ~260KB/run invisible.
+- **Cross-repo worktree dispatch** — third recurrence (2026-07-30, 2026-08-19, now). `isolation: "worktree"` creates in session's repo, not target.
+- **Feedback never run** — insights findings unverified. `/meta-feedback` is the human gate.
+- **Closes-line enforcement** — still recurring from last session. Needs hook or template fix.
 
 ## Immediate Next Steps
-1. `git checkout main && git pull` in the live checkout; delete `GUA-149-150-152-combined`.
-2. Decide `board.json` churn: commit or discard.
-3. Retro (R12) was spawned at dream-close for the tooling changes — verify it landed.
-4. When ready for #154: attended session, region-by-region.
+1. Switch guacamayo to main: `git checkout main && git pull`
+2. Close guacamayo #154 (`gh issue close 154`)
+3. Switch galactus to main, update consolidated plan status to EXECUTED
+4. Run `/meta-feedback` in next opus session
+5. When ready for #154: attended session, region-by-region
 
 ## Key Files
-- `.claude/skills/workflow-scope/SKILL.md` (dispatch rule + job-type classification)
-- `telemetry/dashboard.py` (retro-parse fix ~6983; job-type bar ~7115)
-- `.sounding/telemetry/actions.jsonl` (close decisions audit trail)
-- `.claude/docs/plans/2026-08-19-telemetry-truth-pass.md` + `-workflow-scope-job-type.md`
-  (both EXECUTED via PR #155 — update Status: lines if not already)
+- `galactus/.claude/docs/plans/2026-08-20-resolve-capability-registry.md`
+- `galactus/.claude/docs/plans/2026-08-18-ml-parity-consolidated.md`
+- `.sounding/growth/growth.md` (3 entries + 1 outcome tag)

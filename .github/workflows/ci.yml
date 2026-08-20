@@ -5,6 +5,13 @@ on:
     branches: [main]
   pull_request:
 
+# Supersede in-flight runs on the same ref — three pushes to a PR should cost one
+# lint+test set, not three. Deliberately unlike board-signal.yml, which sets
+# cancel-in-progress: false because an interrupted append corrupts its orphan branch.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   ci:
     uses: ramseywise/ai-project-template/.github/workflows/python-ci.yml@main
