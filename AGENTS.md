@@ -107,7 +107,7 @@ propose/mutate boundary moves only on logged acceptance-rate evidence.
 
 ## Telemetry Package
 
-`telemetry/signals.py` — signal registry (56 declared, 18 with resolvers). Signals feed
+`telemetry/signals.py` — signal registry (64 declared, 21 with resolvers). Signals feed
 dashboard tiles and the insights engine.
 
 `telemetry/dashboard.py` — renders the 7-tab HTML dashboard:
