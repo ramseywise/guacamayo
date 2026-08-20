@@ -1,6 +1,6 @@
 ---
-name: hypothesis
-description: "Design the data collection for a new experiment BEFORE writing its ledger row — refuses to emit a row whose metric is unfalsifiable, unregistered, or awaiting a collection change, and computes the due date at 2 retro rounds. Trigger on: /hypothesis, 'add a ledger row', 'new experiment', 'test whether', 'measure whether', 'propose a hypothesis', a /meta-retro recommendation that needs a metric."
+name: track
+description: "Design the data collection for a new experiment BEFORE writing its ledger row — refuses to emit a row whose metric is unfalsifiable, unregistered, or awaiting a collection change, and computes the due date at 2 retro rounds. Trigger on: /track, 'add a ledger row', 'new experiment', 'test whether', 'measure whether', 'track whether', a /meta-retro recommendation that needs a metric."
 disable-model-invocation: false
 allowed-tools: Read Grep Glob Bash Edit
 ---

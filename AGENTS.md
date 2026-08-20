@@ -81,7 +81,7 @@ The metacognition loop runs mostly automatically. One human gate: `/meta-feedbac
 | `/meta-feedback` | **Human gate** — verifies insight claims against raw corpus, routes findings | `.sounding/telemetry/feedback-log.md` |
 | `/meta-retro` | Auto after feedback — proposes config diffs; propose-only, never auto-applies | `tooling-ledger.md` |
 | `/meta-dream` | Session close — writes reflection, conditionally synthesizes seeds, tidies indexes | `.sounding/` seeds + logs |
-| `/hypothesis` | Any session — adds typed verification row to ledger | `tooling-ledger.md` |
+| `/track` | Any session — adds typed verification row to ledger | `tooling-ledger.md` |
 
 **Single-writer rule**: `/meta-grow` captures; `/meta-dream` is the sole transformer of
 identity seeds. Multiple writers produce voice drift and accretion.

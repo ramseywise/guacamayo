@@ -315,7 +315,16 @@ def _metric_value(metric: str, bucket: list[dict[str, Any]]) -> float | None:
         exec_rows = [r for r in bucket if r.get("session_intent") == "execution"]
         if not exec_rows:
             return None
-        with_skills = sum(1 for r in exec_rows if len(json.loads(r.get("skill_costs") or "{}")) > 0)
+        guardrail_skills = {
+            "workflow-execute",
+            "workflow-review",
+            "code-review",
+            "code-debug",
+            "code-refactor",
+        }
+        with_skills = sum(
+            1 for r in exec_rows if guardrail_skills & set(json.loads(r.get("skill_costs") or "{}"))
+        )
         return round(100 * with_skills / len(exec_rows), 2)
     if metric == "friction_labels_total":
         return sum(int(r.get("friction_label_count") or 0) for r in bucket)

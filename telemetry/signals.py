@@ -1,7 +1,7 @@
 """Declared signal namespace for ledger hypotheses (GUA telemetry, 2026-08-19).
 
 `verdicts.py` scores a metric clause; this module owns *what a signal name means*
-and whether it can be measured at all. Both the scorer and the `/hypothesis`
+and whether it can be measured at all. Both the scorer and the `/track`
 authoring skill import from here so a hypothesis cannot be written against a name
 the system will silently fail to resolve.
 
@@ -133,11 +133,32 @@ def _output_tokens_p90(src: SignalSources) -> float | None:
     return float(ordered[idx])
 
 
+_EXECUTION_GUARDRAIL_SKILLS = frozenset(
+    {
+        "workflow-execute",
+        "workflow-review",
+        "code-review",
+        "code-debug",
+        "code-refactor",
+    }
+)
+"""Skills that count as execution guardrails for compliance measurement.
+
+Identity skills (wake/grow/dream) and meta skills (insights/retro) are NOT
+execution guardrails — counting them inflated this metric from 4.9% to 36%
+(feedback-log 2026-08-20, C5).
+"""
+
+
 def _execution_skill_compliance_pct(src: SignalSources) -> float | None:
     exec_rows = [r for r in src.sessions if r.get("session_intent") == "execution"]
     if not exec_rows:
         return None
-    with_skills = sum(1 for r in exec_rows if len(json.loads(r.get("skill_costs") or "{}")) > 0)
+    with_skills = sum(
+        1
+        for r in exec_rows
+        if _EXECUTION_GUARDRAIL_SKILLS & set(json.loads(r.get("skill_costs") or "{}"))
+    )
     return round(100 * with_skills / len(exec_rows), 2)
 
 
@@ -396,7 +417,8 @@ _ENTRIES: list[Signal] = [
         REGISTERED,
         KIND_SESSION,
         _bash_antipatterns_p50,
-        "Median bash antipattern count per session.",
+        "Median (p50) bash antipattern count per session. This is NOT the mean — "
+        "insights prose must say 'median', never 'average' (feedback-log 2026-08-20, C2).",
     ),
     Signal(
         "p90-output-tokens",
@@ -410,7 +432,9 @@ _ENTRIES: list[Signal] = [
         REGISTERED,
         KIND_SESSION,
         _execution_skill_compliance_pct,
-        "Percent of execution sessions that invoked at least one skill.",
+        "Percent of execution sessions that invoked at least one guardrail skill "
+        "(workflow-execute/review, code-review/debug/refactor). Identity and meta "
+        "skills are excluded (feedback-log 2026-08-20, C5).",
     ),
     Signal(
         "top-session-cost-concentration",
