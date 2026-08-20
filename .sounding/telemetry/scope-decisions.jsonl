@@ -2,3 +2,6 @@
 {"ts":"2026-08-19T18:31:26Z","issue":149,"repo":"guacamayo","state":"RESEARCHED","entry_point":"plan","outcome":"partial","stages_run":["plan"],"retries":0}
 {"ts":"2026-08-20T10:03:22Z","issue":161,"repo":"guacamayo","state":"RESEARCHED","entry_point":"plan","job_type":"debug"}
 {"ts":"2026-08-20T10:05:47Z","issue":161,"repo":"guacamayo","outcome":"ready","stages_run":["plan"],"retries":0,"job_type":"debug"}
+{"ts":"2026-08-20T10:24:10Z","issue":163,"repo":"guacamayo","state":"UNSCOPED","entry_point":"research","job_type":"chore"}
+{"ts":"2026-08-20T10:24:10Z","issue":164,"repo":"guacamayo","state":"UNSCOPED","entry_point":"research","job_type":"new-feature"}
+{"ts":"2026-08-20T10:24:10Z","issue":124,"repo":"librarian","state":"CLEAR","entry_point":"plan","job_type":"new-feature"}
