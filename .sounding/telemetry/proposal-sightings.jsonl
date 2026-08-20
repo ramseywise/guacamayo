@@ -15,3 +15,7 @@
 {"proposal_id": "0820249eb2ab", "action": "dispatch_review", "target": {"repo": "guacamayo", "issue_num": 160}, "date": "2026-08-20", "ts": "2026-08-20T10:11:49.055947+00:00"}
 {"proposal_id": "a3aa7fa2f364", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 160}, "date": "2026-08-20", "ts": "2026-08-20T11:03:44.698906+00:00"}
 {"proposal_id": "47287175888c", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 165}, "date": "2026-08-20", "ts": "2026-08-20T11:14:10.545702+00:00"}
+{"proposal_id": "a3aa7fa2f364", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 160}, "date": "2026-08-20", "ts": "2026-08-20T10:42:57.676781+00:00"}
+{"proposal_id": "e9f78433ba1c", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 164}, "date": "2026-08-20", "ts": "2026-08-20T10:42:57.676781+00:00"}
+{"proposal_id": "7614b5ec3bac", "action": "close_issue", "target": {"repo": "librarian", "issue_num": 124}, "date": "2026-08-20", "ts": "2026-08-20T10:42:57.676781+00:00"}
+{"proposal_id": "4432d58108e6", "action": "close_issue", "target": {"repo": "guacamayo", "issue_num": 163}, "date": "2026-08-20", "ts": "2026-08-20T10:53:25.832352+00:00"}

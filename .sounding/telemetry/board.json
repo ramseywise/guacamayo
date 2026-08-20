@@ -33,7 +33,20 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-160-ci-templates` is an ancestor of origin/main'; evidence='guacamayo#160 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-20T11:45:27.679898+00:00"
+      "created_at": "2026-08-20T10:53:25.830524+00:00"
+    },
+    {
+      "id": "4432d58108e6",
+      "action": "close_issue",
+      "target": {
+        "repo": "guacamayo",
+        "issue_num": 163
+      },
+      "reason": "branch merged to main but issue #163 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-163-git-activity-granularity` is an ancestor of origin/main'; evidence='guacamayo#163 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-20T10:53:25.830524+00:00"
     },
     {
       "id": "247fc7ae7480",
