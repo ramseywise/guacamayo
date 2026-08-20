@@ -335,6 +335,6 @@ No issue. Graduate the ledger row: `hypothesis → verified (evidence)`.
 
 ### Unscoped ideas → inbox
 If a finding is too vague for an issue (no clear problem statement), append one line to
-`~/workspace/guacamayo/.claude/docs/state/inbox.md` instead of creating an issue.
+`~/workspace/guacamayo/.sounding/state/inbox.md` instead of creating an issue.
 
 Report the issue URLs created so Ramsey can verify.
