@@ -61,9 +61,13 @@ Query librarian for sessions since last wake or last grow (whichever is more rec
 - Flag **recurring friction patterns** across sessions (same error 3x, same permission prompt, repeated manual fix)
 - Extract **decisions made** in other sessions that affect this one
 
-### Fallback (no librarian)
+### Fallback: librarian configured but not responding
 
-Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
+If `mcp__librarian__search_wiki` appears in the available tool list but the call fails or returns an error: surface a warning — "Librarian MCP is configured but not responding — running degraded. Check `make -C ~/workspace/librarian mcp`." Log a `[discovered]` growth entry noting the failure. Then fall through to the mobile/cloud fallback below.
+
+### Fallback: librarian not configured (mobile / cloud)
+
+If `mcp__librarian__search_wiki` does not appear in the available tool list: this is the expected mobile/cloud path. Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
 
 ### Board (lightweight — read the pre-computed file, no gh sweeps)
 
