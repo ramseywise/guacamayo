@@ -58,9 +58,13 @@ Query librarian for sessions since last wake (use the reflection timestamp as th
 
 Surface findings as "Patterns noticed" in the integration summary.
 
-### Fallback (no librarian / no recent ingest)
+### Fallback: librarian configured but not responding
 
-Ask: "Any sessions since last wake I should know about?" Ramsey narrates the headline; log anything identity-relevant to growth.md as a `[discovered]` entry. Process learnings (tooling/workflow) stay conversational — they'll reach /retro through the session record, not through growth.md.
+If `mcp__librarian__search_wiki` appears in the available tool list but the call fails or returns an error: surface a warning — "Librarian MCP is configured but not responding — running degraded. Check `make -C ~/workspace/librarian mcp`." Log a `[discovered]` growth entry noting the failure. Then fall through to the manual ingest below.
+
+### Fallback: librarian not configured (mobile / cloud)
+
+If `mcp__librarian__search_wiki` does not appear in the available tool list: this is the expected mobile/cloud path. Ask: "Any sessions since last wake I should know about?" Ramsey narrates the headline; log anything identity-relevant to growth.md as a `[discovered]` entry. Process learnings (tooling/workflow) stay conversational — they'll reach /retro through the session record, not through growth.md.
 
 ### Mobile / cloud-sandbox fallback
 
@@ -92,7 +96,7 @@ loop's one human gate). Absent file = feedback has **never run**: report `feedba
 in the session-open summary — insights findings exist unverified until Ramsey runs
 /meta-feedback. If present, surface the most recent entry date by max date (same rule as
 insights-log: max `## YYYY-MM-DD` header, not file position).
-Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
+Skim `.sounding/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board (cross-repo)
 

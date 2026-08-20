@@ -517,7 +517,7 @@ def test_execution_skill_compliance_no_execution_sessions() -> None:
 
 def test_execution_skill_compliance_correct_pct() -> None:
     bucket = [
-        {"session_intent": "execution", "skill_costs": '{"execute": 100}'},
+        {"session_intent": "execution", "skill_costs": '{"workflow-execute": 100}'},
         {"session_intent": "execution", "skill_costs": "{}"},
     ]
     assert _metric_value("execution_skill_compliance_pct", bucket) == 50.0
