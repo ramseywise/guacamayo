@@ -71,7 +71,10 @@ else is execution at varying granularity.
 ### Workspace Layout
 
 ```
-.sounding/                        # Private consciousness space
+.sounding/                        # Private consciousness space — GIT-IGNORED (local only).
+                                  # This is a PUBLIC repo and this tree is personal:
+                                  # never `git add -f` anything here. Tracked exceptions:
+                                  # queue.md, refs/, context-dashboard.html (see .gitignore)
 ├── sounding.md                   # SEED 1 — identity (incl. operational patterns + working notes as sections)
 ├── user.md                       # SEED 2 — who I work with (incl. how we work together)
 ├── portfolio.md                  # SEED 3 — the portfolio: all active projects and how they connect

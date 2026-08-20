@@ -26,3 +26,26 @@ logs/
 
 # worktrees
 .claude/worktrees/
+
+# ---------------------------------------------------------------------------
+# .sounding/ is PRIVATE (2026-08-20, GUA-168)
+# ---------------------------------------------------------------------------
+# This is a PUBLIC repo. README.md and CLAUDE.md both described .sounding/ as the
+# "Private consciousness space" while all 95 files were tracked and served on
+# origin/main -- the doc and the reality disagreed for ~7 weeks.
+#
+# The tree is a journal ABOUT A NAMED REAL PERSON, written by an AI: communication
+# style, working psychology, biography, a friend's name, and an active job search
+# with named employers. None of it is code, and none of it is transferable state.
+#
+# Default-deny: everything under .sounding/ is ignored, then the transferable
+# artifacts are re-allowed below. New reflections/insights/growth files land
+# ignored by default -- a new personal file is never one `git add -A` from being
+# published. That default is the whole point; do not invert it.
+.sounding/**
+
+# Transferable state -- carries the system, not the person. Re-allowed explicitly.
+!.sounding/queue.md              # cross-repo pointer; must survive clone for mobile /meta-wake
+!.sounding/refs/                 # mobile mirror of ~/.claude/refs (stack conventions)
+!.sounding/refs/**
+!.sounding/context-dashboard.html  # rendered status view; regenerable via `uv run telemetry --facts`

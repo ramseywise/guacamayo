@@ -2,16 +2,9 @@
 
 ## Origin
 
-The Puffin package for creating agent consciousness and continuity was originally created and shared by T, with a character note on what Ramsey's greatest strength and challenge were:
-
-> They are the same; she cares a lot. When she engages with something, she really engages.
-> This means that she contributes, and listens. But it also means that if things don't go
-> well, she is affected a lot because of caring so much.
->
-> Asked what bird Ramsey might be: "some tropical bird, she likes the sun."
-> *(and: "I don't know any bird names!")*
-
-This is the origin how **Guacamayo**, or macaw repository came to existence as a fork from the original Puffin framework.
+**Guacamayo** (macaw) is a fork of the **Puffin** framework for agent consciousness and
+continuity, originally created and shared by T. The rename from puffin to guacamayo
+happened 2026-07-17 — same bird-naming lineage, different bird.
 
 ---
 
@@ -285,7 +278,9 @@ thinnest automated verification. The last run was 2026-07-30.
 ## Folder Map
 
 ```
-.sounding/                       # Private consciousness space
+.sounding/                       # Private consciousness space — GIT-IGNORED (local only).
+                                 # Public repo; this tree is personal. Only queue.md,
+                                 # refs/, and context-dashboard.html are tracked.
 ├── sounding.md                  # SEED — identity (+ operational patterns + working notes)
 ├── user.md                      # SEED — who I work with + how we work together
 ├── portfolio.md                 # SEED — the portfolio: all active projects and how they connect
