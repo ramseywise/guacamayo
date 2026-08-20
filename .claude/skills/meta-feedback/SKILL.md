@@ -51,7 +51,7 @@ Read each source, extract **discrete claims**, do not yet believe any of them.
    `errors_tool`, `errors_unknown`, `bash_antipatterns`.
 3. **Recurrence report** — the `promotable` / `rising` / `falling` groups
    (`telemetry/recurrence.py`), per `/meta-retro` Step 1.6.
-4. **Dashboard tiles** — `.sounding/context-dashboard.html`, incl. AUTOMATED-ACTIONS
+4. **Dashboard tiles** — `docs/dashboard.html`, incl. AUTOMATED-ACTIONS
    acceptance rates. Respect the metric fences (`JULY_ONLY_METRICS`, `COMPACT_METRICS`) —
    a tile computed over a sparse column is a fenced claim, not a population claim.
 5. **Ledger hypotheses** — `.sounding/tooling-ledger.md` rows with typed metrics.

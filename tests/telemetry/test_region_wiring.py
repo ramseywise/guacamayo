@@ -10,7 +10,7 @@ Covers:
 - Each renderer: non-empty output with data, graceful (non-empty) output with
   no data.
 - Round-trip: each renderer's output injects cleanly into a marker pair.
-- A copy of the real context-dashboard.html: injecting all four regions
+- A copy of the real dashboard.html: injecting all four regions
   changes only those four regions; the hand-written HOOK-ACTIVITY card and
   all other bytes are preserved exactly.
 """
@@ -218,7 +218,7 @@ def test_roundtrip_inject_card_renderers(
     renderer = getattr(dashboard_mod, renderer_name)
     fragment = renderer(store)
 
-    p = tmp_path / "context-dashboard.html"
+    p = tmp_path / "dashboard.html"
     p.write_text(_make_html(region_name), encoding="utf-8")
     inject_regions(p, {region_name: fragment})
 
@@ -234,19 +234,17 @@ def test_roundtrip_inject_card_renderers(
 # not disturb HOOK-ACTIVITY or any other content.
 # ---------------------------------------------------------------------------
 
-_REAL_DASHBOARD = Path("~/workspace/guacamayo/.sounding/context-dashboard.html").expanduser()
+_REAL_DASHBOARD = Path("~/workspace/guacamayo/docs/dashboard.html").expanduser()
 
 
-@pytest.mark.skipif(
-    not _REAL_DASHBOARD.exists(), reason="guacamayo context-dashboard.html not present"
-)
+@pytest.mark.skipif(not _REAL_DASHBOARD.exists(), reason="guacamayo dashboard.html not present")
 def test_inject_four_regions_preserves_hook_activity_and_other_bytes(tmp_path: Path) -> None:
     """Injecting the four wired regions into a COPY of the real dashboard changes only
     those four regions; HOOK-ACTIVITY and everything else is preserved byte-for-byte.
 
     Never writes to the live guacamayo file — operates on a copy in tmp_path.
     """
-    copy_path = tmp_path / "context-dashboard.html"
+    copy_path = tmp_path / "dashboard.html"
     shutil.copy(_REAL_DASHBOARD, copy_path)
     original = copy_path.read_text(encoding="utf-8")
 
@@ -451,7 +449,7 @@ def test_render_pipeline_health_region_roundtrip(tmp_path: Path) -> None:
 
     fragment = render_pipeline_health_region(store)
 
-    p = tmp_path / "context-dashboard.html"
+    p = tmp_path / "dashboard.html"
     p.write_text(_make_html("PIPELINE-HEALTH"), encoding="utf-8")
     inject_regions(p, {"PIPELINE-HEALTH": fragment})
 

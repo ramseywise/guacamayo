@@ -627,7 +627,7 @@ def _run_board() -> None:
                 import json as _json
 
                 cascade_state = _json.loads(cascade_path.read_text(encoding="utf-8"))
-            except Exception:
+            except (OSError, ValueError, KeyError):
                 log.warning("board.cascade_state_load_failed", path=str(cascade_path))
 
         # Consistency checks for the evaluator — only the merged-branch rule; label checks
@@ -996,9 +996,9 @@ def _run_facts() -> None:
     )
     p.add_argument(
         "--context-dashboard",
-        default=str(repo_root / ".sounding" / "context-dashboard.html"),
+        default=str(repo_root / "docs" / "dashboard.html"),
         help=(
-            "Path to the shared context-dashboard.html for region injection. "
+            "Path to the shared dashboard.html for region injection. "
             "Telemetry injects only the regions it owns (REVIEW-FINDINGS, "
             "EXPERIMENTS-LIFECYCLE, LOOP-CLOSURE, INPUT-TOKENS, SKILL-ECONOMICS, "
             "TOOL-TRENDS, FRICTION-REGROUP, SKILL-EVALS, LOOP); all other regions "
@@ -1012,7 +1012,7 @@ def _run_facts() -> None:
     )
     p.add_argument("--stale-days", type=int, default=3)
     p.add_argument(
-        "--no-inject", action="store_true", help="Skip region injection into context-dashboard.html"
+        "--no-inject", action="store_true", help="Skip region injection into dashboard.html"
     )
     p.add_argument("--workspace", default="~/workspace", help="Root scanned for git repos")
     p.add_argument("--no-git", action="store_true", help="Skip repo-activity collection")
@@ -1351,20 +1351,15 @@ def _run_facts() -> None:
                 ),
                 "DATA-BLOCK": render_data_block_region(store),
             }
-            # The v2 board retired these three from Context Health (which now ends at
-            # tool failures), but v1 still renders them, so the renderers stay wired.
-            # Their markers remain declared on v2 — parked in the hidden block so the
-            # board-completeness test still passes — and are left empty here rather
-            # than refilled on every run.
-            if ctx_path.name == "context-dashboard-v2.html":
-                regions = {k: v for k, v in regions.items() if k not in _V2_RETIRED_REGIONS}
+            # V2 retired regions are always stripped — dashboard.html is the v2 board.
+            regions = {k: v for k, v in regions.items() if k not in _V2_RETIRED_REGIONS}
             # GUA-154: retired attic regions are never injected; trajectories go to
             # the JSON sink below instead of a hidden 225KB table.
             regions = {k: v for k, v in regions.items() if k not in RETIRED_REGIONS}
             injected = inject_regions(ctx_path, regions)
             print(f"Region injection: {injected}")
 
-            trajectories_path = ctx_path.parent / "telemetry" / "verdict-trajectories.json"
+            trajectories_path = repo_root / ".sounding" / "telemetry" / "verdict-trajectories.json"
             trajectories_path.parent.mkdir(parents=True, exist_ok=True)
             verdict_rows = read_verdicts(store)
             trajectories_path.write_text(
@@ -1380,7 +1375,7 @@ def _run_facts() -> None:
             )
             print(f"Verdict trajectories: {len(verdict_rows)} rows -> {trajectories_path}")
         else:
-            print(f"context-dashboard not found, skipping injection: {ctx_path}", flush=True)
+            print(f"dashboard not found, skipping injection: {ctx_path}", flush=True)
 
     # Staleness guard: the newest row aging past --stale-days means capture is not
     # keeping up with the ~5-day JSONL retention window, i.e. history is being lost.
