@@ -48,9 +48,8 @@ def test_unknown_name_is_unregistered() -> None:
 def test_needs_collection_entries_name_their_remedy() -> None:
     """A needs-collection entry is useless without the collection change to make."""
     for name in (
-        "merged-prs-without-closing-links",
-        "cross-repo-prefix-mismatch-branches",
-        "stale-merged-branches",
+        "unverified-agent-counts-in-promoted-issue-bodies",
+        "flat-sibling-issues-without-parent-link",
     ):
         sig = signals.lookup(name)
         assert sig is not None, name
@@ -303,3 +302,104 @@ def test_feedback_run_age_accepts_plain_hyphen(tmp_path: Path) -> None:
     _write_feedback_log(tmp_path, f"# Feedback Run - {today.isoformat()}\n")
     src = SignalSources(workspace=tmp_path)
     assert signals.resolve("meta-feedback-run-age-days", src) == 0.0
+
+
+# --- GUA-163: git-store backed signals -------------------------------------
+
+
+def _pr(**overrides: Any) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "repo": "guacamayo",
+        "number": 1,
+        "state": "OPEN",
+        "created_date": "2026-08-01",
+        "closed_date": "",
+        "merged": 0,
+        "additions": 0,
+        "deletions": 0,
+        "is_bot": 0,
+        "title": "",
+        "body": "",
+        "head_ref": "",
+    }
+    row.update(overrides)
+    return row
+
+
+def _branch(**overrides: Any) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "repo": "guacamayo",
+        "name": "main",
+        "merged": 0,
+        "pr_number": None,
+        "head_sha": "abc123",
+    }
+    row.update(overrides)
+    return row
+
+
+def test_slug_derived_pr_titles_counts_correctly() -> None:
+    """Open PRs with a slug-derived title are counted; others are not."""
+    src = SignalSources(
+        prs=[
+            _pr(number=1, state="OPEN", title="GUA-163 Add branches table"),  # slug-derived
+            _pr(
+                number=2, state="OPEN", title="Add branches table"
+            ),  # descriptive title — not counted
+            _pr(
+                number=3, state="MERGED", title="GUA-100 Merged slug", merged=1
+            ),  # merged — not counted
+            _pr(number=4, state="OPEN", title="GUA-50 Another slug PR"),  # slug-derived
+        ]
+    )
+    assert signals.resolve("slug-derived-pr-titles", src) == 2.0
+
+
+def test_merged_prs_without_closing_links() -> None:
+    """Merged PRs with no Closes #N or Fixes #N in body are counted."""
+    src = SignalSources(
+        prs=[
+            _pr(
+                number=1, state="MERGED", merged=1, body="Closes #100\n\nSome details."
+            ),  # has link
+            _pr(number=2, state="MERGED", merged=1, body="Fixes #200"),  # has link (Fixes)
+            _pr(
+                number=3, state="MERGED", merged=1, body="This PR does stuff."
+            ),  # no link — counted
+            _pr(number=4, state="MERGED", merged=1, body=""),  # no body — counted
+            _pr(number=5, state="OPEN", merged=0, body=""),  # open — not counted
+        ]
+    )
+    assert signals.resolve("merged-prs-without-closing-links", src) == 2.0
+
+
+def test_cross_repo_prefix_mismatch_branches() -> None:
+    """A branch using a foreign prefix in the wrong repo is counted as a mismatch."""
+    src = SignalSources(
+        branches=[
+            _branch(repo="guacamayo", name="GUA-21-foo"),  # correct prefix
+            _branch(repo="librarian", name="GUA-21-foo"),  # wrong prefix — counted
+            _branch(repo="guacamayo", name="main"),  # unformatted — skipped
+            _branch(repo="galactus", name="GAL-5-bar"),  # correct prefix
+        ]
+    )
+    assert signals.resolve("cross-repo-prefix-mismatch-branches", src) == 1.0
+
+
+def test_stale_merged_branches() -> None:
+    """Branches with merged=1 are stale; merged=0 branches are not."""
+    src_mixed = SignalSources(
+        branches=[
+            _branch(name="GUA-1-done", merged=1),
+            _branch(name="GUA-2-done", merged=1),
+            _branch(name="GUA-3-wip", merged=0),
+        ]
+    )
+    assert signals.resolve("stale-merged-branches", src_mixed) == 2.0
+
+    src_clean = SignalSources(
+        branches=[
+            _branch(name="GUA-4-wip", merged=0),
+        ]
+    )
+    assert signals.resolve("stale-merged-branches", src_clean) == 0.0

@@ -86,6 +86,7 @@ class SignalSources:
     findings: list[dict[str, Any]] = field(default_factory=list)
     hook_log: list[dict[str, Any]] = field(default_factory=list)
     hook_pass_log: list[dict[str, Any]] = field(default_factory=list)
+    branches: list[dict[str, Any]] = field(default_factory=list)
     workspace: Path | None = None
 
 
@@ -407,6 +408,84 @@ def _feedback_run_age_days(src: SignalSources) -> float | None:
 
 
 # ---------------------------------------------------------------------------
+# Git-store resolvers: PR title/body + branch-level signals (GUA-163)
+# ---------------------------------------------------------------------------
+
+_SLUG_DERIVED_TITLE_RE = re.compile(r"^[A-Z]+-\d+ [A-Z]")
+"""A PR title that is a branch slug: prefix-number then a capitalised word.
+
+e.g. "GUA-163 Add branches table" is slug-derived; "Add branches table" is not.
+The pattern requires at least one capital letter after the space so that
+"GUA-163" alone (no description) is not a false positive.
+"""
+
+
+def _slug_derived_pr_titles(src: SignalSources) -> float | None:
+    """Open PRs whose title appears to be derived from the branch slug."""
+    open_prs = [p for p in src.prs if p.get("state") == "OPEN"]
+    if not open_prs:
+        return None
+    return float(sum(1 for p in open_prs if _SLUG_DERIVED_TITLE_RE.match(p.get("title") or "")))
+
+
+_CLOSING_LINK_RE = re.compile(r"(?i)(closes|fixes)\s+#\d+")
+
+
+def _merged_prs_without_closing_links(src: SignalSources) -> float | None:
+    """Merged PRs whose body carries no Closes #N or Fixes #N link."""
+    merged = [p for p in src.prs if p.get("merged") == 1]
+    if not merged:
+        return None
+    return float(sum(1 for p in merged if not _CLOSING_LINK_RE.search(p.get("body") or "")))
+
+
+# Repo-name → expected branch prefix. Defined inline per plan refinement note
+# (no REPO_PREFIX_MAP exists in this module). Add repos as needed.
+_REPO_PREFIX_MAP: dict[str, str] = {
+    "guacamayo": "GUA",
+    "galactus": "GAL",
+    "librarian": "LIB",
+    "atlas": "ATL",
+    "listen-wiseer": "LIS",
+    "ai-project-template": "AIT",
+    "playground": "PLG",
+    "lebanese-blonde": "LEB",
+    "sisyphus": "SIS",
+    "job-system": "JOB",
+    "dssg": "DSG",
+}
+
+_BRANCH_PREFIX_RE = re.compile(r"^([A-Z]+)-\d+")
+
+
+def _cross_repo_prefix_mismatch_branches(src: SignalSources) -> float | None:
+    """Branches whose prefix (e.g. GUA-) does not match their repo."""
+    if not src.branches:
+        return None
+    count = 0
+    for branch in src.branches:
+        name = branch.get("name") or ""
+        repo = branch.get("repo") or ""
+        m = _BRANCH_PREFIX_RE.match(name)
+        if not m:
+            continue  # unformatted branch (main, develop, etc.) — skip
+        prefix = m.group(1)
+        expected = _REPO_PREFIX_MAP.get(repo)
+        if expected is not None and prefix != expected:
+            count += 1
+    return float(count)
+
+
+def _stale_merged_branches(src: SignalSources) -> float | None:
+    """Merged branches that still have a remote ref (not yet deleted)."""
+    if not src.branches:
+        return None
+    # A branch in the table means its remote ref existed at last collection.
+    # merged=1 means a PR for it was merged. Together: stale merged branch.
+    return float(sum(1 for b in src.branches if b.get("merged") == 1))
+
+
+# ---------------------------------------------------------------------------
 # The registry
 # ---------------------------------------------------------------------------
 
@@ -558,40 +637,34 @@ _ENTRIES: list[Signal] = [
         "Days since the last /meta-feedback run (None when never run — the gate is "
         "manual, so absence means unfired, never fresh).",
     ),
-    # --- needs-collection: observable, but the field is not captured ---
+    # --- promoted from needs-collection in GUA-163 ---
     Signal(
         "merged-prs-without-closing-links",
-        NEEDS_COLLECTION,
-        None,
-        None,
-        "Merged PRs whose body carries no Closes #N.",
-        remedy="gitstore.PR_COLUMNS has no `body` column; capture PR bodies in "
-        "collect_prs() before this can be scored.",
+        REGISTERED,
+        KIND_GIT,
+        _merged_prs_without_closing_links,
+        "Merged PRs whose body carries no Closes #N or Fixes #N link.",
     ),
     Signal(
         "cross-repo-prefix-mismatch-branches",
-        NEEDS_COLLECTION,
-        None,
-        None,
-        "Branches whose prefix does not match their repo.",
-        remedy="git_activity is a per-day aggregate with no branch names; a "
-        "branch-level table is required.",
+        REGISTERED,
+        KIND_GIT,
+        _cross_repo_prefix_mismatch_branches,
+        "Branches whose prefix (e.g. GUA-) does not match their repo.",
     ),
     Signal(
         "stale-merged-branches",
-        NEEDS_COLLECTION,
-        None,
-        None,
-        "Merged branches never deleted.",
-        remedy="No branch table exists; collect branch refs + merge state per repo.",
+        REGISTERED,
+        KIND_GIT,
+        _stale_merged_branches,
+        "Merged branches (PR merged) whose remote ref still exists.",
     ),
     Signal(
         "slug-derived-pr-titles",
-        NEEDS_COLLECTION,
-        None,
-        None,
-        "PR titles derived from a branch slug rather than the issue.",
-        remedy="pull_requests carries no `title` column; capture it in collect_prs().",
+        REGISTERED,
+        KIND_GIT,
+        _slug_derived_pr_titles,
+        "Open PRs whose title looks derived from the branch slug (PREFIX-NUM WORD).",
     ),
     Signal(
         "unverified-agent-counts-in-promoted-issue-bodies",
