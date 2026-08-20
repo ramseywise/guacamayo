@@ -1,0 +1,62 @@
+name: 🐛 Bug
+description: Something is broken or behaves incorrectly
+title: "[Bug] "
+labels: ["bug", "backlog"]
+body:
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Preflight
+      options:
+        - label: I searched existing issues for this
+          required: true
+
+  - type: textarea
+    id: symptom
+    attributes:
+      label: What happens
+      description: The observed behavior, not the diagnosis.
+      placeholder: "`review-cli run` exits 0 but writes no sweep record."
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should happen instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: >
+        Exact commands. `/workflow-scope` routes this to a plan with a repro-steps
+        and root-cause section, so this field becomes that plan's starting point.
+      placeholder: |
+        1. uv run review-cli run --repo .
+        2. ls .claude/docs/reviews/
+        3. directory is empty
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: >
+        Error output, logs, or the file:line you suspect. Paste the failure verbatim —
+        a summary of an error is not the error.
+      render: shell
+    validations:
+      required: false
+
+  - type: input
+    id: scope
+    attributes:
+      label: Where
+      description: Package or path, if known.
+      placeholder: "review/driver.py"
+    validations:
+      required: false
