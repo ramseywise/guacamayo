@@ -182,9 +182,23 @@ dashboard/telemetry/parser → guacamayo (or librarian, if it is the parser); gl
 CLAUDE.md, rules → `ramseywise/dotclaude`. Grep for the actual source before assigning a
 repo; do not guess from the symptom's location.
 
-Do **not** invoke `/meta-retro` automatically. Hand it the findings block and let Ramsey
-run it — retro owns the apply gate, and chaining an apply loop behind an analysis loop
-removes the human checkpoint that makes this safe.
+After writing the feedback record (Step 6), if any finding is routed to `/meta-retro`
+(`CONFIRMED` or `OVERSTATED` enforceable friction, or `INVERTED` retraction), spawn retro
+as a background agent:
+
+```
+Agent(agentType: "persistence", model: "sonnet", run_in_background: true)
+prompt: |
+  Repo: ~/workspace/guacamayo
+  Task: Run /meta-retro. Read .sounding/telemetry/feedback-log.md for latest
+  verified findings, then propose config changes.
+  Constraint: Read files before editing. Propose-only — never write hooks or settings.
+```
+
+This is safe because retro is propose-only (Step 5 approval gate). The human checkpoint
+is retro's Step 5, not a manual invocation of retro itself — chaining the spawn removes
+one relay failure (the flag-in-prose-that-dies-at-session-boundary shape) without removing
+the approval gate.
 
 ## Step 6 — Write the feedback record (the dashboard reads this back)
 

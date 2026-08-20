@@ -5,6 +5,15 @@ disable-model-invocation: false
 allowed-tools: Read Grep Glob Bash Edit
 ---
 
+## Relationship to /meta-retro
+
+Retro Step 4.1 runs these same gates inline when writing ledger rows. This skill
+exists for ad-hoc experiments outside the retro cycle — manual `/track` invocations
+when you want to test something without waiting for a retro round. The gates are
+identical; if you change one, change both.
+
+---
+
 You are designing **data collection**, not writing a row. The row is the last
 artifact you produce, and only if the metric survives every gate below.
 
