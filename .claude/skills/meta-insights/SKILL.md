@@ -280,6 +280,34 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     [never-explicitly-invoked: global list, repo list (with repo names)]
     [typo'd/unresolved invocations worth fixing]
 
+    ## Skill Candidate Patterns
+
+    [Threshold: 3 sessions, min sequence length: 3, max: 5]
+    [Execution sessions analyzed: N (intent=execution, Skill=0, tool_sequence non-NULL)]
+    [Sessions excluded (meta/unlabelled/pre-migration): M]
+
+    Run the detector:
+    ```python
+    from telemetry.skill_candidates import detect_skill_candidates
+    # sessions = rows from sessions.db loaded into dicts (session_intent, tool_counts,
+    #             tool_sequence, session_id columns required)
+    patterns = detect_skill_candidates(sessions)
+    ```
+
+    For each pattern crossing the threshold, emit:
+
+    ### Candidate: [tool1→tool2→...→toolN] (n=N)
+    - Count: K sessions
+    - Sessions: [id1, id2, ...]
+
+    If no patterns crossed the threshold: `[No patterns found above threshold=3 in this window]`
+
+    If `tool_sequence` is NULL for all sessions in the window (pre-LIB-125 migration):
+    `[Skill candidate detection skipped — tool_sequence column not yet populated (pre-migration)]`
+
+    Note: session IDs are the stable cross-reference to JSONL; /meta-retro Step 1.5
+    uses them to sample sessions for spot-checking. Do not substitute session dates.
+
     ## Experiment Verdicts
     [the experiment table from step 10]
 
