@@ -96,7 +96,7 @@ loop's one human gate). Absent file = feedback has **never run**: report `feedba
 in the session-open summary — insights findings exist unverified until Ramsey runs
 /meta-feedback. If present, surface the most recent entry date by max date (same rule as
 insights-log: max `## YYYY-MM-DD` header, not file position).
-Skim `.claude/docs/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
+Skim `.sounding/state/*.md` — per-workstream cross-repo state; their **Open** sections feed the queue alongside plan docs. When a pick-up point belongs to another repo, offer to draft the prompt or spawn an agent scoped there.
 
 ### GitHub Issues board (cross-repo)
 

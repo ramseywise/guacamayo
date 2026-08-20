@@ -175,7 +175,7 @@ Each finding goes exactly one place. Routing is determined by the verdict, not b
 | Enforceable friction (`CONFIRMED`/`OVERSTATED`) | `/meta-retro` | Findings land in Step 2 of retro's queue; retro's Step 5 approval gate applies them |
 | Metric/counting defect (`PHANTOM`, `OVERSTATED` cause) | `/meta-insights` + parser | Fix at measurement layer — parser, `_SIGNAL_METRICS`, or dashboard keying |
 | Retraction (`INVERTED`) | `/meta-retro` | Proposes retiring the misaimed hook/rule + failing its ledger row |
-| Unscoped | `.claude/docs/state/inbox.md` | One line, no issue |
+| Unscoped | `.sounding/state/inbox.md` | One line, no issue |
 
 **Filing** follows the global convention — issues live in the repo they change:
 dashboard/telemetry/parser → guacamayo (or librarian, if it is the parser); global hooks,

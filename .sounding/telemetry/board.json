@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-20T10:11:49.025931+00:00",
+  "collected_at": "2026-08-20T10:22:13.329457+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,10 +15,10 @@
   "skipped_repos": [],
   "total_issues": 5,
   "heartbeat": {
-    "started_at": "2026-08-20T10:11:30.864650+00:00",
-    "finished_at": "2026-08-20T10:11:49.056057+00:00",
+    "started_at": "2026-08-20T10:21:49.538438+00:00",
+    "finished_at": "2026-08-20T10:22:13.369719+00:00",
     "exit": 0,
-    "duration_s": 18.19,
+    "duration_s": 23.83,
     "error": null
   },
   "proposed_actions": [
@@ -33,7 +33,7 @@
       "evidence": "column=in_review; joined PR #162 is OPEN",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-20T10:11:49.054743+00:00"
+      "created_at": "2026-08-20T10:22:13.368260+00:00"
     }
   ],
   "records": [
@@ -41,11 +41,11 @@
       "repo": "guacamayo",
       "issue_num": 161,
       "title": "Librarian MCP is documented in three files and configured in none",
-      "raw_label": "bug,ready",
+      "raw_label": "bug,in-review,ready",
       "column": "backlog",
       "backlog_stage": "ready",
       "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-20T10:11:49.025931+00:00"
+      "collected_at": "2026-08-20T10:22:13.329457+00:00"
     },
     {
       "repo": "guacamayo",
@@ -55,7 +55,7 @@
       "column": "in_review",
       "backlog_stage": null,
       "evidence": "joined PR #162 is OPEN",
-      "collected_at": "2026-08-20T10:11:49.025931+00:00"
+      "collected_at": "2026-08-20T10:22:13.329457+00:00"
     },
     {
       "repo": "librarian",
@@ -65,7 +65,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #123 has mergedAt='2026-08-20T10:04:43Z'",
-      "collected_at": "2026-08-20T10:11:49.025931+00:00"
+      "collected_at": "2026-08-20T10:22:13.329457+00:00"
     },
     {
       "repo": "playground",
@@ -75,7 +75,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-20T10:11:49.025931+00:00"
+      "collected_at": "2026-08-20T10:22:13.329457+00:00"
     },
     {
       "repo": "galactus",
@@ -85,7 +85,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:11:49.025931+00:00"
+      "collected_at": "2026-08-20T10:22:13.329457+00:00"
     }
   ]
 }

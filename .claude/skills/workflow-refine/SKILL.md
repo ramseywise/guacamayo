@@ -15,7 +15,7 @@ backlog in one pass, not one ticket at a time.
 cd ~/workspace/guacamayo && gh issue list --label "backlog" --json number,title,body,labels --jq '.'
 ```
 
-Also check for items in `~/workspace/guacamayo/.claude/docs/state/inbox.md` that should
+Also check for items in `~/workspace/guacamayo/.sounding/state/inbox.md` that should
 be promoted to issues first. If inbox has items, ask whether to create issues for them
 before proceeding.
 
