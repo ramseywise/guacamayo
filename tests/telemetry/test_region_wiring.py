@@ -460,3 +460,36 @@ def test_render_pipeline_health_region_roundtrip(tmp_path: Path) -> None:
     assert "<p>old content</p>" not in result
     assert _BEFORE in result
     assert _AFTER in result
+
+
+def test_pipeline_health_reads_sounding_root_not_store_parent(tmp_path: Path) -> None:
+    """Stages read the passed sounding root, not a path derived from the store.
+
+    Production diverges from the co-located test layout: per D1 the store lives in
+    librarian while .sounding/ lives in guacamayo. Deriving the root from the store
+    sent Insights and Retro at librarian, so both rendered "never" while their logs
+    existed — a live loop displayed as dead.
+    """
+    store = tmp_path / "librarian" / "data" / "sessions.db"
+    store.parent.mkdir(parents=True)
+    upsert([_row("s1")], store)
+
+    sounding = tmp_path / "guacamayo" / ".sounding"
+    (sounding / "insights").mkdir(parents=True)
+    (sounding / "insights" / "insights-log.md").write_text(
+        f"## {_utc_today().isoformat()}\n\nSome insight.\n", encoding="utf-8"
+    )
+    (sounding / "tooling-ledger-log.md").write_text(
+        f"## R12 — {_utc_today().isoformat()}\n\nA retro round.\n", encoding="utf-8"
+    )
+
+    fragment = render_pipeline_health_region(store, sounding_root=sounding)
+
+    def cell(name: str) -> str:
+        matches = [c for c in fragment.split('<div class="ph-cell"') if f">{name}<" in c]
+        assert len(matches) == 1, f"expected exactly one {name} cell"
+        return matches[0]
+
+    assert "never" not in cell("Insights")
+    assert "R12" in cell("Retro")
+    assert "never" not in cell("Retro")

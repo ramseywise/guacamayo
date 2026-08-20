@@ -31,11 +31,12 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/meta-feedback` | **Manual — human gate** | **Repo-local.** Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `.sounding/telemetry/feedback-log.md` |
 | `/track` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
 
-> **Note**: The cron→retro auto-spawn and SessionStart cascade edges in this table
-> describe the target state per `plans/2026-08-19-metacognition-automation.md`
-> (Status: PLANNED). The current live state is that `/meta-grow` and `/meta-dream`
-> spawn retro/insights only when a human invokes them; cron triggers are wired but
-> not yet firing.
+> **Note** (GUA-150, 2026-08-20): The SessionStart cascade edge is live — the nudge
+> reports compacts / grows_due / board staleness / growth count. The cron→insights and
+> cron→retro spawns in `scripts/telemetry-cron.sh` are fully wired behind a lockfile +
+> once-per-day stamp, but have not fired yet: both gate on threshold math the cascade
+> state has not reached, so `actions.jsonl` carries no `spawn_*` row. Reachable in code,
+> not yet reached in data — threshold tuning is a `/hypothesis` candidate, not a bug.
 
 The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Seven tabs: **Overview** (system architecture diagram), **Cost & Efficiency**, **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/feedback/retro/config + pending hypothesis count; populated by `render_pipeline_health_region()`), **Experiments**, **Retro** (graduation rate). Auto-updates via `uv run telemetry --facts`. Full tab descriptions in `README.md §The Dashboard`.
 
@@ -180,7 +181,7 @@ state, insights, telemetry, and the dashboard.
 - `data/sessions.db.bak` is a **decoy store** — 701 rows, newest session 2026-08-04, stale
   by content well before its mtime suggests. It is safe to delete; nothing should read it.
 
-**Signal registry.** `telemetry/signals.py` declares 64 signal names (28 `Signal()` entries + 36 `_UNOBSERVABLE`), 21 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
+**Signal registry.** `telemetry/signals.py` declares 64 signal names (27 `Signal()` entries + 37 `_UNOBSERVABLE`), 21 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
 
 ---
 
