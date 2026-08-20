@@ -69,7 +69,7 @@ def detect_skill_candidates(
         except (TypeError, ValueError):
             tool_counts = {}
         # Zero Skill calls means no skill was invoked in this session.
-        if float(tool_counts.get("Skill", 0)) != 0:
+        if tool_counts.get("Skill", 0) != 0:
             continue
         candidates.append(s)
 

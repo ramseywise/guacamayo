@@ -662,7 +662,7 @@ _ENTRIES: list[Signal] = [
         "Days since the last /meta-feedback run (None when never run — the gate is "
         "manual, so absence means unfired, never fresh).",
     ),
-    # --- promoted from needs-collection in GUA-163 ---
+    # --- added in GUA-164 (skill auto-extraction) ---
     Signal(
         "skill-candidate-patterns",
         REGISTERED,
@@ -674,6 +674,7 @@ _ENTRIES: list[Signal] = [
         "None = pre-migration (all tool_sequence rows NULL — not a genuine zero). "
         "Reads tool_sequence written by the LIB-125 cartographer migration.",
     ),
+    # --- needs-collection: observable, but the field is not captured ---
     Signal(
         "merged-prs-without-closing-links",
         REGISTERED,

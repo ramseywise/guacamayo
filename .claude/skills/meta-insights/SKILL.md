@@ -286,11 +286,10 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     [Execution sessions analyzed: N (intent=execution, Skill=0, tool_sequence non-NULL)]
     [Sessions excluded (meta/unlabelled/pre-migration): M]
 
-    Run the detector:
+    Run the detector (sessions = rows from sessions.db via `SELECT session_id, session_intent,
+    tool_counts, tool_sequence FROM sessions`):
     ```python
     from telemetry.skill_candidates import detect_skill_candidates
-    # sessions = rows from sessions.db loaded into dicts (session_intent, tool_counts,
-    #             tool_sequence, session_id columns required)
     patterns = detect_skill_candidates(sessions)
     ```
 
