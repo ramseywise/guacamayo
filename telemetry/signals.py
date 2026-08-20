@@ -52,6 +52,8 @@ from datetime import datetime as _datetime
 from pathlib import Path
 from typing import Any
 
+from telemetry.skill_candidates import detect_skill_candidates
+
 # ---------------------------------------------------------------------------
 # Registry states
 # ---------------------------------------------------------------------------
@@ -351,6 +353,29 @@ def _todowrite_in_heavy_sessions(src: SignalSources) -> float | None:
     return float(missing) if seen else None
 
 
+def _skill_candidate_count(src: SignalSources) -> float | None:
+    """Count of distinct N-gram patterns crossing the detection threshold.
+
+    Reads ``tool_sequence`` from ``SignalSources.sessions``.  Returns ``None``
+    when every session has a NULL ``tool_sequence`` (pre-migration state) —
+    distinguishes "no data yet" from a genuine zero (no candidates found).
+
+    Detection parameters match the insights-log section: threshold=3 sessions,
+    N-gram length 3–5 tool names, execution-intent only, zero Skill invocations.
+    See ``telemetry/skill_candidates.py`` for the full logic and design notes.
+    """
+    if not src.sessions:
+        return None
+    # Check whether any session has a non-NULL tool_sequence.  A population that
+    # is entirely NULL means the LIB-125 migration has not run yet; return None
+    # so an absence claim is never confirmed by silence (T8).
+    has_sequence_data = any(s.get("tool_sequence") for s in src.sessions)
+    if not has_sequence_data:
+        return None
+    patterns = detect_skill_candidates(src.sessions)
+    return float(len(patterns))
+
+
 _ACTIVE_LEDGER = Path(".sounding/tooling-ledger.md")
 
 
@@ -557,6 +582,17 @@ _ENTRIES: list[Signal] = [
         _feedback_run_age_days,
         "Days since the last /meta-feedback run (None when never run — the gate is "
         "manual, so absence means unfired, never fresh).",
+    ),
+    Signal(
+        "skill-candidate-patterns",
+        REGISTERED,
+        KIND_SESSION,
+        _skill_candidate_count,
+        "Count of tool-sequence N-gram patterns (length 3–5) crossing the detection "
+        "threshold (≥3 execution sessions, no skill invocation). "
+        "Zero = no candidates; positive = retro finding warranted. "
+        "None = pre-migration (all tool_sequence rows NULL — not a genuine zero). "
+        "Reads tool_sequence written by the LIB-125 cartographer migration.",
     ),
     # --- needs-collection: observable, but the field is not captured ---
     Signal(
