@@ -701,7 +701,7 @@ def test_render_review_card_orders_by_severity() -> None:
 def test_patch_review_findings_replaces_marked_region(tmp_path: Path) -> None:
     from telemetry.dashboard import patch_review_findings
 
-    page = tmp_path / "context-dashboard.html"
+    page = tmp_path / "dashboard.html"
     page.write_text(_MARKED_PAGE, encoding="utf-8")
     assert patch_review_findings(page, [_FINDING]) is True
     patched = page.read_text(encoding="utf-8")
@@ -717,7 +717,7 @@ def test_patch_review_findings_replaces_marked_region(tmp_path: Path) -> None:
 def test_patch_review_findings_is_idempotent(tmp_path: Path) -> None:
     from telemetry.dashboard import patch_review_findings
 
-    page = tmp_path / "context-dashboard.html"
+    page = tmp_path / "dashboard.html"
     page.write_text(_MARKED_PAGE, encoding="utf-8")
     patch_review_findings(page, [_FINDING])
     once = page.read_text(encoding="utf-8")
@@ -728,7 +728,7 @@ def test_patch_review_findings_is_idempotent(tmp_path: Path) -> None:
 def test_patch_review_findings_missing_markers_leaves_file_untouched(tmp_path: Path) -> None:
     from telemetry.dashboard import patch_review_findings
 
-    page = tmp_path / "context-dashboard.html"
+    page = tmp_path / "dashboard.html"
     original = "<section>no markers here</section>\n"
     page.write_text(original, encoding="utf-8")
     assert patch_review_findings(page, [_FINDING]) is False

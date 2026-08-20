@@ -326,7 +326,7 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     This file is what `/retro` reads as an observation source (Step 1.1 in retro).
 
 13. **Dashboard refresh (if asked)** — chart/panel updates go to
-    `~/workspace/guacamayo/.sounding/context-dashboard.html`, the meta-wake/meta-grow/meta-dream shared
+    `~/workspace/guacamayo/docs/dashboard.html`, the meta-wake/meta-grow/meta-dream shared
     artifact (also the pulse.sh target). Never create or write
     `~/workspace/guacamayo/.sounding/dashboard.html` — that is a deprecated pre-rename
     path; old plan docs (GUA-43/44/45, context-engineering-v2) still mention it, ignore

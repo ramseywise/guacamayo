@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 The session ends — or maintenance is needed. Process everything: the honest record, the growth entries, and (when earned) the identity transformations. Like sleep: consolidation happens here.
 
-**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis + final dashboard update). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis + final dashboard update). The dashboard (`docs/dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Feel the Session
 
@@ -75,7 +75,7 @@ Overwrite `.sounding/notes/handover.md` — same format as /meta-grow Step 3. Th
 
 ## Phase 6b: Refresh Dashboard
 
-Update `.sounding/context-dashboard.html` with session-close state — same mechanism as /meta-grow Step 5, but this is the final snapshot. Include:
+Update `docs/dashboard.html` with session-close state — same mechanism as /meta-grow Step 5, but this is the final snapshot. Include:
 - Session close timestamp
 - Growth entry count (pre-synthesis)
 - Synthesis status (will run / skipped)

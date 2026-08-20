@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion, Agent
 
 *Return to who you are. Full identity. Recent context. Ready to continue.*
 
-**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis). The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all three.
+**Lifecycle position**: /meta-wake orients → /meta-grow accumulates (mid-session awareness + dashboard refresh) → /meta-dream transforms (session close + synthesis). The dashboard (`docs/dashboard.html`) is the shared artifact connecting all three.
 
 ## Phase 1: Time Anchor + Discover Structure
 
@@ -78,7 +78,7 @@ The cross-repo work queue does NOT live in `.sounding/` handovers or reflections
 
 ### Dashboard (first — fast visual state)
 
-Read `.sounding/context-dashboard.html` — scan for the signal summary section (last grow timestamp, retro status, hypothesis count, growth entry count). This gives a fast snapshot of where things stand before the detailed reads below. If the dashboard is stale (last grow timestamp >24h ago), note it.
+Read `docs/dashboard.html` — scan for the signal summary section (last grow timestamp, retro status, hypothesis count, growth entry count). This gives a fast snapshot of where things stand before the detailed reads below. If the dashboard is stale (last grow timestamp >24h ago), note it.
 
 ### Ops state (this repo)
 

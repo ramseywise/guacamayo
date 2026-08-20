@@ -907,8 +907,10 @@ _TIER2 = [
     (
         "cost_bucket_pct_over150k",
         "Cost share in >150k context sessions (%)",
-        "Share of daily session cost in sessions that hit the 150k cliff. "
-        "Validates or falsifies the '52% of spend' claim from insights-log.",
+        (
+            "Share of daily session cost in sessions that hit the 150k cliff. "
+            "Validates or falsifies the '52% of spend' claim from insights-log."
+        ),
         "July-forward only; sessions without max_context excluded",
         "pct",
     ),
@@ -916,8 +918,10 @@ _TIER2 = [
     (
         "context_pressure_ratio",
         "Context pressure ratio (% over 100k)",
-        "Share of sessions reaching the 100k compact-now threshold. Leads "
-        "% over 150k — pressure here becomes cost there.",
+        (
+            "Share of sessions reaching the 100k compact-now threshold. Leads "
+            "% over 150k — pressure here becomes cost there."
+        ),
         "July-forward only. Denominator: sessions with max_context recorded, not all sessions",
         "pct",
     ),
@@ -931,33 +935,45 @@ _TIER_WORK = [
     (
         "cost_per_tool",
         "Cost per tool call",
-        "Cost units per tool invocation. Falling = the same work for less; "
-        "rising = more reasoning per action, which is not automatically worse.",
-        "July-forward only. Sessions with zero tool calls are excluded from both "
-        "the numerator and the denominator, not counted as zero-cost",
+        (
+            "Cost units per tool invocation. Falling = the same work for less; "
+            "rising = more reasoning per action, which is not automatically worse."
+        ),
+        (
+            "July-forward only. Sessions with zero tool calls are excluded from both "
+            "the numerator and the denominator, not counted as zero-cost"
+        ),
         "cost",
     ),
     (
         "mutation_ratio",
         "Mutation vs read ratio (%)",
-        "Share of file-touching tool calls that write rather than read. Low = "
-        "heavy exploration; high = editing with little context gathering.",
-        "July-forward only. Denominator is mutation + read calls only. Bash is "
-        "excluded from both sides — tool_counts does not retain the command, so "
-        "classifying it either way would be a guess",
+        (
+            "Share of file-touching tool calls that write rather than read. Low = "
+            "heavy exploration; high = editing with little context gathering."
+        ),
+        (
+            "July-forward only. Denominator is mutation + read calls only. Bash is "
+            "excluded from both sides — tool_counts does not retain the command, so "
+            "classifying it either way would be a guess"
+        ),
         "pct",
     ),
     (
         "compaction_yield",
         "Compaction yield (turns after compact, p50)",
-        "Median human turns a session runs after compacting. Higher = compaction "
-        "bought more work; near-zero = the session ended anyway and the compact was wasted.",
-        "July+ compacted work sessions only — the tile renders its own n; this "
-        "note does not restate it, because a hardcoded count goes stale against a "
-        "live store. The column is null on every pre-July compacted session "
-        "(not backfillable, so they are excluded rather than imputed), and "
-        "meta-sessions are excluded here as everywhere. Median, not mean: the "
-        "distribution is right-skewed",
+        (
+            "Median human turns a session runs after compacting. Higher = compaction "
+            "bought more work; near-zero = the session ended anyway and the compact was wasted."
+        ),
+        (
+            "July+ compacted work sessions only — the tile renders its own n; this "
+            "note does not restate it, because a hardcoded count goes stale against a "
+            "live store. The column is null on every pre-July compacted session "
+            "(not backfillable, so they are excluded rather than imputed), and "
+            "meta-sessions are excluded here as everywhere. Median, not mean: the "
+            "distribution is right-skewed"
+        ),
         "count",
     ),
 ]
@@ -996,8 +1012,10 @@ _FRICTION_PROMPT_ENG = [
     (
         "execution_skill_compliance_pct",
         "Skill compliance — execution sessions (%)",
-        "Execution sessions invoking ≥1 skill. Low = unscaffolded work. "
-        "Higher is better (productivity signal, not friction).",
+        (
+            "Execution sessions invoking ≥1 skill. Low = unscaffolded work. "
+            "Higher is better (productivity signal, not friction)."
+        ),
         "Heuristic: intent classifier is v1",
         "pct",
     ),
@@ -1008,8 +1026,10 @@ _FRICTION_LOOP_ENG = [
     (
         "interruptions_p50",
         "User interruptions per session (p50)",
-        "Fast follow-up turns (<5s) — agent went off-track and was corrected. "
-        "Direct friction signal.",
+        (
+            "Fast follow-up turns (<5s) — agent went off-track and was corrected. "
+            "Direct friction signal."
+        ),
         "Tool results excluded from turn count",
         "count",
     ),
@@ -1027,9 +1047,11 @@ _FRICTION_HARNESS_ENG = [
     (
         "tool_error_rate",
         "Tool error rate (per 100 calls)",
-        "Errors per 100 tool calls. Structural noise level is ~28.7 Bash antipatterns/session "
-        "(flat across interventions — endemic, not recoverable by config). "
-        "Taxonomy split (code/env/tool/unknown) tracked in tool_errors column.",
+        (
+            "Errors per 100 tool calls. Structural noise level is ~28.7 Bash antipatterns/session "
+            "(flat across interventions — endemic, not recoverable by config). "
+            "Taxonomy split (code/env/tool/unknown) tracked in tool_errors column."
+        ),
         "Normalised so long sessions are not penalised",
         "count",
     ),
@@ -1038,8 +1060,10 @@ _FRICTION_HARNESS_ENG = [
     (
         "errors_code_total",
         "Errors — code",
-        "file_not_found, edit_failed, command_failed (retry unknown — parser "
-        "carries no retry sequence, so transient/code fold together).",
+        (
+            "file_not_found, edit_failed, command_failed (retry unknown — parser "
+            "carries no retry sequence, so transient/code fold together)."
+        ),
         "Attribution applied at parse time; backfill requires re-parse",
         "count",
     ),
@@ -1067,8 +1091,10 @@ _FRICTION_HARNESS_ENG = [
     (
         "bash_antipatterns_p50",
         "Bash antipatterns per session (p50)",
-        "Shell used where a dedicated tool (Read/Grep/Glob) exists — wastes "
-        "context, slower than the native tool.",
+        (
+            "Shell used where a dedicated tool (Read/Grep/Glob) exists — wastes "
+            "context, slower than the native tool."
+        ),
         "",
         "count",
     ),
@@ -1885,13 +1911,13 @@ def parse_ledger(ledger_path: Path, log_path: Path | None = None) -> list[Experi
 
     try:
         _parse_5col_table(ledger_path.read_text(encoding="utf-8", errors="replace"), is_log=False)
-    except Exception as exc:
+    except (OSError, ValueError) as exc:
         log.warning("dashboard.ledger_parse_error", path=str(ledger_path), error=str(exc))
 
     if log_path and log_path.exists():
         try:
             _parse_5col_table(log_path.read_text(encoding="utf-8", errors="replace"), is_log=True)
-        except Exception as exc:
+        except (OSError, ValueError) as exc:
             log.warning("dashboard.ledger_log_parse_error", path=str(log_path), error=str(exc))
 
     if skipped:
@@ -6972,7 +6998,7 @@ def render_pipeline_health_region(store: Path, sounding_root: Path | None = None
         try:
             rows = read_all(store)
             cap_rows = len(rows)
-        except Exception:
+        except (OSError, ValueError):
             cap_rows = 0
     cap_glyph, cap_label = _age_label(cap_dt, now=now)
 

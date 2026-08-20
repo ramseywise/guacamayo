@@ -1,7 +1,7 @@
 # telemetry — facts pipeline, signal registry, dashboard renderer
 
 Python package that turns raw session transcripts and GitHub state into the numbers on
-`docs/dashboard.html`. The split mirrors `review/`: **this package computes;
+`.sounding/context-dashboard.html`. The split mirrors `review/`: **this package computes;
 the dashboard displays; nothing derives at read time.**
 
 Every number rendered is computed once, at write time, from an append-only store. A tile

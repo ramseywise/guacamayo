@@ -627,7 +627,7 @@ def _run_board() -> None:
                 import json as _json
 
                 cascade_state = _json.loads(cascade_path.read_text(encoding="utf-8"))
-            except Exception:
+            except (OSError, ValueError, KeyError):
                 log.warning("board.cascade_state_load_failed", path=str(cascade_path))
 
         # Consistency checks for the evaluator — only the merged-branch rule; label checks

@@ -1,0 +1,991 @@
+"""Deterministic review driver — the pipeline owner.
+
+Replaces prose orchestration of the review pipeline with a Python driver that:
+1. Detects signals → computes active dimensions
+2. Spawns dimension agents concurrently via the Claude Agent SDK (injectable)
+3. Validates findings through Pydantic gates (one repair round-trip, then hard fail)
+4. Deduplicates via union-find with deterministic cluster merge
+5. Fingerprints + persists a SweepRecord
+6. Diffs against previous sweep (trends)
+7. Renders a deterministic Markdown report
+
+The `scan_fn` parameter is injectable so every gate is testable with pytest and no LLM.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import datetime
+import json
+import re
+import subprocess
+import sys
+from collections.abc import Callable, Coroutine
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+from review.attribution import attribute_findings
+from review.deduplication import find_duplicate_clusters
+from review.fingerprint import (
+    finding_to_sweep_finding,
+    load_sweep,
+    save_sweep,
+)
+from review.render import render_report
+from review.schemas.models import (
+    REPORTER_ID_PREFIX,
+    Attribution,
+    MergeDecision,
+    MergeImpact,
+    Reporter,
+    ReporterDispatchEntry,
+    ReviewFinding,
+    ReviewReport,
+    StaticAnalysisResult,
+    SweepRecord,
+)
+from review.signals import active_dimensions, detect_signals
+from review.static_analysis import run_static_analysis
+from review.trends import build_trend_report, render_trend_report
+from review.validation import validate_finding
+from review.verdict import derive_merge_decision
+from telemetry.occurrence import SOURCE_RUN, SOURCE_UNRESOLVED, resolve_occurred
+
+# ---------------------------------------------------------------------------
+# Config + result types
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class DriverConfig:
+    """Configuration for a single driver run."""
+
+    repo: Path = field(default_factory=lambda: Path("."))
+    files: list[str] = field(default_factory=list)
+    reviews_dir: Path = field(default_factory=lambda: Path(".claude/docs/reviews"))
+    save_sweep: bool = True
+    model: str = "haiku"
+    max_turns: int = 30
+    # agents dir: defaults to repo/.claude/agents
+    agents_dir: Path | None = None
+    # skills dir: defaults to repo/.claude/skills
+    skills_dir: Path | None = None
+    # escape hatch: set False to skip static analysis (e.g. in tests that don't need it)
+    static_analysis: bool = True
+    # session_id: passed from invoking skill via --session-id; null when absent
+    session_id: str | None = None
+    # findings JSONL target; None uses the shared cross-repo file. Tests MUST set this
+    # (or rely on the autouse redirect in tests/review/conftest.py) — the default is
+    # real data, not a scratch path.
+    findings_path: Path | None = None
+
+    def __post_init__(self) -> None:
+        self.repo = Path(self.repo).resolve()
+        self.reviews_dir = Path(self.reviews_dir)
+        if not self.reviews_dir.is_absolute():
+            self.reviews_dir = self.repo / self.reviews_dir
+        if self.agents_dir is None:
+            self.agents_dir = self.repo / ".claude" / "agents"
+        if self.skills_dir is None:
+            self.skills_dir = self.repo / ".claude" / "skills"
+
+
+@dataclass
+class ScanError:
+    """Represents a dimension scan failure (SDK error subtype or validation failure)."""
+
+    dimension: str
+    subtype: str  # SDK subtype or "validation_error"
+    detail: str
+
+
+@dataclass
+class DriverResult:
+    """Result of a complete driver run."""
+
+    findings: list[ReviewFinding] = field(default_factory=list)
+    report_md: str = ""
+    sweep_path: Path | None = None
+    trend_md: str = ""
+    errors: list[ScanError] = field(default_factory=list)
+    dispatch: list[ReporterDispatchEntry] = field(default_factory=list)
+    exit_code: int = 0
+    static_analysis: StaticAnalysisResult | None = None
+    report: ReviewReport | None = None
+    merge_decision: MergeDecision | None = None
+
+
+# ---------------------------------------------------------------------------
+# Scan output contract — driver-side (OQ7: no agent file edits)
+# ---------------------------------------------------------------------------
+
+_YAML_FRONTMATTER = re.compile(r"^---\s*\n.*?\n---\s*\n", re.DOTALL)
+
+# Dimension name → agent filename stem mapping.
+#
+# Only dimensions with their own agent file appear here. The 11 scan dimensions are
+# served by the generic `review` harness (agents/review.md) composed with their
+# `review-<dimension>/SKILL.md` checklist, so they are deliberately absent —
+# `load_agent_prompt` falls through to the generic path for anything not listed.
+# `wander` keeps a dedicated agent because its output contract is questions, not
+# schema findings, and it has no dimension skill to compose against.
+_DIMENSION_TO_AGENT_FILE: dict[str, str] = {
+    "wander": "wander",
+}
+
+# The generic review harness, composed with one dimension skill per dispatch.
+_GENERIC_REVIEW_AGENT = "review"
+
+# Driver-mode output instruction appended to the system prompt
+_DRIVER_MODE_SUFFIX = """
+---
+## Driver mode (deterministic pipeline)
+
+You are running under the deterministic review driver. Your output MUST be a JSON object
+with a single key "findings" containing an array of finding objects conforming to the
+ReviewFinding schema. Do NOT output markdown prose, headers, or any text outside the
+JSON object. Each finding must have all required fields.
+
+For wander (WD-) findings: use evidence_state "question" and merge_impact "question".
+If you find no issues, return {"findings": []}.
+"""
+
+# Dimension → Reporter enum value
+_DIMENSION_TO_REPORTER: dict[str, Reporter] = {
+    "correctness": Reporter.CORRECTNESS,
+    "intent": Reporter.INTENT,
+    "architecture": Reporter.ARCHITECTURE,
+    "safety": Reporter.SAFETY,
+    "contracts": Reporter.CONTRACTS,
+    "testing": Reporter.TESTING,
+    "runtime": Reporter.RUNTIME,
+    "safeguards": Reporter.SAFEGUARDS,
+    "silent-failure": Reporter.SILENT_FAILURE,
+    "leakage": Reporter.LEAKAGE,
+    "performance": Reporter.PERFORMANCE,
+    "wander": Reporter.WANDER,
+}
+
+
+_FINDINGS_JSONL_PATH = (
+    Path.home() / "workspace" / "guacamayo" / ".claude" / "docs" / "review-findings.jsonl"
+)
+
+
+def emit_findings_jsonl(
+    findings: list[ReviewFinding],
+    *,
+    repo: str,
+    session_id: str | None,
+    jsonl_path: Path | None = None,
+    repo_path: Path | None = None,
+) -> None:
+    """Append one JSONL line per finding to the review-findings file.
+
+    Stamped fields per finding-schema.md (Persistence format):
+      id, source, date, occurred, occurred_source, repo, file, lines, symbols,
+      title, merge_impact, evidence_state, category, session_id.
+
+    `date` is the run date and feeds `finding_uid`; `occurred` is the friction date
+    resolved by blaming the cited line (GUA-109). Every row carries an `occurred`, so
+    consumers need no null branch: when blame cannot answer, `occurred` mirrors `date`
+    and `occurred_source` is "run" to keep that substitution visible rather than implied.
+
+    session_id is null when the invoking skill does not pass --session-id.
+    The file is created (with parent dirs) if absent. Never overwrites.
+
+    Args:
+        findings: Merged, deduplicated findings from the driver run.
+        repo: Repository name (config.repo.name).
+        session_id: Claude Code session id from --session-id option, or None.
+        jsonl_path: Target JSONL file. None resolves _FINDINGS_JSONL_PATH at call
+            time (not import time) so tests can monkeypatch the module global.
+        repo_path: Checkout being reviewed, used to blame `occurred`. None skips
+            resolution entirely and stamps every row `run` — callers that have no
+            checkout (unit tests, synthetic findings) get the fallback, not an error.
+    """
+    if not findings:
+        return
+
+    if jsonl_path is None:
+        jsonl_path = _FINDINGS_JSONL_PATH
+    jsonl_path.parent.mkdir(parents=True, exist_ok=True)
+    date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+    # One cache per emit: a sweep's findings cluster heavily on the same files, and each
+    # miss costs a git subprocess.
+    occurrence_cache: dict = {}
+
+    with jsonl_path.open("a", encoding="utf-8") as fh:
+        for finding in findings:
+            first_file = finding.location.files[0] if finding.location.files else None
+            file_path = first_file.path if first_file else ""
+            lines_val: str | None = None
+            if first_file:
+                if first_file.start_line is not None and first_file.end_line is not None:
+                    lines_val = f"{first_file.start_line}-{first_file.end_line}"
+                elif first_file.start_line is not None:
+                    lines_val = str(first_file.start_line)
+
+            occurred: str | None = None
+            occurred_source = SOURCE_RUN
+            if repo_path is not None:
+                # `resolve_occurred` joins workspace/repo, so pass the checkout's parent
+                # to reconstruct exactly `repo_path` rather than assuming ~/workspace —
+                # worktrees and non-standard checkout locations resolve correctly.
+                occurred, occurred_source = resolve_occurred(
+                    repo_path.name,
+                    file_path,
+                    lines_val,
+                    workspace=repo_path.parent,
+                    cache=occurrence_cache,
+                )
+            if occurred is None or occurred_source == SOURCE_UNRESOLVED:
+                occurred, occurred_source = date_str, SOURCE_RUN
+
+            row: dict = {
+                "id": finding.id,
+                "source": finding.reporter.value,
+                "date": date_str,
+                "occurred": occurred,
+                "occurred_source": occurred_source,
+                "repo": repo,
+                "file": file_path,
+                "title": finding.claim.title,
+                "merge_impact": finding.severity.merge_impact.value,
+                "evidence_state": finding.evidence_state.value,
+                "category": finding.category.value,
+                "session_id": session_id,
+            }
+            if lines_val is not None:
+                row["lines"] = lines_val
+            if finding.location.symbols:
+                row["symbols"] = finding.location.symbols
+
+            fh.write(json.dumps(row) + "\n")
+
+
+def load_agent_prompt(dimension: str, agents_dir: Path, skills_dir: Path | None = None) -> str:
+    """Compose the system prompt for one dimension scan.
+
+    Dimensions with a dedicated agent file (see `_DIMENSION_TO_AGENT_FILE`) use it
+    directly. Everything else composes the generic `review` harness with that
+    dimension's `review-<dimension>/SKILL.md` checklist — the harness supplies the
+    role, evidence rules, and injection defense; the skill supplies what to look for
+    and the ID prefix.
+
+    Args:
+        dimension: Dimension name (e.g. "correctness", "wander").
+        agents_dir: Directory containing the agent .md files.
+        skills_dir: Directory containing the review-* skills. Defaults to the
+            sibling `skills` directory next to `agents_dir`.
+
+    Returns:
+        System prompt string for SDK query.
+
+    Raises:
+        FileNotFoundError: The agent file or the dimension skill is missing. A
+            missing skill is fatal rather than a bare-harness fallback: a harness
+            with no checklist declares no ID prefix, so every finding it produced
+            would be rejected downstream as a skill-load failure anyway.
+    """
+    if skills_dir is None:
+        skills_dir = agents_dir.parent / "skills"
+
+    stem = _DIMENSION_TO_AGENT_FILE.get(dimension)
+    if stem is not None:
+        agent_file = agents_dir / f"{stem}.md"
+        if not agent_file.exists():
+            raise FileNotFoundError(f"Agent file not found: {agent_file}")
+        body = _YAML_FRONTMATTER.sub("", agent_file.read_text(), count=1)
+        return body.strip() + "\n" + _DRIVER_MODE_SUFFIX
+
+    agent_file = agents_dir / f"{_GENERIC_REVIEW_AGENT}.md"
+    if not agent_file.exists():
+        raise FileNotFoundError(f"Agent file not found: {agent_file}")
+    skill_file = skills_dir / f"review-{dimension}" / "SKILL.md"
+    if not skill_file.exists():
+        raise FileNotFoundError(f"Dimension skill not found: {skill_file}")
+
+    harness = _YAML_FRONTMATTER.sub("", agent_file.read_text(), count=1).strip()
+    checklist = _YAML_FRONTMATTER.sub("", skill_file.read_text(), count=1).strip()
+    reporter = _DIMENSION_TO_REPORTER.get(dimension)
+    prefix = REPORTER_ID_PREFIX.get(reporter) if reporter is not None else None
+    header = f"## Your dimension: {dimension}"
+    if prefix:
+        header += f" (ID prefix `{prefix}-`)"
+
+    return (
+        f"{harness}\n\n---\n\n{header}\n\n"
+        f"The checklist below is the dimension skill you were dispatched with. It is "
+        f"your entire remit.\n\n{checklist}\n" + _DRIVER_MODE_SUFFIX
+    )
+
+
+def _findings_json_schema() -> dict[str, Any]:
+    """Build the JSON schema for {"findings": [ReviewFinding...]} for SDK output_format."""
+    finding_schema = ReviewFinding.model_json_schema()
+    return {
+        "type": "object",
+        "properties": {
+            "findings": {
+                "type": "array",
+                "items": finding_schema,
+            }
+        },
+        "required": ["findings"],
+        "$defs": finding_schema.get("$defs", {}),
+    }
+
+
+FINDINGS_SCHEMA: dict[str, Any] = _findings_json_schema()
+
+
+def parse_scan_result(result_text: str | None, subtype: str) -> list[dict] | ScanError:
+    """Parse a SDK ResultMessage into a list of raw finding dicts.
+
+    Args:
+        result_text: The .result text from a ResultMessage (may be None on error).
+        subtype: The .subtype from the ResultMessage ("success" or an error subtype).
+
+    Returns:
+        list[dict] on success, ScanError on any failure.
+    """
+    if subtype != "success":
+        return ScanError(
+            dimension="",
+            subtype=subtype,
+            detail=result_text or f"SDK error: {subtype}",
+        )
+    try:
+        data = json.loads(result_text or "")
+        findings = data.get("findings", [])
+        if not isinstance(findings, list):
+            return ScanError(
+                dimension="",
+                subtype="parse_error",
+                detail="'findings' key is not a list",
+            )
+        return findings
+    except json.JSONDecodeError as exc:
+        return ScanError(
+            dimension="",
+            subtype="parse_error",
+            detail=str(exc),
+        )
+
+
+# ---------------------------------------------------------------------------
+# Real SDK scan implementation (Step 4)
+# ---------------------------------------------------------------------------
+
+
+def _scan_task_prompt(dimension: str, files: list[str]) -> str:
+    """Build the user prompt for a dimension scan."""
+    file_list = "\n".join(f"  - {f}" for f in files)
+    return (
+        f"Scan the following files for the **{dimension}** dimension.\n\n"
+        f"Files to scan:\n{file_list}\n\n"
+        "Return your findings as a JSON object with a 'findings' array."
+    )
+
+
+async def sdk_scan(
+    dimension: str, files: list[str], config: DriverConfig
+) -> list[dict] | ScanError:
+    """Real scan implementation via the Claude Agent SDK.
+
+    Each dimension scan is an independent claude-agent-sdk query with:
+    - System prompt = stripped agent .md + driver-mode suffix
+    - output_format = json_schema (API-enforced shape)
+    - model = config.model (default "haiku")
+    - allowed_tools = Read, Grep, Glob, Bash (read-only)
+    - cwd = config.repo
+    - max_turns = config.max_turns
+
+    On schema failure the SDK returns subtype "error_max_structured_output_retries".
+    This function returns ScanError in that case — the driver handles the repair loop.
+
+    Args:
+        dimension: Dimension name (e.g. "correctness").
+        files: List of file paths to scan (relative to config.repo).
+        config: DriverConfig with model, max_turns, repo, agents_dir.
+
+    Returns:
+        list[dict] of raw finding dicts on success, ScanError on failure.
+    """
+    try:
+        from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
+    except ImportError:
+        return ScanError(
+            dimension=dimension,
+            subtype="sdk_unavailable",
+            detail="claude-agent-sdk not installed or CLI not available",
+        )
+
+    try:
+        system_prompt = load_agent_prompt(dimension, config.agents_dir, config.skills_dir)
+    except FileNotFoundError as exc:
+        return ScanError(dimension=dimension, subtype="agent_not_found", detail=str(exc))
+
+    options = ClaudeAgentOptions(
+        system_prompt=system_prompt,
+        model=config.model,
+        allowed_tools=["Read", "Grep", "Glob", "Bash"],
+        cwd=str(config.repo),
+        max_turns=config.max_turns,
+        output_format={"type": "json_schema", "schema": FINDINGS_SCHEMA},
+    )
+
+    result_message = None
+    prompt = _scan_task_prompt(dimension, files)
+    async for message in query(prompt=prompt, options=options):
+        if isinstance(message, ResultMessage):
+            result_message = message
+            break
+
+    if result_message is None:
+        return ScanError(
+            dimension=dimension,
+            subtype="no_result",
+            detail="SDK query returned no ResultMessage",
+        )
+
+    cost = getattr(result_message, "total_cost_usd", None)
+    if cost is not None:
+        print(f"[driver] {dimension}: ${cost:.4f}", file=sys.stderr)
+
+    parsed = parse_scan_result(
+        getattr(result_message, "result", None),
+        getattr(result_message, "subtype", "unknown"),
+    )
+    if isinstance(parsed, ScanError):
+        parsed.dimension = dimension
+    return parsed
+
+
+# ---------------------------------------------------------------------------
+# Repair round-trip (OQ3: one repair attempt per dimension)
+# ---------------------------------------------------------------------------
+
+
+async def _repair_scan(
+    dimension: str,
+    files: list[str],
+    config: DriverConfig,
+    error_detail: str,
+) -> list[dict] | ScanError:
+    """Attempt one repair round-trip by feeding the Pydantic error back.
+
+    This creates a new SDK session (no session_id resume needed — the agent
+    file + error message is sufficient context for a corrective response).
+    """
+    try:
+        from claude_agent_sdk import ClaudeAgentOptions, ResultMessage, query
+    except ImportError:
+        return ScanError(
+            dimension=dimension,
+            subtype="sdk_unavailable",
+            detail="claude-agent-sdk not installed or CLI not available",
+        )
+
+    try:
+        system_prompt = load_agent_prompt(dimension, config.agents_dir, config.skills_dir)
+    except FileNotFoundError as exc:
+        return ScanError(dimension=dimension, subtype="agent_not_found", detail=str(exc))
+
+    options = ClaudeAgentOptions(
+        system_prompt=system_prompt,
+        model=config.model,
+        allowed_tools=["Read", "Grep", "Glob", "Bash"],
+        cwd=str(config.repo),
+        max_turns=config.max_turns,
+        output_format={"type": "json_schema", "schema": FINDINGS_SCHEMA},
+    )
+
+    repair_prompt = (
+        f"Your previous output for the **{dimension}** dimension failed validation:\n\n"
+        f"```\n{error_detail}\n```\n\n"
+        "Please re-scan the same files and return corrected findings conforming to the "
+        "ReviewFinding schema. Return ONLY the JSON object with a 'findings' array.\n\n"
+        + _scan_task_prompt(dimension, files)
+    )
+
+    result_message = None
+    async for message in query(prompt=repair_prompt, options=options):
+        if isinstance(message, ResultMessage):
+            result_message = message
+            break
+
+    if result_message is None:
+        return ScanError(
+            dimension=dimension,
+            subtype="repair_no_result",
+            detail="Repair SDK query returned no ResultMessage",
+        )
+
+    parsed = parse_scan_result(
+        getattr(result_message, "result", None),
+        getattr(result_message, "subtype", "unknown"),
+    )
+    if isinstance(parsed, ScanError):
+        parsed.dimension = dimension
+    return parsed
+
+
+# ---------------------------------------------------------------------------
+# Deterministic cluster merge (OQ4: max merge_impact representative)
+# ---------------------------------------------------------------------------
+
+_MERGE_IMPACT_ORDER: dict[MergeImpact, int] = {
+    MergeImpact.BLOCKER: 0,
+    MergeImpact.IMPORTANT: 1,
+    MergeImpact.QUESTION: 2,
+    MergeImpact.SUGGESTION: 3,
+    MergeImpact.NIT: 4,
+}
+
+
+def merge_cluster(cluster: list[ReviewFinding]) -> ReviewFinding:
+    """Deterministically merge a dedup cluster into a single representative finding.
+
+    Representative = finding with the highest merge_impact (lowest order index).
+    Other members' IDs are appended to the representative's basis list.
+
+    Args:
+        cluster: Non-empty list of ReviewFinding objects in the same dedup cluster.
+
+    Returns:
+        Single representative ReviewFinding with absorbed IDs in basis.
+    """
+    if len(cluster) == 1:
+        return cluster[0]
+
+    sorted_cluster = sorted(
+        cluster,
+        key=lambda f: _MERGE_IMPACT_ORDER.get(f.severity.merge_impact, 99),
+    )
+    representative = sorted_cluster[0]
+    absorbed_ids = [f.id for f in sorted_cluster[1:]]
+
+    # Return a new instance with absorbed IDs appended to basis
+    new_basis = list(representative.basis) + [f"absorbed: {fid}" for fid in absorbed_ids]
+    return representative.model_copy(update={"basis": new_basis})
+
+
+# ---------------------------------------------------------------------------
+# Scope detection (same rule as /akira)
+# ---------------------------------------------------------------------------
+
+
+def _detect_scope(repo: Path) -> list[str]:
+    """Detect the changed file set for this run.
+
+    Rule (mirrors /akira scope):
+    - Changed set = git status --porcelain union git diff main...HEAD --name-only
+    - master fallback if main doesn't exist
+    - Empty changed set → whole-repo (git ls-files)
+
+    Returns:
+        List of file paths relative to repo root.
+    """
+    repo_str = str(repo)
+
+    def _git(*args: str) -> list[str]:
+        try:
+            result = subprocess.run(
+                ["git"] + list(args),
+                capture_output=True,
+                text=True,
+                cwd=repo_str,
+                check=False,
+            )
+            return [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        except OSError:
+            return []
+
+    # git status --porcelain: take the filename portion (cols 3+)
+    status_lines = _git("status", "--porcelain")
+    status_files: list[str] = []
+    for line in status_lines:
+        if len(line) >= 3:
+            fname = line[3:].strip()
+            # handle renames: "old -> new"
+            if " -> " in fname:
+                fname = fname.split(" -> ")[-1]
+            if fname:
+                status_files.append(fname)
+
+    # git diff main...HEAD
+    diff_files = _git("diff", "main...HEAD", "--name-only")
+    if not diff_files:
+        diff_files = _git("diff", "master...HEAD", "--name-only")
+
+    changed: list[str] = list(dict.fromkeys(status_files + diff_files))
+
+    if not changed:
+        # Whole-repo fallback
+        changed = _git("ls-files")
+
+    return changed
+
+
+# ---------------------------------------------------------------------------
+# Main pipeline
+# ---------------------------------------------------------------------------
+
+ScanFn = Callable[
+    [str, list[str], DriverConfig],
+    Coroutine[Any, Any, list[dict] | ScanError],
+]
+
+
+def run_review(
+    config: DriverConfig,
+    scan_fn: ScanFn = sdk_scan,
+) -> DriverResult:
+    """Run the full deterministic review pipeline.
+
+    Args:
+        config: DriverConfig controlling repo, scope, model, persistence.
+        scan_fn: Async callable (dimension, files, config) → list[dict] | ScanError.
+                 Defaults to sdk_scan; inject a fake for testing.
+
+    Returns:
+        DriverResult with findings, report_md, sweep_path, trend_md, errors, exit_code.
+    """
+    return asyncio.run(_run_review_async(config, scan_fn))
+
+
+async def _scan_with_parse_retry(
+    scan_fn: ScanFn,
+    dimension: str,
+    files: list[str],
+    config: DriverConfig,
+) -> list[dict] | ScanError:
+    """Call scan_fn; on parse_error retry each half of the fileset independently.
+
+    When a dimension scan returns parse_error (malformed JSON from the agent) and the
+    fileset has more than one file, split the fileset in half and re-scan each half.
+    Merge findings from any successful half; emit parse_error only if both halves also
+    fail with parse_error.  Any other error subtype is returned immediately without retry.
+
+    Args:
+        scan_fn: The scan callable (dimension, files, config) → list[dict] | ScanError.
+        dimension: Dimension name being scanned.
+        files: Full list of file paths for this scan.
+        config: DriverConfig for the run.
+
+    Returns:
+        list[dict] on full or partial success, ScanError if all attempts fail.
+    """
+    result = await scan_fn(dimension, files, config)
+    if not isinstance(result, ScanError) or result.subtype != "parse_error" or len(files) <= 1:
+        return result
+
+    # parse_error on >1 file — split and retry each half
+    mid = max(1, len(files) // 2)
+    halves = [files[:mid], files[mid:]]
+    print(
+        f"[driver] {dimension}: parse_error on {len(files)} files, retrying in halves "
+        f"({len(halves[0])}, {len(halves[1])})",
+        file=sys.stderr,
+    )
+
+    merged: list[dict] = []
+    last_error: ScanError = result
+    for half in halves:
+        if not half:
+            continue
+        half_result = await scan_fn(dimension, half, config)
+        if isinstance(half_result, ScanError):
+            last_error = half_result
+            last_error.dimension = dimension
+        else:
+            merged.extend(half_result)
+
+    if merged:
+        return merged
+    # Both halves also failed — surface the last error
+    last_error.dimension = dimension
+    return last_error
+
+
+async def _run_review_async(
+    config: DriverConfig,
+    scan_fn: ScanFn,
+) -> DriverResult:
+    result = DriverResult()
+
+    # --- Stage 1: scope + signals → dimension list ---
+    files = config.files if config.files else _detect_scope(config.repo)
+    signals = detect_signals(files, repo_root=str(config.repo))
+
+    # Wander is always-on (per active_dimensions) but plan says "when diff scope exists"
+    # active_dimensions already includes wander unconditionally — keep that.
+    dimensions = active_dimensions(signals)
+
+    # --- Stage 1b: static analysis (Layer 1) — deterministic, never blocks dispatch ---
+    sa_result: StaticAnalysisResult | None = None
+    if config.static_analysis:
+        sa_result = run_static_analysis(config.repo, files)
+        result.static_analysis = sa_result
+        # Append LINT dispatch entry; status never feeds exit_code (OQ2)
+        if sa_result.status == "not_detected":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="skipped",
+                    skip_reason="no static analysis tool detected",
+                )
+            )
+        elif sa_result.status == "tool_unavailable":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="skipped",
+                    skip_reason="tool configured but not installed",
+                )
+            )
+        elif sa_result.status == "failed":
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=Reporter.LINT,
+                    status="failed",
+                    skip_reason=sa_result.detail or "static analysis failed",
+                )
+            )
+        else:
+            result.dispatch.append(
+                ReporterDispatchEntry(reporter=Reporter.LINT, status="completed")
+            )
+
+    # --- Stage 2: concurrent dimension scans ---
+    print(
+        f"[driver] scanning {len(dimensions)} dimensions over {len(files)} files",
+        file=sys.stderr,
+    )
+    scan_tasks = [_scan_with_parse_retry(scan_fn, dim, files, config) for dim in dimensions]
+    scan_results: list[list[dict] | ScanError] = list(await asyncio.gather(*scan_tasks))
+
+    # --- Stage 3: validate + repair ---
+    all_findings: list[ReviewFinding] = []
+    errors: list[ScanError] = []
+
+    for dim, raw in zip(dimensions, scan_results, strict=True):
+        # Indexed, not .get(): an unmapped dimension is a wiring bug, and a None here
+        # surfaces as a confusing Pydantic error on the non-optional reporter field.
+        reporter = _DIMENSION_TO_REPORTER[dim]
+
+        if isinstance(raw, ScanError):
+            raw.dimension = dim
+            errors.append(raw)
+            result.dispatch.append(
+                ReporterDispatchEntry(
+                    reporter=reporter,
+                    status="failed",
+                    skip_reason=f"{raw.subtype}: {raw.detail[:120]}",
+                )
+            )
+            continue
+
+        # Validate each finding; collect per-finding errors
+        dim_findings: list[ReviewFinding] = []
+        dim_errors: list[str] = []
+
+        for raw_finding in raw:
+            ok, err = validate_finding(raw_finding)
+            if ok:
+                try:
+                    dim_findings.append(ReviewFinding.model_validate(raw_finding))
+                except (ValueError, TypeError) as exc:
+                    dim_errors.append(str(exc))
+            else:
+                dim_errors.append(err)
+
+        if dim_errors:
+            # One repair round-trip
+            error_summary = "\n".join(dim_errors[:5])
+            print(
+                f"[driver] {dim}: {len(dim_errors)} validation error(s), attempting repair",
+                file=sys.stderr,
+            )
+            repaired_raw = await _repair_scan(dim, files, config, error_summary)
+
+            if isinstance(repaired_raw, ScanError):
+                repaired_raw.dimension = dim
+                errors.append(repaired_raw)
+                result.dispatch.append(
+                    ReporterDispatchEntry(
+                        reporter=reporter,
+                        status="failed",
+                        skip_reason=f"repair failed: {repaired_raw.subtype}",
+                    )
+                )
+                continue
+
+            # Re-validate repaired findings. The repair re-scans the same files in full,
+            # so its output replaces pass 1 rather than adding to it — appending would
+            # double every finding that was already valid before the repair.
+            repaired_findings: list[ReviewFinding] = []
+            repair_errors: list[str] = []
+            for raw_finding in repaired_raw:
+                ok, err = validate_finding(raw_finding)
+                if ok:
+                    try:
+                        repaired_findings.append(ReviewFinding.model_validate(raw_finding))
+                    except (ValueError, TypeError) as exc:
+                        repair_errors.append(str(exc))
+                else:
+                    repair_errors.append(err)
+
+            if repair_errors:
+                scan_err = ScanError(
+                    dimension=dim,
+                    subtype="validation_error",
+                    detail="\n".join(repair_errors[:5]),
+                )
+                errors.append(scan_err)
+                result.dispatch.append(
+                    ReporterDispatchEntry(
+                        reporter=reporter,
+                        status="failed",
+                        skip_reason="validation failed after repair",
+                    )
+                )
+                continue
+
+            dim_findings = repaired_findings
+
+        all_findings.extend(dim_findings)
+        result.dispatch.append(ReporterDispatchEntry(reporter=reporter, status="completed"))
+
+    result.errors = errors
+
+    # Hard fail if any dimension errored (OQ3: no silent drops)
+    if errors:
+        result.exit_code = 1
+        # Still render what we have for partial report
+        if not all_findings:
+            error_lines = "\n".join(f"- [{e.dimension}] {e.subtype}: {e.detail}" for e in errors)
+            result.report_md = f"# Review Report\n\n## Errors\n\n{error_lines}\n"
+            return result
+
+    # --- Stage 4: dedup + deterministic cluster merge ---
+    clusters = find_duplicate_clusters(all_findings)
+    merged_findings: list[ReviewFinding] = [merge_cluster(c) for c in clusters]
+
+    # --- Stage 4b: branch attribution join ---
+    # Applied once after dedup so every merged finding carries an attribution field.
+    # One git diff call + one git rev-list call for the whole sweep.
+    merged_findings = attribute_findings(merged_findings, config.repo)
+
+    # --- Stage 5: fingerprint + sweep persistence ---
+    sweep_path: Path | None = None
+    if config.save_sweep:
+        sweep_findings = [finding_to_sweep_finding(f) for f in merged_findings]
+        date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+        repo_name = config.repo.name
+        record = SweepRecord(repo=repo_name, sweep_date=date_str, findings=sweep_findings)
+        base = config.reviews_dir / f"{repo_name}-{date_str}.json"
+        target = base
+        counter = 1
+        while target.exists():
+            target = config.reviews_dir / f"{repo_name}-{date_str}-{counter}.json"
+            counter += 1
+        save_sweep(record, target)
+        sweep_path = target
+        result.sweep_path = sweep_path
+        print(f"[driver] sweep saved: {sweep_path}", file=sys.stderr)
+    else:
+        # Build an in-memory record for trends even when not saving
+        sweep_findings = [finding_to_sweep_finding(f) for f in merged_findings]
+        date_str = datetime.datetime.now(tz=datetime.UTC).date().isoformat()
+        repo_name = config.repo.name
+        record = SweepRecord(repo=repo_name, sweep_date=date_str, findings=sweep_findings)
+
+    # --- Stage 5b: emit findings to JSONL (beside sweep, always runs when findings exist) ---
+    emit_findings_jsonl(
+        merged_findings,
+        repo=repo_name,
+        session_id=config.session_id,
+        jsonl_path=config.findings_path or _FINDINGS_JSONL_PATH,
+        repo_path=config.repo,
+    )
+
+    # --- Stage 6: trends ---
+    trend_md = ""
+    if config.save_sweep:
+        # Look for the previous sweep (the one before the one we just wrote)
+        candidates = sorted(
+            config.reviews_dir.glob(f"{repo_name}-*.json"),
+            key=lambda p: p.stat().st_mtime,
+        )
+        if len(candidates) >= 2:
+            prev_sweep = load_sweep(candidates[-2])
+            curr_sweep = load_sweep(candidates[-1])
+            if prev_sweep and curr_sweep:
+                trend_report = build_trend_report(prev_sweep, curr_sweep)
+                trend_md = render_trend_report(trend_report)
+    result.trend_md = trend_md
+
+    # --- Stage 7: render report ---
+    wander_questions = [
+        f.claim.observation for f in merged_findings if f.reporter == Reporter.WANDER
+    ]
+    # Verdict: single implementation in review/verdict.py. Two exclusions:
+    # 1. Wander — questions by construction, counting them makes approve unreachable.
+    # 2. Pre-existing — file not touched by this branch; never blocks merge.
+    #    adjacent and unknown findings ARE counted: adjacent means the file was touched
+    #    (the branch may have context around a real problem), and unknown means
+    #    attribution could not be determined — an undeterminable finding must not
+    #    silently stop blocking (tri-state rule from telemetry/consistency.py).
+    verdict_findings = [
+        f
+        for f in merged_findings
+        if f.reporter != Reporter.WANDER and f.attribution != Attribution.PRE_EXISTING
+    ]
+    merge_decision = derive_merge_decision(
+        verdict_findings,
+        dispatch_failed=bool(errors),
+    )
+    # Findings included in the main report (non-pre-existing). Pre-existing are
+    # rendered under their own heading and never contribute to the verdict.
+    pre_existing_findings = [
+        f for f in merged_findings if f.attribution == Attribution.PRE_EXISTING
+    ]
+    report_findings = [f for f in merged_findings if f.attribution != Attribution.PRE_EXISTING]
+    n_pre_existing = len(pre_existing_findings)
+    report = ReviewReport(
+        findings=report_findings,
+        merge_decision=merge_decision,
+        reporter_dispatch=result.dispatch,
+        overall_understanding=(
+            f"Driver run over {len(files)} file(s), "
+            f"{len(dimensions)} dimension(s). "
+            f"{len(merged_findings)} finding(s) after dedup "
+            f"({n_pre_existing} pre-existing, not in verdict)."
+        ),
+        dod_assessment=(
+            "All validation gates passed."
+            if not errors
+            else f"{len(errors)} dimension(s) failed validation."
+        ),
+    )
+    result.report = report
+    result.merge_decision = merge_decision
+
+    report_data: dict[str, Any] = {
+        **report.model_dump(),
+        "wander_questions": wander_questions,
+        "repo": str(config.repo),
+        "diff_scope": f"{len(files)} file(s)",
+        "pre_existing_findings": [f.model_dump() for f in pre_existing_findings],
+    }
+    # Static analysis result — passed separately from findings so it never enters dedup
+    if sa_result is not None:
+        report_data["static_analysis"] = sa_result.model_dump()
+    result.report_md = render_report(report_data)
+    result.findings = merged_findings
+
+    return result

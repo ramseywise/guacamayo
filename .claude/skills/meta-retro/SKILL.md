@@ -137,7 +137,7 @@ Read what exists; skip gracefully what doesn't. Note which sources you actually 
    `design-inistiative`) — these fail silently with no error, so they read as user error
    but are really a missing-feedback problem.
 6. **Recurrence report** — the durable count of repeated review friction. Read the
-   **Recurring friction** table in `guacamayo/.sounding/context-dashboard.html`
+   **Recurring friction** table in `guacamayo/docs/dashboard.html`
    (REVIEW-FINDINGS region, refreshed by `uv run telemetry --facts`), or compute it live:
 
    ```bash
@@ -286,7 +286,7 @@ first. End with:
    Rows that pass all gates are written in ledger format with status `hypothesis`.
 2. **Ledger graduation**: move verified/failed rows to `tooling-ledger-log.md` (append).
    Active ledger stays lean (hypotheses only). Archive is the audit trail.
-3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `.sounding/context-dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
+3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `docs/dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
 
 Through Step 4 nothing is written outside the retro report. Then stop and hand the report
 to Ramsey for Step 5.

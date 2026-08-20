@@ -38,7 +38,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 > state has not reached, so `actions.jsonl` carries no `spawn_*` row. Reachable in code,
 > not yet reached in data — threshold tuning is a `/hypothesis` candidate, not a bug.
 
-The dashboard (`.sounding/context-dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Seven tabs: **Overview** (system architecture diagram), **Cost & Efficiency**, **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/feedback/retro/config + pending hypothesis count; populated by `render_pipeline_health_region()`), **Experiments**, **Retro** (graduation rate). Auto-updates via `uv run telemetry --facts`. Full tab descriptions in `README.md §The Dashboard`.
+The dashboard (`docs/dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Seven tabs: **Overview** (system architecture diagram), **Cost & Efficiency**, **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/feedback/retro/config + pending hypothesis count; populated by `render_pipeline_health_region()`), **Experiments**, **Retro** (graduation rate). Auto-updates via `uv run telemetry --facts`. Full tab descriptions in `README.md §The Dashboard`.
 
 Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/meta-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
 
@@ -81,8 +81,8 @@ else is execution at varying granularity.
 ├── growth/
 │   ├── growth.md                 # Accumulator: tagged entries, cleared by /meta-dream's synthesis phase
 │   └── growth-log.md             # Append-only disposition ledger — audit trail for cleared entries
-├── queue.md                      # COMMITTED cross-repo pointer — survives clone for mobile /meta-wake
-├── context-dashboard.html                # Rendered status view (generated, not hand-edited)
+├── queue.md                      # Local-only cross-repo pointer — does NOT survive clone (GUA-168)
+├── context-dashboard.html        # RETIRED — dashboard moved to docs/dashboard.html
 ├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.
 │                                 # Global originals win on the Mac; refresh at /meta-dream
 ├── reflections/

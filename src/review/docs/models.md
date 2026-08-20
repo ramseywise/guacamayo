@@ -1,0 +1,64 @@
+# Model Pairing — skills, agents, sessions
+
+*Principle: opening sessions default to opus-5. Fable is opt-in per skill, reserved for
+verdict-shaped work where errors compound — not the session default. Only spawned agents
+with a complete, bounded plan get lower tiers — and performance is observed to determine
+when to upgrade. Fan-out and extraction → haiku; bounded execution with complete spec →
+sonnet; design, review, planning, and anything verdict-shaped → fable (invoked per-skill).
+/fast = same Opus, faster output — a latency lever, not a cost lever.*
+
+**Fable** (Claude Fable 5 / `claude-fable-5`) — Mythos-class tier, sits **above** opus
+in capability. The tier for design, review, planning, research synthesis, and identity
+transforms — invoked by the specific skills listed below, not as a session default.
+Changed 2026-07-30: fable weekly + session budgets both maxed within an hour while it
+was the session default; execute-phase and ad-hoc work was consuming judgment-tier
+budget it didn't need.
+
+**Opus** = `claude-opus-5` — the session default (settings.json `model`). Use for
+opening sessions, ad-hoc work, and any spawned agent needing strong judgment without
+a fable session.
+
+Skills run in the invoking session's model — this table says **which session tier to
+invoke them in** (and which model their sub-agents pin). Enforcement strength: agent-def
+frontmatter > skill-text spawn instructions > this ref (session choice is Ramsey's).
+
+## Global skills
+
+| Tier | Skills | Why |
+|------|--------|-----|
+| **Fable** | `/workflow-plan`, `/workflow-research` (synthesis phases), `/workflow-review`, `/code-review` (level 2+), `/meta-retro`, `/sanyi` (esp. audit), `/design-sprint`, `/design-initiative`, `/design-prototype`, `/skill-creator`, `/mcp-builder` (design phases), multi-file refactors with tricky dependencies | Verdicts, architecture, design, contract judgment, changes to the tooling itself — errors compound; fable is the top judgment tier |
+| **Opus (5)** | Default for all other sessions; ad-hoc work; any fable-tier skill when fable is unavailable | Session default — strong judgment without fable-tier cost |
+| **Sonnet** | `/workflow-execute`, `/code-debug`, `/git-pr`, `/github-projects`, `/meta-insights`, `/design-prototype` (spike execution), `/code-review` level:1 | Plan is already made or task is bounded; needs competence, not maximal judgment |
+| **Any / haiku-ok** | `/git-commit`, `/workflow-research` fan-out mode (its sub-agents are haiku by design), `/keybindings-help` | Mechanical or already delegating downward |
+
+`/code-review` level:3 graduates to fable (full sanyi audit inside).
+
+## Sub-agent spawns (pinned, not session-dependent)
+
+| Agent / spawn | Model | Set where |
+|---------------|-------|-----------|
+| `akira-scan` batches | haiku | `~/.claude/agents/akira-scan.md` frontmatter |
+| `/workflow-research` fan-out | haiku | skill text |
+| Explore lookups | haiku | Agent tool `model` param |
+| Finding verification + report merge | session model | deliberate — cheap generate, narrow expensive verify (the 2026-07-17 false-positive catch is the proof) |
+
+## Guacamayo lifecycle (repo-local skills)
+
+| Tier | Skills | Why |
+|------|--------|-----|
+| **Fable, always** | `/meta-dream` (synthesis/transform pass) | Identity transforms; voice preservation is the most judgment-dense operation in the setup — cheap compression is how identity dies politely |
+| **Any** | `/meta-wake`, `/meta-grow` | Read/append capture — no transforms by design |
+
+## Rules of thumb
+
+- Default session opens at **opus-5** (`claude-opus-5`). Fable is invoked per-skill for
+  verdict-shaped work (see table above) — never the blanket session default.
+- Spawned agents with a defined plan: **haiku or sonnet** per task complexity. Observe;
+  upgrade if the agent reframes rather than executes.
+- Fan-out research batches (haiku agents) don't care what the parent session runs.
+- /workflow-plan, /workflow-review, /code-review (L2+), /meta-retro, /sanyi audit,
+  /meta-dream synthesis, /design-* → fable (judgment-dense), invoked explicitly per skill.
+- /workflow-execute runs in a FRESH session per item (plan doc as input) — never as a
+  continuation of the planning session (~5k fresh context beats compacted-150k).
+- Never let a sub-agent's confident output skip main-model verification — model choice
+  changes cost, not the verification duty.
