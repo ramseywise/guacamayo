@@ -1283,7 +1283,10 @@ def _run_facts() -> None:
                     if args.ledger_log
                     else Path(args.ledger).expanduser().parent / "tooling-ledger-log.md"
                 ),
-                "PIPELINE-HEALTH": render_pipeline_health_region(store),
+                "PIPELINE-HEALTH": render_pipeline_health_region(
+                    store,
+                    sounding_root=Path(args.ledger).expanduser().parent,
+                ),
                 "SCOPE-DECISIONS": render_scope_decisions_region(
                     Path(args.actions_log).expanduser().parent / "scope-decisions.jsonl"
                 ),

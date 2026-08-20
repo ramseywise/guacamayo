@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-20T10:53:25.774570+00:00",
+  "collected_at": "2026-08-20T11:45:27.600753+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -15,10 +15,10 @@
   "skipped_repos": [],
   "total_issues": 10,
   "heartbeat": {
-    "started_at": "2026-08-20T10:52:58.170765+00:00",
-    "finished_at": "2026-08-20T10:53:25.832534+00:00",
+    "started_at": "2026-08-20T11:44:58.189508+00:00",
+    "finished_at": "2026-08-20T11:45:27.681289+00:00",
     "exit": 0,
-    "duration_s": 27.66,
+    "duration_s": 29.49,
     "error": null
   },
   "proposed_actions": [
@@ -59,7 +59,7 @@
       "evidence": "kind='merged-branch-open-issue'; detail='branch `LIB-122-ci-templates` is an ancestor of origin/main'; evidence='librarian#122 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-20T10:53:25.830524+00:00"
+      "created_at": "2026-08-20T11:45:27.679898+00:00"
     }
   ],
   "records": [
@@ -67,11 +67,11 @@
       "repo": "guacamayo",
       "issue_num": 165,
       "title": "Build orchestrator: automated execute \u2192 review \u2192 fix chain",
-      "raw_label": "backlog,enhancement",
-      "column": "backlog",
-      "backlog_stage": "refine",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "raw_label": "enhancement,ready",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-165-build-orchestrator' exists, is_ancestor=False",
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "guacamayo",
@@ -81,17 +81,17 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GUA-164-skill-auto-extraction' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "guacamayo",
       "issue_num": 163,
       "title": "Telemetry git_activity lacks branch/commit granularity \u2014 3 ledger rows blocked",
       "raw_label": "ready",
-      "column": "backlog",
-      "backlog_stage": "ready",
-      "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-163-git-activity-granularity' exists, is_ancestor=False",
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "guacamayo",
@@ -101,7 +101,7 @@
       "column": "backlog",
       "backlog_stage": "ready",
       "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "guacamayo",
@@ -111,7 +111,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #162 has mergedAt='2026-08-20T10:25:24Z'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "librarian",
@@ -121,7 +121,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'LIB-125-cartographer-tool-sequence' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "librarian",
@@ -131,7 +131,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'LIB-124-incremental-index' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "librarian",
@@ -141,7 +141,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #123 has mergedAt='2026-08-20T10:04:43Z'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "playground",
@@ -151,7 +151,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     },
     {
       "repo": "galactus",
@@ -161,7 +161,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+      "collected_at": "2026-08-20T11:45:27.600753+00:00"
     }
   ]
 }
