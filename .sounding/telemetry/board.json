@@ -1,5 +1,5 @@
 {
-  "collected_at": "2026-08-20T10:22:13.329457+00:00",
+  "collected_at": "2026-08-20T10:53:25.774570+00:00",
   "repos_checked": [
     "ai-project-template",
     "atlas",
@@ -13,30 +13,86 @@
     "sisyphus"
   ],
   "skipped_repos": [],
-  "total_issues": 5,
+  "total_issues": 10,
   "heartbeat": {
-    "started_at": "2026-08-20T10:21:49.538438+00:00",
-    "finished_at": "2026-08-20T10:22:13.369719+00:00",
+    "started_at": "2026-08-20T10:52:58.170765+00:00",
+    "finished_at": "2026-08-20T10:53:25.832534+00:00",
     "exit": 0,
-    "duration_s": 23.83,
+    "duration_s": 27.66,
     "error": null
   },
   "proposed_actions": [
     {
-      "id": "0820249eb2ab",
-      "action": "dispatch_review",
+      "id": "a3aa7fa2f364",
+      "action": "close_issue",
       "target": {
         "repo": "guacamayo",
         "issue_num": 160
       },
-      "reason": "open PR found for issue \u2014 /workflow-review should run",
-      "evidence": "column=in_review; joined PR #162 is OPEN",
+      "reason": "branch merged to main but issue #160 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-160-ci-templates` is an ancestor of origin/main'; evidence='guacamayo#160 is still OPEN after branch merged'",
       "confidence": "medium",
       "auto_eligible": false,
-      "created_at": "2026-08-20T10:22:13.368260+00:00"
+      "created_at": "2026-08-20T10:53:25.830524+00:00"
+    },
+    {
+      "id": "4432d58108e6",
+      "action": "close_issue",
+      "target": {
+        "repo": "guacamayo",
+        "issue_num": 163
+      },
+      "reason": "branch merged to main but issue #163 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `GUA-163-git-activity-granularity` is an ancestor of origin/main'; evidence='guacamayo#163 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-20T10:53:25.830524+00:00"
+    },
+    {
+      "id": "247fc7ae7480",
+      "action": "close_issue",
+      "target": {
+        "repo": "librarian",
+        "issue_num": 122
+      },
+      "reason": "branch merged to main but issue #122 is still open",
+      "evidence": "kind='merged-branch-open-issue'; detail='branch `LIB-122-ci-templates` is an ancestor of origin/main'; evidence='librarian#122 is still OPEN after branch merged'",
+      "confidence": "medium",
+      "auto_eligible": false,
+      "created_at": "2026-08-20T10:53:25.830524+00:00"
     }
   ],
   "records": [
+    {
+      "repo": "guacamayo",
+      "issue_num": 165,
+      "title": "Build orchestrator: automated execute \u2192 review \u2192 fix chain",
+      "raw_label": "backlog,enhancement",
+      "column": "backlog",
+      "backlog_stage": "refine",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='refine'",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+    },
+    {
+      "repo": "guacamayo",
+      "issue_num": 164,
+      "title": "Skill auto-extraction trigger for /meta-retro graduation path",
+      "raw_label": "ready",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'GUA-164-skill-auto-extraction' exists, is_ancestor=False",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+    },
+    {
+      "repo": "guacamayo",
+      "issue_num": 163,
+      "title": "Telemetry git_activity lacks branch/commit granularity \u2014 3 ledger rows blocked",
+      "raw_label": "ready",
+      "column": "backlog",
+      "backlog_stage": "ready",
+      "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+    },
     {
       "repo": "guacamayo",
       "issue_num": 161,
@@ -45,17 +101,37 @@
       "column": "backlog",
       "backlog_stage": "ready",
       "evidence": "no PR join, no unmerged branch; backlog_stage='ready'",
-      "collected_at": "2026-08-20T10:22:13.329457+00:00"
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
     },
     {
       "repo": "guacamayo",
       "issue_num": 160,
       "title": "CI: concurrency cancellation + issue templates",
       "raw_label": "backlog",
-      "column": "in_review",
+      "column": "merged",
       "backlog_stage": null,
-      "evidence": "joined PR #162 is OPEN",
-      "collected_at": "2026-08-20T10:22:13.329457+00:00"
+      "evidence": "joined PR #162 has mergedAt='2026-08-20T10:25:24Z'",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+    },
+    {
+      "repo": "librarian",
+      "issue_num": 125,
+      "title": "Add tool_sequence column to cartographer parser",
+      "raw_label": "ready",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'LIB-125-cartographer-tool-sequence' exists, is_ancestor=False",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
+    },
+    {
+      "repo": "librarian",
+      "issue_num": 124,
+      "title": "Index rebuilds full corpus on any single page edit",
+      "raw_label": "ready",
+      "column": "in_progress",
+      "backlog_stage": null,
+      "evidence": "branch 'LIB-124-incremental-index' exists, is_ancestor=False",
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
     },
     {
       "repo": "librarian",
@@ -65,7 +141,7 @@
       "column": "merged",
       "backlog_stage": null,
       "evidence": "joined PR #123 has mergedAt='2026-08-20T10:04:43Z'",
-      "collected_at": "2026-08-20T10:22:13.329457+00:00"
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
     },
     {
       "repo": "playground",
@@ -75,7 +151,7 @@
       "column": "backlog",
       "backlog_stage": "scope",
       "evidence": "no PR join, no unmerged branch; backlog_stage='scope'",
-      "collected_at": "2026-08-20T10:22:13.329457+00:00"
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
     },
     {
       "repo": "galactus",
@@ -85,7 +161,7 @@
       "column": "in_progress",
       "backlog_stage": null,
       "evidence": "branch 'GAL-39-resolve-capability-registry' exists, is_ancestor=False",
-      "collected_at": "2026-08-20T10:22:13.329457+00:00"
+      "collected_at": "2026-08-20T10:53:25.774570+00:00"
     }
   ]
 }

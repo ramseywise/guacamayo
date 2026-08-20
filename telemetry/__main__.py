@@ -870,7 +870,7 @@ def _build_signal_sources(
     "no data" -- indistinguishable from a genuine empty window.
     """
     from telemetry.factstore import read_all, read_findings
-    from telemetry.gitstore import read_git_activity, read_issues, read_prs
+    from telemetry.gitstore import read_branches, read_git_activity, read_issues, read_prs
     from telemetry.signals import SignalSources
 
     return SignalSources(
@@ -881,6 +881,7 @@ def _build_signal_sources(
         findings=read_findings(store),
         hook_log=_read_jsonl(hook_log),
         hook_pass_log=_read_jsonl(hook_pass_log),
+        branches=read_branches(store),
         workspace=workspace,
     )
 

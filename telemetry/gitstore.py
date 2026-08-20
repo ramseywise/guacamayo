@@ -54,6 +54,9 @@ PR_COLUMNS: dict[str, type] = {
     "additions": int,
     "deletions": int,
     "is_bot": int,
+    "title": str,
+    "body": str,
+    "head_ref": str,
 }
 
 # Issues carry the *workflow label*, which is the board's view of where a work item
@@ -66,6 +69,17 @@ ISSUE_COLUMNS: dict[str, type] = {
     "labels": str,
     "created_date": str,
     "closed_date": str,
+}
+
+# One row per (repo, branch-name). Grain is finer than git_activity (which is per day).
+# `merged` is derived from pull_requests.head_ref, not from git state — so it reflects
+# PR merge state, not whether the ref has been deleted.
+BRANCH_COLUMNS: dict[str, type] = {
+    "repo": str,
+    "name": str,
+    "merged": int,
+    "pr_number": int,
+    "head_sha": str,
 }
 
 _SQL_TYPES = {str: "TEXT", int: "INTEGER", float: "REAL", bool: "INTEGER"}
@@ -201,7 +215,7 @@ def collect_prs(repo_name: str, owner: str = "ramseywise") -> list[dict[str, Any
             "--limit",
             "300",
             "--json",
-            "number,state,createdAt,closedAt,additions,deletions,author",
+            "number,state,createdAt,closedAt,additions,deletions,author,title,body,headRefName",
         ],
         Path.cwd(),
     )
@@ -232,6 +246,12 @@ def collect_prs(repo_name: str, owner: str = "ramseywise") -> list[dict[str, Any
                 "additions": pr.get("additions") or 0,
                 "deletions": pr.get("deletions") or 0,
                 "is_bot": int(is_bot),
+                "title": pr.get("title") or "",
+                # Truncate at 2000 chars: closing links almost always appear in the
+                # first paragraph or footer, well within this limit. If a false
+                # positive surfaces, raise to 4000 (see plan risks).
+                "body": (pr.get("body") or "")[:2000],
+                "head_ref": pr.get("headRefName") or "",
             }
         )
     return rows
@@ -243,9 +263,19 @@ def _connect(store: Path) -> sqlite3.Connection:
     gcols = ", ".join(f"{n} {_SQL_TYPES[t]}" for n, t in GIT_COLUMNS.items())
     pcols = ", ".join(f"{n} {_SQL_TYPES[t]}" for n, t in PR_COLUMNS.items())
     icols = ", ".join(f"{n} {_SQL_TYPES[t]}" for n, t in ISSUE_COLUMNS.items())
+    bcols = ", ".join(f"{n} {_SQL_TYPES[t]}" for n, t in BRANCH_COLUMNS.items())
     conn.execute(f"CREATE TABLE IF NOT EXISTS git_activity ({gcols}, PRIMARY KEY (repo, date))")
     conn.execute(f"CREATE TABLE IF NOT EXISTS pull_requests ({pcols}, PRIMARY KEY (repo, number))")
     conn.execute(f"CREATE TABLE IF NOT EXISTS issues ({icols}, PRIMARY KEY (repo, number))")
+    conn.execute(f"CREATE TABLE IF NOT EXISTS branches ({bcols}, PRIMARY KEY (repo, name))")
+    # Migration guards: new columns added to pull_requests on an existing store.
+    # SQLite has no ALTER TABLE ... ADD COLUMN IF NOT EXISTS; wrap in try/except.
+    for col, sql_type in (("title", "TEXT"), ("body", "TEXT"), ("head_ref", "TEXT")):
+        try:
+            conn.execute(f"ALTER TABLE pull_requests ADD COLUMN {col} {sql_type}")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+    conn.commit()
     return conn
 
 
@@ -291,6 +321,99 @@ def read_issues(store: Path) -> list[dict[str, Any]]:
     return _read("issues", store)
 
 
+def read_branches(store: Path, repo: str | None = None) -> list[dict[str, Any]]:
+    """All branch rows, optionally filtered to one repo."""
+    if not store.exists():
+        return []
+    conn = _connect(store)
+    try:
+        conn.row_factory = sqlite3.Row
+        if repo is not None:
+            rows = conn.execute("SELECT * FROM branches WHERE repo = ?", (repo,))
+        else:
+            rows = conn.execute("SELECT * FROM branches")
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def collect_branches(
+    repo_path: Path, repo_name: str, store: Path | None = None
+) -> list[dict[str, Any]]:
+    """Branch facts for one repo derived from remote refs + stored PR data.
+
+    Runs `git fetch --prune` first because remote refs may be stale (no prior
+    fetch in the collection pipeline — confirmed in plan refinement notes).
+    `store` is used only to load existing PR rows for the head_ref join; pass
+    None when the caller has already loaded them separately.
+    """
+    # Fetch so remote refs are current before reading them.
+    _run(["git", "-C", str(repo_path), "fetch", "--prune", "--quiet"], repo_path)
+
+    raw = _run(
+        [
+            "git",
+            "-C",
+            str(repo_path),
+            "branch",
+            "-r",
+            "--format=%(refname:short)|%(objectname:short)",
+        ],
+        repo_path,
+    )
+    if not raw.strip():
+        return []
+
+    # Build a lookup from head_ref (branch name) → PR row using stored PR data.
+    pr_by_head_ref: dict[str, dict[str, Any]] = {}
+    if store is not None:
+        for pr in read_prs(store):
+            hr = pr.get("head_ref") or ""
+            if hr:
+                pr_by_head_ref[hr] = pr
+
+    rows = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or "|" not in line:
+            continue
+        ref, sha = line.split("|", 1)
+        # ref is like "origin/main" or "origin/HEAD -> origin/main"
+        if "HEAD" in ref:
+            continue
+        # Strip the "origin/" prefix.
+        if ref.startswith("origin/"):
+            name = ref[len("origin/") :]
+        else:
+            name = ref
+        matched_pr = pr_by_head_ref.get(name)
+        rows.append(
+            {
+                "repo": repo_name,
+                "name": name,
+                "merged": int(matched_pr["merged"]) if matched_pr else 0,
+                "pr_number": matched_pr["number"] if matched_pr else None,
+                "head_sha": sha,
+            }
+        )
+    return rows
+
+
+def upsert_branches(conn: sqlite3.Connection, rows: list[dict[str, Any]]) -> int:
+    """INSERT OR REPLACE branch rows using an already-open connection."""
+    if not rows:
+        return 0
+    names = list(BRANCH_COLUMNS)
+    sql = (
+        f"INSERT OR REPLACE INTO branches ({', '.join(names)}) "
+        f"VALUES ({', '.join('?' for _ in names)})"
+    )
+    conn.executemany(sql, [tuple(r.get(n) for n in names) for r in rows])
+    conn.commit()
+    log.info("gitstore.upsert", table="branches", rows=len(rows))
+    return len(rows)
+
+
 def _read(table: str, store: Path) -> list[dict[str, Any]]:
     if not store.exists():
         return []
@@ -302,19 +425,90 @@ def _read(table: str, store: Path) -> list[dict[str, Any]]:
         conn.close()
 
 
-def refresh(workspace: Path, store: Path, since: str = "2026-04-01") -> tuple[int, int, int]:
-    """Collect commit + PR + issue facts for every repo under `workspace`."""
+def refresh(workspace: Path, store: Path, since: str = "2026-04-01") -> tuple[int, int, int, int]:
+    """Collect commit + PR + issue + branch facts for every repo under `workspace`."""
     from telemetry.loop import collect_issues
 
     commit_rows: list[dict[str, Any]] = []
     pr_rows: list[dict[str, Any]] = []
     issue_rows: list[dict[str, Any]] = []
+    branch_rows: list[dict[str, Any]] = []
     for repo in discover_repos(workspace):
         commit_rows.extend(collect_commits(repo, since))
-        pr_rows.extend(collect_prs(repo.name))
+        repo_pr_rows = collect_prs(repo.name)
+        pr_rows.extend(repo_pr_rows)
         issue_rows.extend(collect_issues(repo.name))
-    return (
-        upsert_commits(commit_rows, store),
-        upsert_prs(pr_rows, store),
-        upsert_issues(issue_rows, store),
+        # collect_branches must run after collect_prs so the head_ref join uses
+        # fresh PR data. We pass the in-memory rows directly rather than re-reading
+        # the store to avoid a round-trip between upsert and the branch join.
+        # Build a temporary head_ref lookup from the just-collected rows.
+        pr_by_head_ref: dict[str, dict[str, Any]] = {
+            pr["head_ref"]: pr for pr in repo_pr_rows if pr.get("head_ref")
+        }
+        branch_rows.extend(_collect_branches_with_prs(repo, repo.name, pr_by_head_ref))
+    conn = _connect(store)
+    try:
+        n_commits = _upsert_into(conn, "git_activity", GIT_COLUMNS, commit_rows)
+        n_prs = _upsert_into(conn, "pull_requests", PR_COLUMNS, pr_rows)
+        n_issues = _upsert_into(conn, "issues", ISSUE_COLUMNS, issue_rows)
+        n_branches = upsert_branches(conn, branch_rows)
+    finally:
+        conn.close()
+    return n_commits, n_prs, n_issues, n_branches
+
+
+def _collect_branches_with_prs(
+    repo_path: Path, repo_name: str, pr_by_head_ref: dict[str, dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """Internal helper: collect_branches without a store round-trip."""
+    _run(["git", "-C", str(repo_path), "fetch", "--prune", "--quiet"], repo_path)
+    raw = _run(
+        [
+            "git",
+            "-C",
+            str(repo_path),
+            "branch",
+            "-r",
+            "--format=%(refname:short)|%(objectname:short)",
+        ],
+        repo_path,
     )
+    if not raw.strip():
+        return []
+    rows = []
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or "|" not in line:
+            continue
+        ref, sha = line.split("|", 1)
+        if "HEAD" in ref:
+            continue
+        name = ref.removeprefix("origin/")
+        matched_pr = pr_by_head_ref.get(name)
+        rows.append(
+            {
+                "repo": repo_name,
+                "name": name,
+                "merged": int(matched_pr["merged"]) if matched_pr else 0,
+                "pr_number": matched_pr["number"] if matched_pr else None,
+                "head_sha": sha,
+            }
+        )
+    return rows
+
+
+def _upsert_into(
+    conn: sqlite3.Connection, table: str, columns: dict[str, type], rows: list[dict[str, Any]]
+) -> int:
+    """INSERT OR REPLACE rows into an already-open connection."""
+    if not rows:
+        return 0
+    names = list(columns)
+    sql = (
+        f"INSERT OR REPLACE INTO {table} ({', '.join(names)}) "
+        f"VALUES ({', '.join('?' for _ in names)})"
+    )
+    conn.executemany(sql, [tuple(r.get(n) for n in names) for r in rows])
+    conn.commit()
+    log.info("gitstore.upsert", table=table, rows=len(rows))
+    return len(rows)
