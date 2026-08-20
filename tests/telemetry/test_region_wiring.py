@@ -10,7 +10,7 @@ Covers:
 - Each renderer: non-empty output with data, graceful (non-empty) output with
   no data.
 - Round-trip: each renderer's output injects cleanly into a marker pair.
-- A copy of the real context-dashboard.html: injecting all four regions
+- A copy of the real dashboard.html: injecting all four regions
   changes only those four regions; the hand-written HOOK-ACTIVITY card and
   all other bytes are preserved exactly.
 """
@@ -234,11 +234,11 @@ def test_roundtrip_inject_card_renderers(
 # not disturb HOOK-ACTIVITY or any other content.
 # ---------------------------------------------------------------------------
 
-_REAL_DASHBOARD = Path("~/workspace/guacamayo/.sounding/context-dashboard.html").expanduser()
+_REAL_DASHBOARD = Path("~/workspace/guacamayo/docs/dashboard.html").expanduser()
 
 
 @pytest.mark.skipif(
-    not _REAL_DASHBOARD.exists(), reason="guacamayo context-dashboard.html not present"
+    not _REAL_DASHBOARD.exists(), reason="guacamayo docs/dashboard.html not present"
 )
 def test_inject_four_regions_preserves_hook_activity_and_other_bytes(tmp_path: Path) -> None:
     """Injecting the four wired regions into a COPY of the real dashboard changes only

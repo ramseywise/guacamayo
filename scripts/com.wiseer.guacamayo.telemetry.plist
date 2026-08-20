@@ -34,10 +34,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/telemetry-launchd.log</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/telemetry-launchd.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/telemetry-launchd.err</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/telemetry-launchd.err</string>
 
     <key>RunAtLoad</key>
     <false/>

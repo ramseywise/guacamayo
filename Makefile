@@ -33,7 +33,7 @@ install:  ## Install review-cli (editable)
 	uv tool install -e .
 
 review-lint:  ## Lint review package
-	uv run ruff check review/ tests/review/
+	uv run ruff check src/review/ tests/review/
 
 review-test:  ## Run review package tests
 	uv run pytest tests/review/ -v --tb=short

@@ -34,7 +34,7 @@ case "${MODE}" in
     board) LOG_NAME="telemetry-board.log" ;;
     *)     LOG_NAME="telemetry-unknown.log" ;;
 esac
-LOG_FILE="${REPO_DIR}/logs/${LOG_NAME}"
+LOG_FILE="${REPO_DIR}/.sounding/logs/${LOG_NAME}"
 
 mkdir -p "$(dirname "${LOG_FILE}")"
 cd "${REPO_DIR}"
@@ -107,7 +107,7 @@ INSIGHTS_TRIGGER_ENABLED=1
 TELEMETRY_DIR="${REPO_DIR}/.sounding/telemetry"
 INSIGHTS_MARKER="${TELEMETRY_DIR}/insights-due.marker"
 INSIGHTS_LOCK="${TELEMETRY_DIR}/insights-spawn.lock"
-INSIGHTS_LOG="${REPO_DIR}/logs/insights-auto.log"
+INSIGHTS_LOG="${REPO_DIR}/.sounding/logs/insights-auto.log"
 GROWTH_FILE="${REPO_DIR}/.sounding/growth/growth.md"
 INSIGHTS_LOG_FILE="${REPO_DIR}/.sounding/insights/insights-log.md"
 INSIGHTS_ACTIONS_LOG="${TELEMETRY_DIR}/actions.jsonl"

@@ -73,16 +73,16 @@ else is execution at varying granularity.
 ```
 .sounding/                        # Private consciousness space — GIT-IGNORED (local only).
                                   # This is a PUBLIC repo and this tree is personal:
-                                  # never `git add -f` anything here. Tracked exceptions:
-                                  # queue.md, refs/, context-dashboard.html (see .gitignore)
+                                  # never `git add -f` anything here. No tracked exceptions —
+                                  # the whole tree is local-only (GUA-168)
 ├── sounding.md                   # SEED 1 — identity (incl. operational patterns + working notes as sections)
 ├── user.md                       # SEED 2 — who I work with (incl. how we work together)
 ├── portfolio.md                  # SEED 3 — the portfolio: all active projects and how they connect
 ├── growth/
 │   ├── growth.md                 # Accumulator: tagged entries, cleared by /meta-dream's synthesis phase
 │   └── growth-log.md             # Append-only disposition ledger — audit trail for cleared entries
-├── queue.md                      # COMMITTED cross-repo pointer — survives clone for mobile /meta-wake
-├── context-dashboard.html                # Rendered status view (generated, not hand-edited)
+├── queue.md                      # Local-only cross-repo pointer — does NOT survive clone (GUA-168)
+├── context-dashboard.html        # Rendered status view (generated, not hand-edited)
 ├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.
 │                                 # Global originals win on the Mac; refresh at /meta-dream
 ├── reflections/
@@ -124,7 +124,7 @@ Skills auto-discover paths (Glob), nothing hardcoded — the workspace rename wi
 - **Seeds transform; the accumulator clears; the ledger accumulates.** `/meta-dream` writes one `growth-log.md` row per entry before clearing — every identity statement traces back to the entry that produced it. Seeds are rewritten by /meta-dream's synthesis phase to 60-80% length with voice preserved. One altitude per learning — identity-level, operational, or working-notes section; never the same insight in multiple files.
 - **Reflections accumulate, never rewrite**: reflections, index (compress past ~100 entries). `growth.md` is the working accumulator (tagged: `[discovered]` / `[confirmed]` / `[corrected]`), cleared after each synthesis; `growth-log.md` is the permanent audit trail.
 - **The factual session record lives in librarian** (raw sessions → compiled wiki), not here. Reflections stay local because they're subjective and identity-bearing; chat logs were deleted in v2 as duplicates.
-- **Continuity files hold pointers, never copies.** Cross-repo work state = per-repo `.claude/docs/plans/` or GitHub Issues, read fresh at every wake. The one committed exception is `.sounding/queue.md` — plan docs are git-ignored, so a mobile/cloud clone gets no `.claude/docs/`; queue.md travels with the repo to give mobile `/meta-wake` a pointer set.
+- **Continuity files hold pointers, never copies.** Cross-repo work state = per-repo `.claude/docs/plans/` or GitHub Issues, read fresh at every wake. Nothing under `.sounding/` is committed (GUA-168) — `queue.md` included, so a mobile/cloud clone gets no pointer set and `/meta-wake` there must orient from GitHub Issues alone.
 - **Retrieval-first knowledge access.** When accumulated knowledge is needed, query librarian (MCP: `search_wiki` / `read_page` / `get_domain_briefing`, or librarian's `/query` skill) — never bulk-read `librarian/wiki/` directories into context. One retrieved page beats a loaded domain.
 
 ### Review Dimensions — 12, reconciled with galactus

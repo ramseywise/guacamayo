@@ -31,10 +31,10 @@
     <integer>600</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.log</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/board-launchd.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.err</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/board-launchd.err</string>
 
     <key>RunAtLoad</key>
     <true/>

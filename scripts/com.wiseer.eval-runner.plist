@@ -35,10 +35,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.log</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/eval-runner.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.err</string>
+    <string>/Users/wiseer/workspace/guacamayo/.sounding/logs/eval-runner.err</string>
 
     <key>RunAtLoad</key>
     <false/>

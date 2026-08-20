@@ -62,17 +62,17 @@ repos:
       # gitleaks sat directly above this block the entire time and never fired:
       # confidentiality is not a secrets scan. Names do not rotate.
       #
-      # Belt to .gitignore's braces. Only queue.md, refs/, and the dashboard may be
-      # staged from this tree; anything else is a personal file reaching a public remote.
+      # Belt to .gitignore's braces. The whole tree is local-only as of the history
+      # rewrite -- there are no staged-file exceptions any more, so this blocks every
+      # path under .sounding/ without exclusions.
       - id: no-sounding-staged
         name: .sounding/ personal files not staged
         language: fail
         entry: >-
           .sounding/ is local-only on this PUBLIC repo (personal journal).
-          Only queue.md, refs/, and context-dashboard.html may be committed.
-          If you meant to stage one of those, check the path; otherwise unstage it.
+          Nothing under this tree may be committed -- no exceptions.
+          Unstage it; if you need the content elsewhere, copy it out first.
         files: ^\.sounding/
-        exclude: ^\.sounding/(queue\.md|refs/|context-dashboard\.html)
 
       # Ported from librarian .pre-commit-config.yaml @ aa3166e (GUA-93, F10 drift
       # class). Machine-global ~/.claude/... defaults are naturally exempt — they
@@ -81,5 +81,5 @@ repos:
         name: no hardcoded /Users/ paths
         language: pygrep
         entry: "/Users/"
-        files: ^telemetry/
+        files: ^src/telemetry/
         types: [python]

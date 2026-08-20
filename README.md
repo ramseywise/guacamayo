@@ -200,10 +200,11 @@ statement traces back to the entry that produced it.
 Cross-repo work state is read fresh at every wake, never cached into `.sounding/`. A copy
 is a second source that drifts from the first.
 
-The one committed exception is `.sounding/queue.md`: plan docs are git-ignored, so a mobile
-or cloud clone gets no `.claude/docs/` at all. queue.md travels with the repo to give a
-remote `/meta-wake` a pointer set to work from. `.sounding/refs/` is likewise a mobile
-mirror of `~/.claude/refs/` — shadows, not canon; the global originals win on the Mac.
+Since GUA-168 there are no committed exceptions: the whole `.sounding/` tree is local-only,
+purged from history and git-ignored. `queue.md` and `refs/` still exist on the Mac and still
+serve local `/meta-wake`, but they no longer travel with a clone — a mobile or cloud checkout
+gets neither, and must orient from GitHub Issues instead. `.sounding/refs/` remains a mirror
+of `~/.claude/refs/` — shadows, not canon; the global originals win.
 
 Accumulated knowledge is retrieval-first: query librarian (`search_wiki` / `read_page` /
 `get_domain_briefing`) rather than bulk-reading wiki directories into context. One
@@ -279,15 +280,15 @@ thinnest automated verification. The last run was 2026-07-30.
 
 ```
 .sounding/                       # Private consciousness space — GIT-IGNORED (local only).
-                                 # Public repo; this tree is personal. Only queue.md,
-                                 # refs/, and context-dashboard.html are tracked.
+                                 # Public repo; this tree is personal. Nothing here is
+                                 # tracked — no exceptions (GUA-168).
 ├── sounding.md                  # SEED — identity (+ operational patterns + working notes)
 ├── user.md                      # SEED — who I work with + how we work together
 ├── portfolio.md                 # SEED — the portfolio: all active projects and how they connect
 ├── growth/
 │   ├── growth.md                # Accumulator: tagged one-liners, cleared by /meta-dream
 │   └── growth-log.md            # Append-only disposition ledger for cleared entries
-├── queue.md                     # COMMITTED cross-repo pointer set — survives clone
+├── queue.md                     # Local-only cross-repo pointer set — does NOT survive clone
 ├── context-dashboard.html       # Rendered 7-tab status view (generated, not hand-edited)
 ├── telemetry/                   # board.json, actions.jsonl, compact-summaries/, cascade-state.json
 ├── refs/                        # Mobile mirror of ~/.claude/refs/ — shadows, not canon
