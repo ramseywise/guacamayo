@@ -75,3 +75,4 @@
 {"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":166,"pr_title":"feat: Enhance telemetry data collection and processing","issue_number":null,"issue_title":null,"collected_at":"2026-08-20T11:55:21Z"}
 {"event":"issues","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":160,"issue_title":"CI: concurrency cancellation + issue templates","collected_at":"2026-08-20T11:57:54Z"}
 {"event":"pull_request","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":167,"pr_title":"Gua 165 build orchestrator","issue_number":null,"issue_title":null,"collected_at":"2026-08-20T12:06:12Z"}
+{"event":"issues","action":"closed","actor":"ramseywise","repo":"ramseywise/guacamayo","pr_number":null,"pr_title":null,"issue_number":165,"issue_title":"Build orchestrator: automated execute → review → fix chain","collected_at":"2026-08-20T12:07:24Z"}
