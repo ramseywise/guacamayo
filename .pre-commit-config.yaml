@@ -53,6 +53,27 @@ repos:
         entry: ".claude/docs/reviews/ files are local-only and must not be committed"
         files: ^\.claude/docs/reviews/
 
+      # GUA-168 (2026-08-20). This is a PUBLIC repo and .sounding/ is a journal
+      # about a named real person. 95 files were tracked and served on origin/main
+      # for ~7 weeks -- including an active job search with named employers and a
+      # friend's name -- because .gitignore was the only thing standing between the
+      # journal and the world, and `git add -f` silently beats .gitignore.
+      #
+      # gitleaks sat directly above this block the entire time and never fired:
+      # confidentiality is not a secrets scan. Names do not rotate.
+      #
+      # Belt to .gitignore's braces. Only queue.md, refs/, and the dashboard may be
+      # staged from this tree; anything else is a personal file reaching a public remote.
+      - id: no-sounding-staged
+        name: .sounding/ personal files not staged
+        language: fail
+        entry: >-
+          .sounding/ is local-only on this PUBLIC repo (personal journal).
+          Only queue.md, refs/, and context-dashboard.html may be committed.
+          If you meant to stage one of those, check the path; otherwise unstage it.
+        files: ^\.sounding/
+        exclude: ^\.sounding/(queue\.md|refs/|context-dashboard\.html)
+
       # Ported from librarian .pre-commit-config.yaml @ aa3166e (GUA-93, F10 drift
       # class). Machine-global ~/.claude/... defaults are naturally exempt — they
       # are written as ~-relative, never literal /Users/.

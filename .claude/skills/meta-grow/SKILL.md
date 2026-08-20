@@ -252,7 +252,7 @@ The summary line reports what happened — it does not ask another skill to act.
 
 ## 5. Refresh Dashboard
 
-Update `.sounding/context-dashboard.html` with current state. The dashboard is the shared artifact that connects /meta-wake, /meta-grow, and /meta-dream — it's the visual answer to "where are we?"
+Update `docs/dashboard.html` with current state. The dashboard is the shared artifact that connects /meta-wake, /meta-grow, and /meta-dream — it's the visual answer to "where are we?"
 
 ### What to update
 

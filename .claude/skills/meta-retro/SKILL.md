@@ -99,17 +99,45 @@ Read what exists; skip gracefully what doesn't. Note which sources you actually 
      auto-triggers usually has a weak one. Propose a description rewrite
      (`skill-creator` has description-optimization), not deletion. Recommend deletion only
      where a skill is never invoked AND superseded by a named alternative.
-   - **Skill is missing** — the inverse, and it has no live signal: "I should have had a
-     skill for this" is only visible in retrospect. Look for the same multi-step work
-     shape repeated across ≥3 sessions with **zero** skill invocations in those sessions.
-     That cluster is the trigger to propose `skill-creator`. Name the recurring shape and
-     cite the sessions; a vague "we do a lot of X" is not a finding.
+   - **Skill is missing** — structured detection is now in `insights-log.md`:
+
+     **Step 1.5 — Skill candidate patterns (structured input)**
+
+     Read `## Skill Candidate Patterns` from `insights-log.md`. Each `### Candidate:`
+     entry that crossed the detection threshold is a retro finding automatically — no
+     additional judgment needed to decide whether it qualifies. For each candidate:
+
+     1. Read the `Sessions:` list. Sample 1–2 session IDs from `~/.claude/projects/`
+        (glob the JSONL path) to confirm the shape is real execution work, not a meta
+        session that leaked through the filter.
+     2. Emit a finding:
+
+        ```
+        ### F<N>: Repeated <shape> pattern not covered by a skill
+        - Friction: <count> execution sessions with tool sequence [A→B→C→...] and no skill invocation
+        - Evidence: pattern detected by insights N-gram analysis; sessions: [id1, id2, id3]
+        - Proposed diff: invoke skill-creator with name=<pattern-slug>, scaffold from session <id1>
+        - Promotion target: skill
+        - Tag: improve
+        ```
+
+     3. Add a ledger hypothesis row (Step 4) with:
+        - Signal: `skill-candidate-patterns`
+        - Metric: `absence: skill-candidate-patterns > 0` (after skill creation)
+        - Status: hypothesis
+
+     If the `## Skill Candidate Patterns` section is absent (pre-step-2 insights run)
+     or reads `[No patterns found...]` or `[Skill candidate detection skipped...]`,
+     skip this step and note the source state.
+
+     The retro's existing Step 3 eval-gate and Step 5 human-gate apply unchanged.
+     No skill is auto-created.
 
    Also flag **typo'd invocations** (a `/name` with no skill on disk, e.g.
    `design-inistiative`) — these fail silently with no error, so they read as user error
    but are really a missing-feedback problem.
 6. **Recurrence report** — the durable count of repeated review friction. Read the
-   **Recurring friction** table in `guacamayo/.sounding/context-dashboard.html`
+   **Recurring friction** table in `guacamayo/docs/dashboard.html`
    (REVIEW-FINDINGS region, refreshed by `uv run telemetry --facts`), or compute it live:
 
    ```bash
@@ -258,7 +286,7 @@ first. End with:
    Rows that pass all gates are written in ledger format with status `hypothesis`.
 2. **Ledger graduation**: move verified/failed rows to `tooling-ledger-log.md` (append).
    Active ledger stays lean (hypotheses only). Archive is the audit trail.
-3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `.sounding/context-dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
+3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `docs/dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
 
 Through Step 4 nothing is written outside the retro report. Then stop and hand the report
 to Ramsey for Step 5.
