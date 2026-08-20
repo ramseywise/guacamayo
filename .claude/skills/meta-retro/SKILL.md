@@ -220,9 +220,42 @@ No sketch → the proposal is marked `draft`, not ready for review.
 Group findings by write target (all hook changes together, etc.), most-severe friction
 first. End with:
 
-1. **Proposed ledger rows** for every accepted-if-approved change, in ledger format with
-   status `hypothesis`, a typed **Metric** (from the vocabulary: `absence:`, `count-drop:`,
-   `presence:`, `ratio:` — see ledger header), and a concrete verification test.
+1. **Proposed ledger rows** — for every accepted-if-approved change, run the `/track`
+   validation gates before writing. For each proposed row:
+
+   a. **Gate 1 — Falsifiability**: name the value that means the change failed. If you
+      can't, rewrite the metric. `absence:` claims require a `registered` signal with a
+      real-zero resolver.
+
+   b. **Gate 2 — Signal resolution**: resolve the metric's signal against the registry:
+      ```bash
+      uv run python -c "
+      from telemetry import signals
+      for s in signals.all_signals():
+          if '<signal-name>' in s.name:
+              print(f'{s.state:16} {s.name}')"
+      ```
+      - `registered` → proceed.
+      - `needs-collection` → **block the row.** Emit the collection change as a finding
+        instead. The row comes after the collector lands.
+      - `unobservable` → rewrite the claim into a countable form.
+      - `unregistered` → register a resolver in the same change, or rewrite.
+
+   c. **Gate 2b — No duplicate signal**: an active ledger row already measuring this
+      signal means one of the two is dead. Check before writing.
+
+   d. **Gate 3 — Due date**: `date.today() + timedelta(days=10)` (2 retro rounds at
+      observed upper bound). Computed, never typed.
+
+   e. **Gate 4 — Plane**: state the architecture layer (`work` | `metacognition` | `control`).
+
+   f. **Gate 5 — pattern_key** (friction rows only): match the Change text against
+      `telemetry/recurrence.py` PATTERNS. Block if no key and the friction is code-corpus.
+
+   Rows that fail any gate are reported as `blocked — <gate> <reason>` rather than
+   written. A blocked row is a finding about the measurement layer, not a failed retro.
+
+   Rows that pass all gates are written in ledger format with status `hypothesis`.
 2. **Ledger graduation**: move verified/failed rows to `tooling-ledger-log.md` (append).
    Active ledger stays lean (hypotheses only). Archive is the audit trail.
 3. **Feedback loop (GUA-119)**: read the acceptance rates from the AUTOMATED-ACTIONS tile in `.sounding/context-dashboard.html` (or parse `.sounding/telemetry/actions.jsonl` directly) and, for any proposal type with sustained high acceptance (>= 80% over >= 5 decidable records), PROPOSE promoting it to auto-mutation as a tooling-ledger hypothesis row (status `PROPOSED`, never applied — Ramsey decides).
