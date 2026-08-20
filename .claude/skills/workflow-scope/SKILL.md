@@ -21,9 +21,10 @@ If given an issue number, reads the issue body via `gh`. If given inline text, t
 as the problem statement directly (no issue lookup).
 
 **Dispatch rule**: a "triage spawn" means spawning an agent that executes THIS skill —
-never the bare `triage` subagent directly. The triage agent is one-stage-per-invocation
-by design; without this orchestrator loop it stops after a single stage and the issue
-stalls short of READY (observed 2026-08-19: #149 and #152 each stopped at `plan`).
+never the bare `plan-refine-scout` agent directly. The plan-refine-scout agent is
+one-stage-per-invocation by design; without this orchestrator loop it stops after a
+single stage and the issue stalls short of READY (observed 2026-08-19: #149 and #152
+each stopped at `plan`).
 
 ## Step 1 — Assess current state
 
@@ -175,7 +176,7 @@ Print exit block:
 📊 Stages: <research|skipped> → plan → refine
 🔄 Retries: <N>
 
-Ready for: /workflow-execute
+Ready for: /workflow-build
 ──────────────────────────────────────
 ```
 
@@ -187,7 +188,7 @@ If the main model had to resolve gaps (retry exhausted):
 📋 Plan: <plan-doc-path>
 🔧 Resolved: <what was fixed by the main model>
 
-Ready for: /workflow-execute
+Ready for: /workflow-build
 ──────────────────────────────────────
 ```
 

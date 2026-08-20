@@ -6935,7 +6935,7 @@ def _cell_style(glyph: str) -> str:
     return "color:var(--bad)"
 
 
-def render_pipeline_health_region(store: Path) -> str:
+def render_pipeline_health_region(store: Path, sounding_root: Path | None = None) -> str:
     """Compact pipeline-health card for the Loop Health tab.
 
     Reads five sources to answer whether each stage of the metacognition
@@ -6949,10 +6949,18 @@ def render_pipeline_health_region(store: Path) -> str:
 
     Color coding: green (<24 h), yellow (1–7 d), red (>7 d or absent).
     Each cell also renders the row count used so the frame is always visible.
+
+    Only Capture comes from *store*; the other four live under guacamayo's
+    ``.sounding/``. Per D1 the store default points at librarian's DB, so
+    deriving the sounding root from *store* resolves into librarian and every
+    stage but Capture silently reads a non-existent path and renders "never" —
+    a dead-looking loop that is actually alive. Callers pass *sounding_root*
+    explicitly; the store-relative fallback is kept only for the co-located
+    layout used by tests.
     """
     now = _datetime.now(UTC)
-    guacamayo_root = store.parent.parent  # store is …/librarian/data/sessions.db
-    sounding_root = guacamayo_root / ".sounding"
+    if sounding_root is None:
+        sounding_root = store.parent.parent / ".sounding"
 
     # ── Capture: sessions.db mtime ──────────────────────────────────────────
     cap_dt: _datetime | None = None

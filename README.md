@@ -252,7 +252,7 @@ librarian owns the sessions store (`~/workspace/librarian/data/sessions.db`); gu
 everything derived from it. Accepted consequence: the dashboard does not work if librarian
 is not cloned.
 
-The signal registry declares 63 signals — 20 with resolvers, 6 awaiting an instrumentation
+The signal registry declares 64 signals — 21 with resolvers, 6 awaiting an instrumentation
 change, 37 unobservable with current data. An unobservable signal is kept rather than
 deleted: it names a thing worth measuring and records *why* it cannot be scored yet, which
 is what stops the same metric being re-proposed at every retro.
@@ -334,7 +334,6 @@ tests/                           # uv run pytest tests/
 - **`insights-log.md` has no compaction** (#142). 2,189 lines, append-only, no drain.
 - **Proposal recurrence not tracked** (#143). A proposal re-derived every 10-min tick and never acted on is invisible.
 - **Experiment ↔ friction-signature link is sparse** (#145). Only 3 of 40+ ledger rows carry `pattern_key`.
-- **`/meta-feedback` has no liveness signal** (#144). Loop Health tracks capture/insights/retro but not the verification gate.
 
 ---
 
