@@ -39,7 +39,7 @@ jobs:
       # happened on PR #135: the branch was never bootstrapped, so every signal
       # since GUA-118 merged was lost to a red X). Self-bootstrap instead.
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
