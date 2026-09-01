@@ -61,6 +61,45 @@ silent-failure dimension owns whether anyone finds out when it isn't.
   permanent mode?
 - Cleanup code in `finally` that throws and masks the original error?
 
+## Enforcement Before Checks
+
+A gate that runs against checks nobody wrote turns CI red on absence rather than on
+defect — and the fix is always to disable the gate. The enforcement and the thing it
+enforces must ship together, checks first.
+
+- A gate committed before its graders and fixtures exist? The only way to make it green
+  is to delete it — which removes the enforcement permanently, not temporarily.
+- A gate that can be filed as a separate ticket from the checks it enforces? It is
+  sequenced wrong. Graders and fixtures FIRST, then uncomment the gate — never the
+  reverse.
+- A config declaring gated metrics that nothing computes? Every such metric reads as
+  "failing" and trains the team to ignore the gate.
+  (Evidence: `~/.claude/refs/verification.md` §1 — DISKOE's `targets.yaml` declared 13
+  metrics gated at 1.0 that nothing computed; the invariant "every scoring dimension
+  needs an eval metric" was unenforceable while every dimension shipped without one.)
+
+## Silent Disagreement
+
+An instrument that disagrees with reality and says nothing invalidates every row it
+certifies. The defect is not the wrong value — it is the missing signal that would
+have told you. (Full instances: `~/.claude/refs/verification.md` §1.)
+
+- **`CREATE TABLE IF NOT EXISTS` against a live table whose real columns differ** —
+  skipped silently, schema mismatch never surfaced, writeback would write the wrong
+  shape into production.
+- **A drift checker keying its map by version so a duplicate version silently evicts
+  the first** — neither reported applied nor reported missing.
+- **RLS with no `anon` select policy returning zero rows, read as "no data" rather
+  than "no permission"** — survived unnoticed while the public surface rendered empty.
+- **A numeric budget or constraint with nothing measuring it** — a ≤4-tap budget with
+  nothing counting taps; a 20 s time limit with no timer. A constraint with no meter
+  can only be enforced by accident.
+
+Detection: look for `IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, silent map overwrites,
+zero-result queries from credentialed endpoints, and declared budgets with no
+corresponding measurement. If the failure mode is silence rather than noise, it belongs
+here.
+
 ## What NOT to Flag
 
 - Intentional suppression with a comment explaining why (best-effort cleanup, optional
