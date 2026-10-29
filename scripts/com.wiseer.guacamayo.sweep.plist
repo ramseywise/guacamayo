@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.wiseer.guacamayo.sweep</string>
+
+    <!-- Weekly portfolio sweep. Runs `uv run telemetry --sweep` via telemetry-cron.sh:
+         state + code review of every repo in repos.toml -> .sounding/sweeps/<date>.md.
+         Mondays 08:00; launchd fires a missed slot on wake, and the script's
+         once-per-day stamp stops a double run. No RunAtLoad — a reboot must not start
+         a multi-repo review. The review uses the agent SDK on the plan: the script
+         unsets ANTHROPIC_API_KEY, so nothing is billed to the API.
+         /meta-wake flags the digest stale after 8 days. -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/ramsey-wise/workspace/guacamayo/scripts/telemetry-cron.sh</string>
+        <string>sweep</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/ramsey-wise/workspace/guacamayo</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/Users/ramsey-wise/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    </dict>
+
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>8</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/sweep-launchd.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/sweep-launchd.err</string>
+</dict>
+</plist>
+<!-- INSTALL (Ramsey's step — not done by the agent):
+     mkdir -p ~/workspace/guacamayo/logs
+     cp scripts/com.wiseer.guacamayo.sweep.plist ~/Library/LaunchAgents/
+     launchctl load ~/Library/LaunchAgents/com.wiseer.guacamayo.sweep.plist
+
+     To run once now (full review — several minutes per repo with new commits):
+     launchctl start com.wiseer.guacamayo.sweep
+
+     To verify: launchctl list | grep guacamayo.sweep ; tail logs/telemetry-sweep.log
+-->

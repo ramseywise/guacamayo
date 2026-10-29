@@ -11,13 +11,17 @@
 #                  .sounding/telemetry/board.json so /wake reads state instead
 #                  of re-running gh sweeps. RunAtLoad so a reboot populates it
 #                  immediately rather than leaving a 10-minute hole.
+#   sweep  weekly — portfolio sweep: state + code review of every repo in
+#                  repos.toml, digest to .sounding/sweeps/. The review runs the
+#                  agent SDK on the plan, so ANTHROPIC_API_KEY is unset first.
 #
 # Scheduling is launchd, not crontab — cron does not fire while the Mac is asleep
 # and silently skips the window; launchd re-fires on wake. See
 # scripts/com.wiseer.guacamayo.telemetry.plist and
-# scripts/com.wiseer.guacamayo.board.plist (Ramsey loads them manually).
+# scripts/com.wiseer.guacamayo.board.plist and
+# scripts/com.wiseer.guacamayo.sweep.plist (Ramsey loads them manually).
 #
-# Usage: telemetry-cron.sh [facts|board]   (default: facts)
+# Usage: telemetry-cron.sh [facts|board|sweep]   (default: facts)
 
 set -euo pipefail
 
@@ -32,6 +36,7 @@ REPO_DIR="${TELEMETRY_CRON_REPO_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 case "${MODE}" in
     facts) LOG_NAME="telemetry-facts.log" ;;
     board) LOG_NAME="telemetry-board.log" ;;
+    sweep) LOG_NAME="telemetry-sweep.log" ;;
     *)     LOG_NAME="telemetry-unknown.log" ;;
 esac
 LOG_FILE="${REPO_DIR}/logs/${LOG_NAME}"
@@ -80,8 +85,27 @@ case "${MODE}" in
         # run_step board uv run telemetry --board --act || EXIT_CODE=$?
         run_step board uv run telemetry --board || EXIT_CODE=$?
         ;;
+    sweep)
+        # Plan auth only: a key sourced from .env would bill the review to the API.
+        unset ANTHROPIC_API_KEY
+        # Lockfile + once-per-day stamp: launchd re-fires a missed calendar slot on
+        # wake, and a sweep reviews several repos — never two at once, never twice a day.
+        SWEEP_DIR="${REPO_DIR}/.sounding/telemetry"
+        SWEEP_LOCK="${SWEEP_DIR}/sweep.lock"
+        SWEEP_STAMP="${SWEEP_DIR}/stamps/sweep-$(date '+%Y-%m-%d')"
+        mkdir -p "${SWEEP_DIR}/stamps"
+        if [ -f "${SWEEP_STAMP}" ]; then
+            log "sweep: already ran today (stamp exists), skipping"
+        elif ! mkdir "${SWEEP_LOCK}" 2>/dev/null; then
+            log "sweep: lockfile held, skipping"
+        else
+            touch "${SWEEP_STAMP}"
+            run_step sweep uv run telemetry --sweep || EXIT_CODE=$?
+            rmdir "${SWEEP_LOCK}"
+        fi
+        ;;
     *)
-        log "unknown mode: ${MODE} (expected facts or board)"
+        log "unknown mode: ${MODE} (expected facts, board or sweep)"
         exit 64
         ;;
 esac

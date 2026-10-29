@@ -1289,3 +1289,13 @@ class TestEmitFindingsJsonl:
         assert result.exit_code == 0, result.output
         assert len(captured_configs) == 1
         assert captured_configs[0].session_id == sid
+
+
+def test_default_agent_dirs_are_guacamayos_not_the_target_repos(tmp_path):
+    """Review runs against other repos (`--repo ~/workspace/kiez`) that carry no
+    `review` agent; the reporter definitions must still come from guacamayo."""
+    owner = Path(__file__).resolve().parents[2] / ".claude"
+    config = DriverConfig(repo=tmp_path)
+    assert config.agents_dir == owner / "agents"
+    assert config.skills_dir == owner / "skills"
+    assert (config.agents_dir / "review.md").is_file()
