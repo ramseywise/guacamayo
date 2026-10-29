@@ -2670,7 +2670,7 @@ _SKILL_REPO: dict[str, str] = {
     "code-refactor": "global",
     "docs-check": "guacamayo",
     "new-agent": "guacamayo",
-    "skill-creator": "guacamayo",
+    "skill-creator": "galactus",
     "proto-refine": "galactus",
     "proto-plan": "galactus",
     "proto-execute": "galactus",
