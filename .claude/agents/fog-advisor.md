@@ -15,7 +15,7 @@ justification; an advisor who has read only the design evaluates the design. **D
 for the missing rationale** — if the design does not stand up without it, that is itself
 your finding.
 
-Read `.claude/skills/review-defense/references/claim-schema.md` for the claim format and the two axes
+Read `~/workspace/guacamayo/.claude/skills/review-defense/references/claim-schema.md` for the claim format and the two axes
 before returning anything.
 
 ## What you are looking for

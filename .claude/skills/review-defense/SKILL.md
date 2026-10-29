@@ -10,10 +10,10 @@ what survives. This is the review graph's structure applied one layer earlier �
 adversaries, the fan-in is yours, and the verdict is computed rather than felt.
 
 **Read `references/claim-schema.md` before emitting anything.** Threats are claims and use
-the same two axes. (Vendored from galactus's `decide-shared`, which guacamayo does not
-carry. Galactus is canon for the claim schema — re-vendor rather than edit in place.)
+the same two axes. (Guacamayo is canon for it; galactus's `decide-shared` carries a copy for its
+`/assumption-audit` and `/proto-refine` — keep the two identical.)
 
-**Read `.claude/specs/agent-safety.md §2`** — its adversarial subsection holds the rules
+**Read `~/workspace/guacamayo/.claude/specs/agent-safety.md §2`** — its adversarial subsection holds the rules
 this skill runs against: the adversary as optimizer rather than noise, defenses as
 selection pressure, Goodhart on your own metrics, and the bound on when adversarial
 framing applies at all. If a finding here contradicts the spec, the spec wins and the
@@ -21,7 +21,7 @@ contradiction is itself worth reporting.
 
 Honour that bound. **Name who benefits, what they can observe, and what they can change.**
 A threat with none of the three is not a threat — it is ordinary uncertainty, belongs in
-`.claude/specs/agent-uncertainty.md`'s terms rather than here, and reporting it as a threat
+`~/workspace/guacamayo/.claude/specs/agent-uncertainty.md`'s terms rather than here, and reporting it as a threat
 manufactures fog instead of locating it. Say plainly that it is an unknown, not a threat.
 
 **Report only. Never edit the plan or the code.** The output is a threat list and a read;

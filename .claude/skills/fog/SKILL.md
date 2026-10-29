@@ -5,17 +5,14 @@ job: frame
 allowed-tools: Read Grep Glob Bash Write Agent
 ---
 
-<!-- Vendored from galactus `.claude/skills/fog/` on 2026-08-19 (GUA-158).
-     Galactus is canonical for the decide/frame capability family; edit there and
-     re-vendor, not here. Guacamayo-local rewiring: the claim schema is read from
-     `review-defense/references/` (guacamayo vendors it there and has no
-     `decide-shared` skill), and Stage 4 resolves via guacamayo's click CLI. -->
+<!-- Owned by guacamayo (2026-10-29); originally from galactus (GUA-158). Used from every
+     repo via the ~/.claude/skills/fog symlink, so every path below is absolute to its owner. -->
 
 You are running a fog pass. The output is a ranked list of the places where this system
 does not know something and does not say so.
 
-**Read `.claude/skills/review-defense/references/claim-schema.md` before emitting anything.** Claims use
-its two orthogonal axes. **Read `.claude/specs/agent-uncertainty.md`** — that spec holds
+**Read `~/workspace/guacamayo/.claude/skills/review-defense/references/claim-schema.md` before emitting anything.** Claims use
+its two orthogonal axes. **Read `~/workspace/guacamayo/.claude/specs/agent-uncertainty.md`** — that spec holds
 the rules; this skill runs the questions those rules answer. If a finding here contradicts
 the spec, the spec wins and the contradiction is itself worth reporting.
 
@@ -133,10 +130,12 @@ Now dispatch `fog-advisor` for the worst-plausible-case pass.
 **Resolve it first**, and read the exit code:
 
 ```bash
-uv run review-cli resolve-capability fog
+uv run --project ~/workspace/guacamayo review-cli resolve-capability fog --repo . \
+  || uv run --project ~/workspace/guacamayo review-cli resolve-capability fog --repo ~
 ```
 
-Exit 1 means the advisor did not load. **Do not run this stage inline instead** — an
+The first call checks the current repo's own `fog-advisor` (galactus carries one); the
+second checks the global `~/.claude/agents/fog-advisor.md` symlink. Exit 1 from both means the advisor did not load. **Do not run this stage inline instead** — an
 advisor's contract executed by the caller is not an independent advisor, and its findings
 must not be reported as though the isolated pass ran. Record the stage as
 `dispatch failed — <reason>` and say so in the output. A `/fog` run whose Stage 4 did not

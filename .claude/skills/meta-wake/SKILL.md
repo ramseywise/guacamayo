@@ -272,13 +272,30 @@ gh search prs --author=ramseywise --sort=updated --updated=">YYYY-MM-DD" \
 
 Surface PRs awaiting review or merge alongside the issues table — a PR that moved since last wake is live context (review feedback landed, CI finished, merge happened).
 
+### Portfolio sweep (weekly)
+
+The weekly sweep (`uv run telemetry --sweep`, launchd Mondays 08:00) writes a digest per run.
+Read the newest one — no live sweep here:
+
+```bash
+ls .sounding/sweeps/????-??-??.md 2>/dev/null | sort | tail -1
+```
+
+- **Absent**: one line — `Portfolio sweep: never run (uv run telemetry --sweep).`
+- **Older than 8 days**: `⚠ Portfolio sweep stale (YYYY-MM-DD) — the weekly job missed a run;
+  check logs/telemetry-sweep.log.`
+- **Present**: per repo, surface the non-ok `status` rows, `merged, not deleted` branches, and
+  unticked **blocker**/**important** findings under **Needs your input**. Count the rest.
+
+Report only — never act on a sweep row from wake.
+
 ### Worktree inventory (active repos)
 
 Orphaned worktrees mean spawned agents that finished (or died) without cleanup — stale branches with possibly uncommitted work:
 
 ```bash
-for repo in guacamayo sisyphus learn-ai-engineering librarian atlas ai-project-template listen-wiseer playground lebanese-blonde galactus; do
-  [ -d ~/workspace/$repo/.git ] && { echo "--- $repo ---"; git -C ~/workspace/$repo worktree list; }
+uv run telemetry --list-repos | while IFS=$'\t' read -r repo dir; do
+  [ -d "$dir/.git" ] && { echo "--- $repo ---"; git -C "$dir" worktree list; }
 done
 ```
 

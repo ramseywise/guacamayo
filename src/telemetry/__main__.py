@@ -21,6 +21,7 @@ if TYPE_CHECKING:
     from telemetry.signals import SignalSources
 
 from telemetry.log_config import configure_logging
+from telemetry.repos import load_repos
 
 
 class EmptyInputError(RuntimeError):
@@ -69,9 +70,25 @@ def main() -> None:
     elif "--board" in sys.argv:
         sys.argv.remove("--board")
         _run_board()
+    elif "--list-repos" in sys.argv:
+        _list_repos()
+    elif "--sweep" in sys.argv:
+        sys.argv.remove("--sweep")
+        from telemetry.sweep import main as sweep_main
+
+        sweep_main()
     else:
-        print("usage: telemetry [--facts | --consistency | --board] [options]", file=sys.stderr)
+        print(
+            "usage: telemetry [--facts | --consistency | --board | --sweep | --list-repos] [options]",
+            file=sys.stderr,
+        )
         raise SystemExit(2)
+
+
+def _list_repos() -> None:
+    """Print `name<TAB>path` per governed repo, for bash callers (hygiene.sh)."""
+    for repo in load_repos():
+        print(f"{repo.name}\t{repo.path}")
 
 
 # Regions the v2 board declares but no longer displays. Context Health ends at tool
@@ -111,21 +128,9 @@ RETIRED_REGIONS: frozenset[str] = frozenset(
 )
 
 
-# The ten repos wake's Phase 5 loop already walks (wake/SKILL.md:97). Reused rather
-# than maintained separately — a second list would drift from the first, and a repo
-# missing from the checker's copy would be silently unchecked.
-ACTIVE_REPOS: tuple[str, ...] = (
-    "guacamayo",
-    "sisyphus",
-    "learn-ai-engineering",
-    "librarian",
-    "atlas",
-    "ai-project-template",
-    "listen-wiseer",
-    "playground",
-    "lebanese-blonde",
-    "galactus",
-)
+# Every governed repo, from repos.toml — the one list (see telemetry/repos.py). A repo
+# missing from a checker's private copy would be silently unchecked.
+ACTIVE_REPOS: tuple[str, ...] = tuple(r.name for r in load_repos())
 
 
 def _fetch_issues_with_bodies(repo: str, owner: str = "ramseywise") -> list[dict[str, Any]]:
@@ -454,7 +459,7 @@ def _run_board() -> None:
     p.add_argument(
         "--repos",
         default=",".join(ACTIVE_REPOS),
-        help="Comma-separated repos to check (default: wake's Phase 5 list)",
+        help="Comma-separated repos to check (default: every repo in repos.toml)",
     )
     p.add_argument(
         "--act",
@@ -763,7 +768,7 @@ def _run_consistency() -> None:
     p.add_argument(
         "--repos",
         default=",".join(ACTIVE_REPOS),
-        help="Comma-separated repos to check (default: wake's Phase 5 list)",
+        help="Comma-separated repos to check (default: every repo in repos.toml)",
     )
     args = p.parse_args()
 

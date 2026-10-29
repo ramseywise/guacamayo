@@ -57,6 +57,9 @@ from telemetry.occurrence import SOURCE_RUN, SOURCE_UNRESOLVED, resolve_occurred
 # ---------------------------------------------------------------------------
 
 
+_OWNER_CLAUDE_DIR = Path(__file__).resolve().parents[2] / ".claude"
+
+
 @dataclass
 class DriverConfig:
     """Configuration for a single driver run."""
@@ -67,9 +70,10 @@ class DriverConfig:
     save_sweep: bool = True
     model: str = "haiku"
     max_turns: int = 30
-    # agents dir: defaults to repo/.claude/agents
+    # agents/skills dirs: default to guacamayo's own .claude/, not the target repo's.
+    # Review is owned here and runs against any repo; a target repo has no `review`
+    # agent, so anchoring on it made every cross-repo dimension `agent_not_found`.
     agents_dir: Path | None = None
-    # skills dir: defaults to repo/.claude/skills
     skills_dir: Path | None = None
     # escape hatch: set False to skip static analysis (e.g. in tests that don't need it)
     static_analysis: bool = True
@@ -86,9 +90,9 @@ class DriverConfig:
         if not self.reviews_dir.is_absolute():
             self.reviews_dir = self.repo / self.reviews_dir
         if self.agents_dir is None:
-            self.agents_dir = self.repo / ".claude" / "agents"
+            self.agents_dir = _OWNER_CLAUDE_DIR / "agents"
         if self.skills_dir is None:
-            self.skills_dir = self.repo / ".claude" / "skills"
+            self.skills_dir = _OWNER_CLAUDE_DIR / "skills"
 
 
 @dataclass

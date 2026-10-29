@@ -32,6 +32,7 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 | `/meta-retro` | Auto after feedback, or overdue | **Repo-local.** Reads insights-log + tooling ledger; proposes config diffs (hooks, skills, rules). Propose-only — silence is not approval |
 | `/meta-feedback` | **Manual — human gate** | **Repo-local.** Verifies insight claims against raw corpus; routes confirmed findings → retro, phantom findings → metric fix; writes `.sounding/telemetry/feedback-log.md` |
 | `/track` | Any session | Adds a typed hypothesis row to `tooling-ledger.md` with a verification metric (`absence:`, `count-drop:`, `presence:`, `ratio:`) |
+| `/portfolio-sweep` | Weekly (launchd) or on demand | Runs `uv run telemetry --sweep` over every repo in `repos.toml` — git/PR state + review of what changed on each default branch — and summarises `.sounding/sweeps/<date>.md`. Report only |
 
 > **Note** (GUA-150, 2026-08-20): The SessionStart cascade edge is live — the nudge
 > reports compacts / grows_due / board staleness / growth count. The cron→insights and
@@ -158,18 +159,17 @@ deserialize; `DEPRECATED_REPORTERS` marks them and the driver never dispatches t
 
 `/review-defense` is **not** a dimension — it is a plan-stage war game that dispatches its
 own adversaries and writes to `.claude/docs/reviews/`. It never touches `Status:`. Its
-`references/claim-schema.md` is vendored from galactus's `decide-shared`; galactus is canon,
-so re-vendor rather than editing it here.
+`references/claim-schema.md` is canon here; galactus's `decide-shared` keeps an identical copy.
 
-`/fog` is the other capability of that family (vendored from galactus, GUA-158): it
+`/fog` is the other capability of that family (from galactus, GUA-158; owned here since 2026-10-29): it
 interrogates a spec, plan, or shipping code for how it handles *not knowing* — collapse
 sites where "I don't know" silently becomes an answer, irreversible decisions, and
 probabilistic steps that could be deterministic. Report-only; never touches `Status:`. Its
 Stage 4 dispatches the `fog-advisor` agent deliberately **without** the author's reasoning,
 and gates that dispatch on `uv run review-cli resolve-capability fog` (`src/review/capabilities.py`)
 — exit 1 means the advisor did not load, and the pass must report the hole rather than run
-the advisor's contract inline. Both skills read the same vendored `claim-schema.md`;
-guacamayo has no `decide-shared` skill, so paths point at `review-defense/references/`.
+the advisor's contract inline. Both skills, and `fog-advisor`, are used from every repo via `~/.claude/` symlinks, so
+their paths are absolute to this repo.
 
 ### Telemetry — store ownership (D1, decided 2026-08-15, GUA-120)
 
@@ -185,6 +185,25 @@ state, insights, telemetry, and the dashboard.
   dashboard does not work if librarian is not cloned.
 - `data/sessions.db.bak` is a **decoy store** — 701 rows, newest session 2026-08-04, stale
   by content well before its mtime suggests. It is safe to delete; nothing should read it.
+
+### Portfolio — the governed repos (2026-10-29)
+
+**`repos.toml` is the one list of repos guacamayo governs** — role, visibility, path, and
+whether the sweep reviews it. The board (`telemetry --board`), `scripts/hygiene.sh`
+(via `telemetry --list-repos`) and the sweep all read it; add a repo there and nothing else.
+A missing clone is reported, never skipped.
+
+**Portfolio sweep** (`src/telemetry/sweep.py`, `telemetry --sweep`, weekly via
+`telemetry-cron.sh sweep` + `scripts/com.wiseer.guacamayo.sweep.plist`): a read-only state
+pass, then a review of files changed on each `origin/<default>` since the last clean review,
+run in a throwaway detached worktree so the user's checkout is never touched. Everything
+lands in `.sounding/sweeps/` (git-ignored — it covers private repos): `<date>.md` digest,
+`<date>.state.json`, `findings.json` ledger (open / acknowledged via `[x]` / resolved).
+The review cursor advances only past a clean run. The review uses the agent SDK on the plan;
+the cron mode unsets `ANTHROPIC_API_KEY`.
+
+**Review is owned here and runs against any repo**: `DriverConfig` defaults
+`agents_dir`/`skills_dir` to guacamayo's own `.claude/`, not the target repo's.
 
 **Signal registry.** `src/telemetry/signals.py` declares 64 signal names (27 `Signal()` entries + 37 `_UNOBSERVABLE`), 21 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`src/telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
 

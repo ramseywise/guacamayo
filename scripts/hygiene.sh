@@ -4,14 +4,22 @@
 # Prunes stale remote refs, deletes merged/empty branches, reports staged changes.
 set -euo pipefail
 
-REPOS="guacamayo listen-wiseer learn-ai-engineering atlas ai-project-template librarian"
 OWNER="ramseywise"
-BASE="$HOME/workspace"
 DRY_RUN="${1:-}"
+GUACAMAYO="$(cd "$(dirname "$0")/.." && pwd)"
 
-for repo in $REPOS; do
-  dir="$BASE/$repo"
-  [ -d "$dir/.git" ] || continue
+# The repo list is repos.toml, read through the telemetry CLI so bash never parses TOML.
+# Read it up front: a registry failure must stop the run, not yield an empty loop.
+REGISTRY="$(uv run --project "$GUACAMAYO" telemetry --list-repos)"
+
+# fd 3, not stdin: the gh/git calls in the loop body must not be able to eat the list.
+while IFS=$'\t' read -r repo dir <&3; do
+  if [ ! -d "$dir/.git" ]; then
+    echo "=== $repo ==="
+    echo "  NOT CLONED: $dir"
+    echo
+    continue
+  fi
   cd "$dir"
 
   echo "=== $repo ==="
@@ -63,6 +71,6 @@ for repo in $REPOS; do
   fi
 
   echo
-done
+done 3<<< "$REGISTRY"
 
 echo "Done. Pass --dry-run to preview without deleting."

@@ -1,0 +1,71 @@
+# The repos guacamayo governs — the one list. Read by `src/telemetry/repos.py`;
+# bash reads it through `uv run telemetry --list-repos` so nothing parses TOML twice.
+#
+#   role        platform | product | job-search | retiring
+#   visibility  public | private — a private repo's findings stay in .sounding/
+#   path        local clone; a missing clone is reported as `not cloned`, never skipped
+#   review      include in the portfolio sweep's code-review pass
+#
+# Adding a repo here adds it to the board, hygiene, and the sweep at once.
+
+[repos.guacamayo]
+role = "platform"
+visibility = "public"
+path = "~/workspace/guacamayo"
+review = true
+
+[repos.galactus]
+role = "platform"
+visibility = "public"
+path = "~/workspace/galactus"
+review = true
+
+[repos.librarian]
+role = "platform"
+visibility = "public"
+path = "~/workspace/librarian"
+review = true
+
+[repos.atlas]
+role = "product"
+visibility = "public"
+path = "~/workspace/atlas"
+review = true
+
+[repos.kiez]
+role = "product"
+visibility = "private"
+path = "~/workspace/kiez"
+review = true
+
+[repos.listen-wiseer]
+role = "product"
+visibility = "public"
+path = "~/workspace/listen-wiseer"
+review = true
+
+[repos.lebanese-blonde]
+role = "product"
+visibility = "private"
+path = "~/workspace/lebanese-blonde"
+review = true
+
+[repos.sisyphus]
+role = "job-search"
+visibility = "private"
+path = "~/workspace/sisyphus"
+review = true
+
+# Subsumed by galactus; deleted once galactus no longer reads from it.
+[repos.ai-project-template]
+role = "retiring"
+visibility = "public"
+path = "~/workspace/ai-project-template"
+review = false
+
+# Being absorbed into librarian.
+[repos.learn-ai-engineering]
+role = "retiring"
+visibility = "public"
+path = "~/workspace/learn-ai-engineering"
+review = false
