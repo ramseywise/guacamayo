@@ -26,6 +26,48 @@ Scope the following initiative into milestones and a Linear-ready backlog: `$ARG
 7. **Hard constraints** — decision gates, external deadlines, capacity
 8. **Dependencies on other initiatives** — what must exist elsewhere before this initiative can ship
 
+## Phase 0 — Read the tree before the docs
+
+**Do this first, before Phase 1, and before trusting any source doc's state claims.**
+Source documents describe intent; the working tree is the only evidence of state.
+Evidence: a PRD inherited green markers from feasibility docs written before anyone read
+the code — six of eight were wrong. Ranking, intake, the review gate and the snapshot
+store were all marked shipped and did not exist; one capability that was built appeared
+in no document. A wrong done-marker removes work from the plan that then never gets
+planned. (See `~/.claude/refs/verification.md` §2.)
+
+For every capability a source doc claims exists, find the file. Record it as:
+
+| Capability | Doc says | Tree says | File path or ABSENT |
+|---|---|---|---|
+
+Rules:
+
+- **A capability with no file path is `ABSENT`, whatever the doc says.** Not partial,
+  not "in progress" — absent. "Shipped" claims decay silently; a path is the only claim
+  that can be checked by the next reader.
+- **`BUILT` means "the module exists and is tested", never "the deliverable is accepted."**
+  Keep those two states in separate columns — a module can be built and simultaneously
+  violate its own acceptance criteria.
+- **Anything you could not verify is `UNVERIFIED`, never an optimistic partial.**
+  Write `🔍 UNVERIFIED — go and look`, not a hopeful middle ground.
+- **The audit is the first deliverable, not a preamble.** Where it contradicts a source
+  doc, the contradiction is a finding with an ID (e.g. `AUDIT-1: PRD claims ranking
+  shipped; tree has no ranking module`) — not a silent correction, and not a reason to
+  re-derive the doc.
+- **A wrong build-state marker is more expensive than a missing one.** It removes work
+  from the plan that then never gets planned, and every downstream sequencing decision
+  inherits the error.
+
+### Phase 0 output
+
+The audit table is included at the top of the milestone doc (Phase 1 output) under a
+`## Capability audit` heading. Findings carry IDs and are referenced from milestone
+done-conditions where relevant — a milestone gated on a capability marked ABSENT must
+name the finding.
+
+---
+
 ## Phase 1 — Milestones (run first)
 
 Define 2–6 phase-level checkpoints before task breakdown. A milestone is a verifiable system
