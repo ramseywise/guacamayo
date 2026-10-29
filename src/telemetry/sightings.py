@@ -25,7 +25,7 @@ import structlog
 log = structlog.get_logger(__name__)
 
 _DEFAULT_SIGHTINGS_PATH = (
-    Path(__file__).resolve().parents[1] / ".sounding" / "telemetry" / "proposal-sightings.jsonl"
+    Path(__file__).resolve().parents[2] / ".sounding" / "telemetry" / "proposal-sightings.jsonl"
 )
 
 # Proposals seen on more than this many distinct days without a decision

@@ -64,7 +64,7 @@ If `mcp__librarian__search_wiki` appears in the available tool list but the call
 
 ### Fallback: librarian not configured (mobile / cloud)
 
-If `mcp__librarian__search_wiki` does not appear in the available tool list: this is the expected mobile/cloud path. Ask: "Any sessions since last wake I should know about?" Ramsey narrates the headline; log anything identity-relevant to growth.md as a `[discovered]` entry. Process learnings (tooling/workflow) stay conversational — they'll reach /retro through the session record, not through growth.md.
+If `mcp__librarian__search_wiki` does not appear in the available tool list, first check `test -d ~/workspace/librarian`. If the directory exists, this is **not** the mobile path — the server failed to load on a machine that has it (stale `.mcp.json` path, unapproved server). Surface a warning — "Librarian is present at ~/workspace/librarian but its MCP server did not load — running degraded. Check `.mcp.json` and `/mcp`." — and log a `[discovered]` growth entry. Either way, state which mode the ingest ran in. Then this is the fallback path: ask "Any sessions since last wake I should know about?" Ramsey narrates the headline; log anything identity-relevant to growth.md as a `[discovered]` entry. Process learnings (tooling/workflow) stay conversational — they'll reach /retro through the session record, not through growth.md.
 
 ### Mobile / cloud-sandbox fallback
 

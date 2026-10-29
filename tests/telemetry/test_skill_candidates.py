@@ -221,6 +221,25 @@ def test_resolver_returns_none_when_all_tool_sequence_null() -> None:
     )
 
 
+def test_resolver_returns_none_when_column_absent() -> None:
+    """A store librarian has not written since LIB-125 has no tool_sequence column.
+
+    ``SELECT *`` then yields rows without the key at all — the case hit on a
+    fresh machine (GUA-164 close-out). It must read as pre-migration, not raise.
+    """
+    no_column = [
+        {
+            k: v
+            for k, v in _session(f"old{i}", seq=["Read", "Edit", "Bash"]).items()
+            if k != "tool_sequence"
+        }
+        for i in range(3)
+    ]
+    assert detect_skill_candidates(no_column) == {}
+    src = SignalSources(sessions=no_column)
+    assert signals.resolve("skill-candidate-patterns", src) is None
+
+
 def test_resolver_returns_zero_when_sequences_exist_but_no_patterns() -> None:
     """When tool_sequence is populated but no patterns cross threshold, return 0.
 

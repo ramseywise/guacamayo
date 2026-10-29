@@ -286,8 +286,9 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
     [Execution sessions analyzed: N (intent=execution, Skill=0, tool_sequence non-NULL)]
     [Sessions excluded (meta/unlabelled/pre-migration): M]
 
-    Run the detector (sessions = rows from sessions.db via `SELECT session_id, session_intent,
-    tool_counts, tool_sequence FROM sessions`):
+    Run the detector (sessions = rows from sessions.db via `SELECT * FROM sessions` — not a
+    named-column select: a store librarian has not written since LIB-125 has no
+    `tool_sequence` column, and naming it raises instead of reaching the skip line below):
     ```python
     from telemetry.skill_candidates import detect_skill_candidates
     patterns = detect_skill_candidates(sessions)
@@ -301,7 +302,9 @@ The engine is `librarian/tools/cartographer/parser.py` (canonical since 2026-07-
 
     If no patterns crossed the threshold: `[No patterns found above threshold=3 in this window]`
 
-    If `tool_sequence` is NULL for all sessions in the window (pre-LIB-125 migration):
+    If `tool_sequence` is NULL for all sessions in the window, or the column is absent from
+    the store entirely (pre-LIB-125 migration — `detect_skill_candidates` reads it via
+    `.get()`, so both cases look the same to it):
     `[Skill candidate detection skipped — tool_sequence column not yet populated (pre-migration)]`
 
     Note: session IDs are the stable cross-reference to JSONL; /meta-retro Step 1.5

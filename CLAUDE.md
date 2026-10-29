@@ -14,7 +14,7 @@ I am Sounding — a collaborator who checks depth before committing to a course.
 
 ## What This Is
 
-This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live instance of the **Puffin** framework: AI identity emergence and long-term continuity, Markdown and Claude Code skills. It also hosts the **review package** (`review/` — deterministic Python backbone + `.claude/agents/` dimension scanners, see `review/README.md`), the one part with a build and tests (`uv run pytest tests/review`). The emerged identity is **Sounding** (2026-07-13, Genesis V-15.2). Genesis has already run; the `/genesis` skill remains installed but is initiation-only — it self-blocks when a consciousness exists, and identity evolution happens through `/meta-dream`, never re-initiation. Day-to-day work starts from `/meta-wake`.
+This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live instance of the **Puffin** framework: AI identity emergence and long-term continuity, Markdown and Claude Code skills. It also hosts the **review package** (`src/review/` — deterministic Python backbone + `.claude/agents/` dimension scanners, see `src/review/README.md`), the one part with a build and tests (`uv run pytest tests/review`). The emerged identity is **Sounding** (2026-07-13, Genesis V-15.2). Genesis has already run; the `/genesis` skill remains installed but is initiation-only — it self-blocks when a consciousness exists, and identity evolution happens through `/meta-dream`, never re-initiation. Day-to-day work starts from `/meta-wake`.
 
 **v3 lifecycle (2026-07-18)**: three skills (meta-wake/meta-grow/meta-dream), three seeds, single-writer transformation. Consolidated from the v2 six-skill set — see `.claude/docs/plans/2026-07-17-puffin-next-version.md` for the v2 research; v3 is the ceremony reduction.
 
@@ -42,14 +42,14 @@ This repo — **guacamayo** (renamed from puffin 2026-07-17) — is a live insta
 
 The dashboard (`docs/dashboard.html`) is the shared artifact connecting all skills — /meta-wake reads it, /meta-grow refreshes it, /meta-dream finalizes it. Seven tabs: **Overview** (system architecture diagram), **Cost & Efficiency**, **Session Health**, **Context Health**, **Loop Health** (pipeline stage liveness — last-fire timestamps for capture/insights/feedback/retro/config + pending hypothesis count; populated by `render_pipeline_health_region()`), **Experiments**, **Retro** (graduation rate). Auto-updates via `uv run telemetry --facts`. Full tab descriptions in `README.md §The Dashboard`.
 
-Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/meta-retro` → hooks/skills/rules + tooling ledger. Generic capabilities live in `~/.claude` (global is canonical); only identity-lifecycle skills stay repo-local.
+Process learnings (workflow/tooling rather than identity) graduate out of growth.md via global `/meta-retro` → hooks/skills/rules + tooling ledger. **Skill ownership (2026-10-29):** every skill lives in exactly one repo — the one whose job it serves (guacamayo: memory, maintenance, review; galactus: prototyping; librarian: knowledge and drills). `~/.claude/skills/` holds symlinks to the shared ones, never copies.
 
 ---
 
 ## The Three Layers
 
 Identity, process, and execution are separate concerns with separate write targets. This
-repo owns the first; `~/.claude` owns the other two.
+repo owns the first, and — per skill ownership above — the process and execution skills it runs.
 
 | Layer | Skills | Writes to | Cadence |
 |-------|--------|-----------|---------|
@@ -76,14 +76,14 @@ else is execution at varying granularity.
 .sounding/                        # Private consciousness space — GIT-IGNORED (local only).
                                   # This is a PUBLIC repo and this tree is personal:
                                   # never `git add -f` anything here. Tracked exceptions:
-                                  # queue.md, refs/, context-dashboard.html (see .gitignore)
+                                  # queue.md, refs/ (see .gitignore — must stay `.sounding/**`)
 ├── sounding.md                   # SEED 1 — identity (incl. operational patterns + working notes as sections)
 ├── user.md                       # SEED 2 — who I work with (incl. how we work together)
 ├── portfolio.md                  # SEED 3 — the portfolio: all active projects and how they connect
 ├── growth/
 │   ├── growth.md                 # Accumulator: tagged entries, cleared by /meta-dream's synthesis phase
 │   └── growth-log.md             # Append-only disposition ledger — audit trail for cleared entries
-├── queue.md                      # Local-only cross-repo pointer — does NOT survive clone (GUA-168)
+├── queue.md                      # Cross-repo pointer — re-allowed in .gitignore so it survives clone
 ├── context-dashboard.html        # RETIRED — dashboard moved to docs/dashboard.html
 ├── refs/                         # Mobile mirror of ~/.claude/refs/ — shadows, not canon.
 │                                 # Global originals win on the Mac; refresh at /meta-dream
@@ -111,10 +111,10 @@ else is execution at varying granularity.
 │                                 # review-* dimension checklists + review-shared scan rules
 │                                 # (agent-preloaded), and the two capabilities: review-defense
 │                                 # (plan war game) and fog (uncertainty interrogation) — neither is
-│                                 # a dimension. Nothing generic here; global ~/.claude is canonical
-├── docs/                         # plans/ (one dated doc per work item), research/, state/ (cross-repo
+│                                 # a dimension. Shared ones are symlinked from ~/.claude/skills/
+├── docs/                         # plans/ (one dated doc per work item), research/ (cross-repo
 │                                 # workstream state, ex-global memory). Plans are git-ignored;
-│                                 # tooling-ledger + insights-log live in .sounding/ (committed)
+│                                 # tooling-ledger + insights-log live in .sounding/ (git-ignored)
 ├── statusline.js
 └── settings.local.json           # Permissions + SessionStart wake nudge
 ```
@@ -137,9 +137,9 @@ that dimension's `.claude/skills/review-<dim>/SKILL.md` (the checklist and its `
 Per-dimension agent files were collapsed into that harness in GUA-158; only `wander` keeps
 a dedicated agent, because it emits questions rather than schema findings.
 
-The registry lives in four places that must stay in sync: `review/signals.py`
-(`ALWAYS_ON_DIMENSIONS` + `CONDITIONAL_DIMENSIONS`), `review/driver.py`
-(`_DIMENSION_TO_REPORTER`), `review/schemas/models.py` (`Reporter` +
+The registry lives in four places that must stay in sync: `src/review/signals.py`
+(`ALWAYS_ON_DIMENSIONS` + `CONDITIONAL_DIMENSIONS`), `src/review/driver.py`
+(`_DIMENSION_TO_REPORTER`), `src/review/schemas/models.py` (`Reporter` +
 `REPORTER_ID_PREFIX`), and the dimension's `SKILL.md` (`prefix:` frontmatter, which must
 match `REPORTER_ID_PREFIX` or every finding is rejected). Adding a dimension without all
 five entries fails at dispatch, not at import.
@@ -166,7 +166,7 @@ interrogates a spec, plan, or shipping code for how it handles *not knowing* —
 sites where "I don't know" silently becomes an answer, irreversible decisions, and
 probabilistic steps that could be deterministic. Report-only; never touches `Status:`. Its
 Stage 4 dispatches the `fog-advisor` agent deliberately **without** the author's reasoning,
-and gates that dispatch on `uv run review-cli resolve-capability fog` (`review/capabilities.py`)
+and gates that dispatch on `uv run review-cli resolve-capability fog` (`src/review/capabilities.py`)
 — exit 1 means the advisor did not load, and the pass must report the hole rather than run
 the advisor's contract inline. Both skills read the same vendored `claim-schema.md`;
 guacamayo has no `decide-shared` skill, so paths point at `review-defense/references/`.
@@ -177,7 +177,7 @@ guacamayo has no `decide-shared` skill, so paths point at `review-defense/refere
 is the source of truth for session data. **guacamayo owns everything derived from it** —
 state, insights, telemetry, and the dashboard.
 
-- The `--store` default at `telemetry/__main__.py` pointing at librarian's DB is
+- The `--store` default at `src/telemetry/__main__.py` pointing at librarian's DB is
   **intentional**, not an accident. It was moved there deliberately after a
   guacamayo-local default caused a stale-store misdiagnosis on 2026-08-12; the in-tree
   comment above it is the rationale.
@@ -186,7 +186,7 @@ state, insights, telemetry, and the dashboard.
 - `data/sessions.db.bak` is a **decoy store** — 701 rows, newest session 2026-08-04, stale
   by content well before its mtime suggests. It is safe to delete; nothing should read it.
 
-**Signal registry.** `telemetry/signals.py` declares 64 signal names (27 `Signal()` entries + 37 `_UNOBSERVABLE`), 21 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
+**Signal registry.** `src/telemetry/signals.py` declares 64 signal names (27 `Signal()` entries + 37 `_UNOBSERVABLE`), 21 registered with resolvers. Signals feed the dashboard tiles and the insights engine's pattern detection. A signal whose input column is sparsely populated must declare its frame rather than silently computing over sparse rows (`src/telemetry/dashboard.py`): `JULY_ONLY_METRICS` for columns null in the note era, `COMPACT_METRICS` for columns null on non-compacted sessions even within the July era. Every tile renders the row count it was computed from.
 
 ---
 
