@@ -443,7 +443,7 @@ def _run_board() -> None:
 
     log = structlog.get_logger(__name__)
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     p = argparse.ArgumentParser(description="Emit the board state snapshot")
     p.add_argument("--workspace", default="~/workspace", help="Root holding the active repo clones")
     p.add_argument(
@@ -752,7 +752,7 @@ def _run_consistency() -> None:
     )
     from telemetry.loop import collect_plan_docs, detect_drift
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     p = argparse.ArgumentParser(description="Emit the board-consistency report")
     p.add_argument("--workspace", default="~/workspace", help="Root holding the active repo clones")
     p.add_argument(
@@ -963,7 +963,7 @@ def _run_facts() -> None:
         upsert_findings,
     )
 
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = Path(__file__).resolve().parents[2]
     p = argparse.ArgumentParser(description="Refresh the session fact table + dashboard regions")
     # The live fact store is librarian's, not guacamayo's: the daily cartographer
     # job passes --store pointing there, and librarian owns session derivation.
@@ -1113,8 +1113,10 @@ def _run_facts() -> None:
     if not args.no_git:
         from telemetry.gitstore import refresh as refresh_git
 
-        commits, prs, issues = refresh_git(Path(args.workspace).expanduser(), store)
-        print(f"Repo activity: {commits} commit-days, {prs} PRs, {issues} issues")
+        commits, prs, issues, branches = refresh_git(Path(args.workspace).expanduser(), store)
+        print(
+            f"Repo activity: {commits} commit-days, {prs} PRs, {issues} issues, {branches} branches"
+        )
 
     if not args.no_verdicts:
         from telemetry.dashboard import parse_ledger

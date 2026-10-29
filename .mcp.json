@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "librarian": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "${HOME}/workspace/librarian",
+        "python",
+        "app/mcp_server/server.py"
+      ]
+    }
+  }
+}

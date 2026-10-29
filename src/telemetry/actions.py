@@ -41,7 +41,7 @@ log = structlog.get_logger(__name__)
 
 # Default actions log path; callers may override via `actions_log`.
 _DEFAULT_ACTIONS_LOG = (
-    Path(__file__).resolve().parents[1] / ".sounding" / "telemetry" / "actions.jsonl"
+    Path(__file__).resolve().parents[2] / ".sounding" / "telemetry" / "actions.jsonl"
 )
 
 # Unambiguous (column → labels to remove) pairs — mirrors evaluator._COLUMN_LABEL_MISMATCH.

@@ -67,7 +67,7 @@ If `mcp__librarian__search_wiki` appears in the available tool list but the call
 
 ### Fallback: librarian not configured (mobile / cloud)
 
-If `mcp__librarian__search_wiki` does not appear in the available tool list: this is the expected mobile/cloud path. Ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
+If `mcp__librarian__search_wiki` does not appear in the available tool list, first check `test -d ~/workspace/librarian`. If the directory exists, the server failed to load on a machine that has it — warn "Librarian is present but its MCP server did not load — running degraded. Check `.mcp.json` and `/mcp`." and log a `[discovered]` growth entry. Otherwise this is the expected mobile/cloud path. Either way, state which mode the ingest ran in, then ask: "Any sessions since we started I should know about?" — one sentence per session. Log identity-relevant findings to growth.md.
 
 ### Board (lightweight — read the pre-computed file, no gh sweeps)
 

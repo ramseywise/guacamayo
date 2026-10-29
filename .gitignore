@@ -1,5 +1,4 @@
 .DS_Store
-.mcp.json
 claude-companion/
 .claude/worktrees/
 .claude/docs/
@@ -16,12 +15,18 @@ logs/
 .pytest_cache/
 .ruff_cache/
 
-# Hook telemetry sinks (moved from ~/.claude 2026-08-12). High-churn append-only
-# logs written by ~/.claude/hooks/lib.sh on every hook fire -- data, not source.
-.sounding/
+# .sounding/ is PRIVATE (GUA-168). This is a PUBLIC repo and the tree is a journal
+# about a real person. Default-deny: everything under it is ignored, so a new personal
+# file is never one `git add -A` from being published. Do not invert this.
+# Must stay `.sounding/**`, not `.sounding/`: git cannot re-include a file whose parent
+# directory is excluded, so `.sounding/` silently disables every `!` line below.
+.sounding/**
 
 # Transferable state -- carries the system, not the person. Re-allowed explicitly.
-!.sounding/queue.md              # cross-repo pointer; must survive clone for mobile /meta-wake
-!.sounding/refs/                 # mobile mirror of ~/.claude/refs (stack conventions)
+# (gitignore has no trailing comments: text after a pattern is part of the pattern.)
+# Cross-repo pointer; must survive clone for mobile /meta-wake.
+!.sounding/queue.md
+# Mobile mirror of ~/.claude/refs (stack conventions).
+!.sounding/refs/
 !.sounding/refs/**
 # dashboard moved to docs/dashboard.html (GUA-164); no longer in .sounding/

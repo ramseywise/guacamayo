@@ -76,9 +76,14 @@ class FactsRun:
         self.store = root / "sessions.db"
         self._monkeypatch = monkeypatch
 
-    def __call__(self, session_list: list[dict[str, Any]]) -> None:
+    def __call__(self, session_list: list[dict[str, Any]], *, git: bool = False) -> None:
+        """`git=True` runs the real git scan over an empty workspace — no repos, no
+        network — so the caller is exercised against refresh()'s actual return shape."""
         self._monkeypatch.setattr(sessions, "iter_sessions", lambda _dir: session_list)
         self._monkeypatch.setattr(factstore, "iter_sessions", lambda _dir: session_list)
+        workspace = self.root / "workspace"
+        workspace.mkdir(exist_ok=True)
+        git_args = ["--workspace", str(workspace)] if git else ["--no-git"]
         self._monkeypatch.setattr(
             "sys.argv",
             [
@@ -92,7 +97,7 @@ class FactsRun:
                 "--findings",
                 str(self.root / "findings.jsonl"),
                 "--no-inject",
-                "--no-git",
+                *git_args,
                 "--no-verdicts",
             ],
         )
@@ -147,6 +152,13 @@ def test_facts_succeeds_when_input_exists(facts_run: FactsRun) -> None:
     finally:
         con.close()
     assert count == 1, "a session was available but no fact row was written"
+
+
+def test_facts_git_step_matches_refresh_shape(facts_run: FactsRun) -> None:
+    """gitstore.refresh() grew a fourth return value (branches) in 91f2bb5 while the
+    caller still unpacked three, and the 09:00 job crashed daily from 2026-08-21 with
+    every test green — they all ran --no-git. This one keeps the git step in."""
+    facts_run([_fake_session("bbbb2222", "2026-07-30T09:00:00+00:00")], git=True)
 
 
 def test_placeholder_string_is_never_written(facts_run: FactsRun, tmp_path: Path) -> None:
