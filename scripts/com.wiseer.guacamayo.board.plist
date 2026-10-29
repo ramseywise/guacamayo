@@ -14,12 +14,12 @@
          facts loss is irreversible (JSONL rotates in ~5 days); board loss is not. -->
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/wiseer/workspace/guacamayo/scripts/telemetry-cron.sh</string>
+        <string>/Users/ramsey-wise/workspace/guacamayo/scripts/telemetry-cron.sh</string>
         <string>board</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/wiseer/workspace/guacamayo</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -31,10 +31,10 @@
     <integer>600</integer>
 
     <key>StandardOutPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.log</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/board-launchd.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/board-launchd.err</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/board-launchd.err</string>
 
     <key>RunAtLoad</key>
     <true/>

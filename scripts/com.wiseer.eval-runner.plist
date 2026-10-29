@@ -12,11 +12,11 @@
          Monday 10:00 — after cartographer.cron (09:30) so logs don't collide. -->
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/wiseer/workspace/guacamayo/scripts/eval-runner.sh</string>
+        <string>/Users/ramsey-wise/workspace/guacamayo/scripts/eval-runner.sh</string>
     </array>
 
     <key>WorkingDirectory</key>
-    <string>/Users/wiseer/workspace/guacamayo</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo</string>
 
     <key>EnvironmentVariables</key>
     <dict>
@@ -35,10 +35,10 @@
     </dict>
 
     <key>StandardOutPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.log</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/eval-runner.log</string>
 
     <key>StandardErrorPath</key>
-    <string>/Users/wiseer/workspace/guacamayo/logs/eval-runner.err</string>
+    <string>/Users/ramsey-wise/workspace/guacamayo/logs/eval-runner.err</string>
 
     <key>RunAtLoad</key>
     <false/>
